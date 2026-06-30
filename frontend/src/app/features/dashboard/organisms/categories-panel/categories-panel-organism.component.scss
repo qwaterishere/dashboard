@@ -1,0 +1,44 @@
+.r-block h4,
+.r-block app-heading {
+  margin-bottom: 3px;
+}
+
+.r-cap {
+  font-size: 0.72rem;
+  color: var(--mut);
+  margin-bottom: 14px;
+}
+
+.r-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-bottom: 26px;
+}
+
+.cat {
+  font-size: 0.78rem;
+}
+
+.c-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.c-top b {
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.c-top span {
+  font-weight: 700;
+  color: var(--mut);
+}

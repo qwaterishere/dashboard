@@ -1,0 +1,52 @@
+import { Component, computed, inject, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+import { NavActiveService } from '../../../core/routing/nav-active.service';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+
+@Component({
+  selector: 'app-nav-item',
+  standalone: true,
+  imports: [RouterLink, BadgeComponent],
+  template: `
+    <a [routerLink]="path()" [class.on]="isActive()">
+      {{ label() }}
+      @if (badge()) {
+        <app-badge [label]="badge()!" variant="nav" />
+      }
+    </a>
+  `,
+  styles: `
+    a {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--mut);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.86rem;
+      padding: 10px 12px;
+      border-radius: 10px;
+      transition: all 0.15s;
+    }
+    a:hover { color: var(--txt); background: #11182a; }
+    a.on {
+      color: #fff;
+      background: linear-gradient(90deg, rgba(110, 107, 255, 0.28), rgba(61, 220, 151, 0.14));
+      box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.35);
+    }
+  `,
+})
+export class NavItemComponent {
+  readonly path = input.required<string>();
+  readonly label = input.required<string>();
+  readonly badge = input<string>();
+
+  private readonly navActive = inject(NavActiveService);
+
+  readonly isActive = computed(() => {
+    const active = this.navActive.segment();
+    const expected = this.path().replace(/^\//, '');
+    return active === expected;
+  });
+}
