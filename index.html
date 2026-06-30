@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сезоны — дашборд</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/base.css">
+<link rel="stylesheet" href="app/dashboard.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">СЕЗОНЫ<span>.</span></div>
+    <nav class="nav">
+      <a href="index.html" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Дашборд</a>
+      <a href="sales.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Продажи</a>
+      <a href="warehouse.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-5 9 5v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M9 21v-9h6v9"/></svg>Склад</a>
+      <a href="purchases.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2 12h11l2-8H6"/></svg>Закупки</a>
+      <a href="foodcost.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Фудкост<span class="badge">3</span></a>
+      <div class="nav-sep"></div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.7 7.7 0 000-6m-2.4-3.4a7.7 7.7 0 00-6 0M4.6 9a7.7 7.7 0 000 6m2.4 3.4a7.7 7.7 0 006 0"/></svg>Настройки</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 015 .8c0 1.7-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Поддержка</a>
+    </nav>
+    <div class="side-bottom"><span class="mode"><span class="sun"></span> Тёмная тема</span></div>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <h1 id="greeting"></h1>
+    </div>
+
+    <!-- управление периодом (минимальный шаг — день, максимальный — год) -->
+    <div class="period-bar">
+      <div class="seg">
+        <button>Неделя</button>
+        <button class="on">Месяц</button>
+        <button>Год</button>
+      </div>
+      <div class="date-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <span id="periodLabel"></span> <span class="dp-note" id="periodNote"></span>
+      </div>
+      <div class="cmp-pill">LfL: сравнение с <b id="compareWith"></b><span class="x">✕</span></div>
+    </div>
+
+    <!-- KPI: нейтральные значения, акцент только в полоске и спарклайне -->
+    <div class="kpis" id="kpis"></div>
+    <!-- выручка по дням -->
+    <div class="panel">
+      <div class="p-head">
+        <h3>Выручка по дням</h3>
+        <div class="sp">
+          <button class="pill">Июнь 2026</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span style="color:var(--mut2)">клик по дню — детали</span>
+      </div>
+      <div class="chart-wrap">
+        <svg id="daysChart" viewBox="0 0 860 230" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+
+    <div class="row2">
+      <!-- отзывы -->
+      <div class="panel" style="margin-bottom:0">
+        <div class="p-head">
+          <h3>Отзывы</h3>
+          <div class="sp"><button class="pill">Месяц</button></div>
+        </div>
+        <div id="reviews"></div>
+      </div>
+
+      <!-- фудкост -->
+      <div class="panel" style="margin-bottom:0">
+        <div class="p-head">
+          <h3>Фудкост</h3>
+          <div class="sp"><button class="pill">Месяц</button></div>
+        </div>
+        <div class="fc-cap" id="fcMiniCap"></div>
+        <div class="fc-list" id="fcMini"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========= right ========= -->
+  <aside class="right">
+    <div class="profile">
+      <div class="icon-btn"><span class="ndot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10 20a2 2 0 004 0"/></svg></div>
+      <div class="ava">АК</div>
+      <div class="who"><b>Артём Ким</b><span>Управляющий</span></div>
+    </div>
+
+    <div class="r-block">
+      <div class="r-head">
+        <div><h4>Продажи по категориям</h4><div class="r-cap">Доля в выручке за период</div></div>
+        <button class="pill">Месяц</button>
+      </div>
+      <div class="cat-list" id="categories"></div>
+      <a class="r-link" href="#">Все категории и анализ →</a>
+    </div>
+
+    <div class="r-divider"></div>
+
+    <div class="r-block">
+      <div class="r-head">
+        <div><h4>Остаток на складе</h4></div>
+      </div>
+      <div class="stock-total">
+        <div class="st-sum" id="stockTotal"></div>
+      </div>
+      <div class="store-split" id="storeSplit"></div>
+      <a class="r-link" href="#">Перейти на склад →</a>
+    </div>
+  </aside>
+
+</div>
+<script type="module" src="app/js/pages/dashboard.js"></script>
+</body>
+</html>

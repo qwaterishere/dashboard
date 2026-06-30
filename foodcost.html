@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сезоны — фудкост</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/base.css">
+<link rel="stylesheet" href="app/foodcost.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="logo">СЕЗОНЫ<span>.</span></div>
+    <nav class="nav">
+      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Дашборд</a>
+      <a href="sales.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Продажи</a>
+      <a href="warehouse.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-5 9 5v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M9 21v-9h6v9"/></svg>Склад</a>
+      <a href="purchases.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2 12h11l2-8H6"/></svg>Закупки</a>
+      <a href="foodcost.html" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Фудкост<span class="badge">3</span></a>
+      <div class="nav-sep"></div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.7 7.7 0 000-6m-2.4-3.4a7.7 7.7 0 00-6 0M4.6 9a7.7 7.7 0 000 6m2.4 3.4a7.7 7.7 0 006 0"/></svg>Настройки</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 015 .8c0 1.7-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Поддержка</a>
+    </nav>
+    <div class="side-bottom"><span class="mode"><span class="sun"></span> Тёмная тема</span></div>
+  </aside>
+
+  <main class="main page-foodcost">
+<div class="period-bar">
+  <div class="seg">
+    <button>Неделя</button>
+    <button class="on">Месяц</button>
+    <button>Год</button>
+  </div>
+  <div class="date-pill">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <span id="periodLabel"></span> <span class="dp-note" id="periodNote"></span>
+  </div>
+  <div class="cmp-pill">LfL: к <span id="compareWith"></span></div>
+</div>
+
+<!-- ===== две большие карточки ===== -->
+<div class="fc-overview">
+  <div class="big-card clean" id="cleanCard"></div>
+  <div class="big-card dirty" id="dirtyCard"></div>
+</div>
+
+<!-- ===== три подразделения ===== -->
+<div class="units" id="units"></div>
+
+<!-- ===== блок потерь: факт и цель в рублях ===== -->
+<div class="losses">
+  <div class="losses-head">
+    <h2>Расход продуктов сверх продаж</h2>
+    <span class="losses-sub">статьи потерь · факт и цель за период</span>
+  </div>
+  <table class="loss-table">
+    <thead>
+      <tr><th>Статья</th><th class="num">Факт</th><th class="num">Цель</th></tr>
+    </thead>
+    <tbody id="lossBody"></tbody>
+    <tfoot id="lossFoot"></tfoot>
+  </table>
+</div>
+
+<!-- ===== блок скидок ===== -->
+<div class="discounts">
+  <div class="losses-head">
+    <h2>Влияние скидок</h2>
+    <span class="losses-sub">скидки не меняют себестоимость, но снижают выручку и повышают фудкост</span>
+  </div>
+  <div class="disc-grid" id="discGrid"></div>
+</div>
+
+<!-- ===== чарт продуктов: топ/анти-топ по фудкосту ===== -->
+<div class="prodchart">
+  <div class="catfc-head">
+    <div>
+      <h2>Выгодность позиций по фудкосту</h2>
+      <span class="losses-sub">высота столбца — цена, закрашено — себестоимость, светлое сверху — наценка. Рейтинг по фудкост-проценту, не по марже в рублях.</span>
+    </div>
+    <div class="pc-controls">
+      <div class="seg sm" id="pcGroup">
+        <button class="on" data-g="all">Всё</button>
+        <button data-g="k">Кухня</button>
+        <button data-g="b">Бар</button>
+        <button data-g="w">Вино</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pc-side-label">
+    <span class="pcs ok">● 10 лучших — низкий фудкост</span>
+    <span class="pcs bad">● 10 худших — высокий фудкост</span>
+  </div>
+  <div class="pc-chart" id="pcChart"></div>
+  <div class="pc-tip" id="pcTip"></div>
+</div>
+
+<!-- ===== фудкост по категориям (перемещён вниз) ===== -->
+<div class="catfc">
+  <div class="catfc-head">
+    <h2>Фудкост по категориям</h2>
+    <div class="catfc-tabs" id="catTabs">
+      <button class="ct-tab on" data-unit="k">Кухня</button>
+      <button class="ct-tab" data-unit="b">Бар</button>
+      <button class="ct-tab" data-unit="w">Вино</button>
+    </div>
+  </div>
+  <table class="loss-table cat-table">
+    <thead>
+      <tr><th>Категория</th><th class="num">Фудкост</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Себестоимость</th></tr>
+    </thead>
+    <tbody id="catBody"></tbody>
+  </table>
+</div>
+  </main>
+</div>
+
+<script type="module" src="app/js/pages/foodcost.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сезоны — склад</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app/base.css">
+<link rel="stylesheet" href="app/warehouse.css">
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="logo">СЕЗОНЫ<span>.</span></div>
+    <nav class="nav">
+      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Дашборд</a>
+      <a href="sales.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Продажи</a>
+      <a href="warehouse.html" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-5 9 5v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M9 21v-9h6v9"/></svg>Склад</a>
+      <a href="purchases.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2 12h11l2-8H6"/></svg>Закупки</a>
+      <a href="foodcost.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Фудкост<span class="badge">3</span></a>
+      <div class="nav-sep"></div>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.7 7.7 0 000-6m-2.4-3.4a7.7 7.7 0 00-6 0M4.6 9a7.7 7.7 0 000 6m2.4 3.4a7.7 7.7 0 006 0"/></svg>Настройки</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 015 .8c0 1.7-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>Поддержка</a>
+    </nav>
+    <div class="side-bottom"><span class="mode"><span class="sun"></span> Тёмная тема</span></div>
+  </aside>
+
+  <main class="main page-warehouse">
+<div class="period-bar">
+  <div class="date-pill">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <span id="asOfLabel"></span> <span class="dp-note" id="asOfNote"></span>
+  </div>
+</div>
+
+<!-- ===== общие запасы + категории ===== -->
+<div class="row2">
+  <div class="block total-big">
+    <div class="tb-label">Общие товарные запасы</div>
+    <div class="tb-val" id="totalValue"></div>
+    <div class="tb-sub" id="totalSub"></div>
+    <div class="tb-stores" id="totalStores"></div>
+  </div>
+
+  <div class="block">
+    <div class="block-head">
+      <h2>Запасы по категориям</h2>
+      <div class="seg sm" id="levelSeg">
+        <button class="on" data-level="cat">Категории</button>
+        <button data-level="sub">Подкатегории</button>
+      </div>
+    </div>
+    <div class="donut-wrap" id="donutWrap">
+      <div class="donut-side"><svg id="donut" viewBox="0 0 190 190"></svg><div class="donut-center" id="donutCenter"></div></div>
+      <div class="legend-side" id="legend"></div>
+    </div>
+    <div class="bars-block" id="barsBlock" style="display:none">
+      <div class="bars" id="bars"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== динамика запасов ===== -->
+<div class="block">
+  <div class="block-head">
+    <h2>Динамика товарных запасов</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="seg sm" id="storeSeg">
+        <button class="on" data-store="all">Все склады</button>
+        <button data-store="k">Кухня</button>
+        <button data-store="b">Бар</button>
+        <button data-store="w">Вино</button>
+      </div>
+      <div class="seg sm" id="freqSeg">
+        <button class="on" data-freq="week">Недели</button>
+        <button data-freq="month">Месяцы</button>
+      </div>
+    </div>
+  </div>
+  <svg class="stock-chart" id="stockChart" viewBox="0 0 900 280" preserveAspectRatio="none"></svg>
+</div>
+
+<!-- ===== топ-20 ===== -->
+<div class="block">
+  <div class="block-head">
+    <h2>Наибольший остаток на складе</h2>
+    <div class="seg sm" id="metricSeg">
+      <button class="on" data-metric="money">В деньгах</button>
+      <button data-metric="qty">В количестве</button>
+    </div>
+  </div>
+  <div class="top-bars" id="topBars"></div>
+</div>
+  </main>
+</div>
+
+<script type="module" src="app/js/pages/warehouse.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "period": { "label": "Июнь 2026", "note": "1–11 · закрытые дни" },
+  "positions": [
+    { "name": "Стейк рибай", "sub": "Горячее", "cat": "k", "qty": 182, "price": 2390, "unitCost": 990 },
+    { "name": "Паста карбонара", "sub": "Горячее", "cat": "k", "qty": 410, "price": 720, "unitCost": 230 },
+    { "name": "Том ям", "sub": "Супы", "cat": "k", "qty": 256, "price": 790, "unitCost": 198 },
+    { "name": "Цезарь с курицей", "sub": "Салаты", "cat": "k", "qty": 388, "price": 650, "unitCost": 175 },
+    { "name": "Боул с лососем", "sub": "Салаты", "cat": "k", "qty": 214, "price": 840, "unitCost": 336 },
+    { "name": "Брускетта", "sub": "Закуски", "cat": "k", "qty": 342, "price": 450, "unitCost": 108 },
+    { "name": "Тартар", "sub": "Закуски", "cat": "k", "qty": 128, "price": 890, "unitCost": 312 },
+    { "name": "Картофель фри", "sub": "Гарниры", "cat": "k", "qty": 520, "price": 320, "unitCost": 58 },
+    { "name": "Чизкейк", "sub": "Десерты", "cat": "k", "qty": 298, "price": 490, "unitCost": 118 },
+    { "name": "Тирамису", "sub": "Десерты", "cat": "k", "qty": 176, "price": 520, "unitCost": 182 },
+    { "name": "Дорадо", "sub": "Горячее", "cat": "k", "qty": 94, "price": 1450, "unitCost": 610 },
+    { "name": "Устрицы", "sub": "Закуски", "cat": "k", "qty": 88, "price": 1200, "unitCost": 540 },
+    { "name": "Капучино", "sub": "Кофе", "cat": "b", "qty": 640, "price": 280, "unitCost": 48 },
+    { "name": "Эспрессо", "sub": "Кофе", "cat": "b", "qty": 410, "price": 180, "unitCost": 25 },
+    { "name": "Лимонад", "sub": "Безалкогольное", "cat": "b", "qty": 356, "price": 350, "unitCost": 52 },
+    { "name": "Негрони", "sub": "Коктейли", "cat": "b", "qty": 210, "price": 650, "unitCost": 140 },
+    { "name": "Апероль", "sub": "Коктейли", "cat": "b", "qty": 188, "price": 590, "unitCost": 155 },
+    { "name": "Виски", "sub": "Крепкий", "cat": "b", "qty": 96, "price": 720, "unitCost": 210 },
+    { "name": "Вино бокал Кьянти", "sub": "Вино бокал", "cat": "w", "qty": 204, "price": 620, "unitCost": 205 },
+    { "name": "Вино бокал Просекко", "sub": "Вино бокал", "cat": "w", "qty": 176, "price": 550, "unitCost": 165 },
+    { "name": "Бордо бутылка", "sub": "Вино бутылка", "cat": "w", "qty": 38, "price": 4200, "unitCost": 1680 },
+    { "name": "Шабли бутылка", "sub": "Вино бутылка", "cat": "w", "qty": 31, "price": 3800, "unitCost": 1560 }
+  ]
+}
