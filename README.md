@@ -57,3 +57,11 @@ API: `http://localhost:8000/api/dashboard`. Один origin — CORS не нуж
 
 Отдельно для каждой страниы  → её css; общая оболочка → `base.css` осознанно.
 Семафор фудкоста инвертирован через `.page-foodcost` (рост = плохо).
+
+### Backend logic 
+
+api (controller)  →  service (logic)  →  crud (DB ops)  →  model (tables)
+        ↕                                                     
+     schema (Pydantic DTO crosses the boundary)
+
+route never touches the DB directly; it calls a service, which calls crud.
