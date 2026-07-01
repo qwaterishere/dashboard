@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+/* Legacy: 208px | main | 296px */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width, 208px) minmax(0, 1fr) var(--right-panel-width, 296px);
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+.app-main {
+  grid-column: 2;
+  grid-row: 1;
+  padding: 24px 26px 36px;
+  min-width: 0;
+}
+
+.page-body {
+  min-width: 0;
+}
+
+.page-body router-outlet {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  .app {
+    grid-template-columns: var(--sidebar-width, 208px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar {
+    grid-row: auto;
+  }
+
+  .app-main {
+    grid-column: 1;
+  }
+}

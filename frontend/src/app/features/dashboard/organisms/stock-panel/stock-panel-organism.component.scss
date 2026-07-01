@@ -1,0 +1,27 @@
+.stock-total {
+  margin-bottom: 14px;
+}
+
+.st-sum {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.store-split {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ss-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--mut);
+}
+
+.ss-row b {
+  color: var(--txt);
+  font-weight: 700;
+}

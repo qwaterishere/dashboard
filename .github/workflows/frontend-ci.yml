@@ -1,0 +1,45 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/frontend-ci.yml']
+  pull_request:
+    paths: ['frontend/**']
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Sync fallback JSON from data/
+        run: npm run sync:data
+
+      - name: Security grep
+        run: npm run lint:security
+
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+      - name: Unit tests
+        run: npm run test:ci
+
+      - name: Production build
+        run: npm run build -- --configuration=production

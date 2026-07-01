@@ -1,0 +1,28 @@
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 15px 18px 17px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.k-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.k-sub {
+  font-size: 0.7rem;
+  color: var(--mut);
+  margin-top: 6px;
+}
+
+.k-sub :global(b) {
+  color: var(--txt);
+  font-weight: 700;
+}
