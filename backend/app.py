@@ -16,6 +16,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from database.db import DataBaseManager
 
 ROOT = Path(__file__).resolve().parent.parent      # папка sezony-dashboard
 DATA = ROOT / "data"
@@ -31,6 +32,9 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=["*"],
 )
+
+db_manager = DataBaseManager()
+db_manager.create_all()
 
 
 def load(name: str) -> dict:
