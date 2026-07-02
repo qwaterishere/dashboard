@@ -1,4 +1,4 @@
-"""Pytest configuration for backend tests."""
+"""Shared pytest fixtures for backend tests."""
 
 import pytest
 

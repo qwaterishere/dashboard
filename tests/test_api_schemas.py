@@ -10,7 +10,7 @@ from backend.app import PAGES, app
 from backend.schemas.registry import SCHEMA_REGISTRY, validate_page
 
 client = TestClient(app)
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
 

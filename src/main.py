@@ -1,7 +1,7 @@
 """Сезоны — бэкенд дашборда (FastAPI).
 
 Запуск из корня репозитория:
-    pip install -r backend/requirements.txt
+    pip install -r requirements/dev.txt
     uvicorn backend.app:app --reload --port 8000
 
 API: http://localhost:8000/api/dashboard
@@ -19,15 +19,10 @@ from slowapi.util import get_remote_address
 from backend.core.security import ALLOWED_ORIGINS, ALLOWED_PAGES, RATE_LIMIT, RATE_LIMIT_ENABLED, STATIC_DIR
 from backend.middleware.security_headers import SecurityHeadersMiddleware
 from backend.services.pages import load_validated
-
-logger = logging.getLogger(__name__)
-
 from src.database import db_manager
 from src.sales.router import router as sales_router
 
-ROOT = Path(__file__).resolve().parent.parent      # папка seasons
-DATA = ROOT / "data"
-PAGES = {"dashboard", "sales", "warehouse", "foodcost"}
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Сезоны — API дашборда")
 limiter = Limiter(key_func=get_remote_address, enabled=RATE_LIMIT_ENABLED)
@@ -44,14 +39,7 @@ app.add_middleware(
 
 db_manager.create_all()
 
-# Роутеры доменов подключаются ДО заглушки /api/{page}: маршруты
-# сопоставляются в порядке регистрации, точный /api/sales должен победить.
-app.include_router(sales_router)
-
-db_manager.create_all()
-
-# Роутеры доменов подключаются ДО заглушки /api/{page}: маршруты
-# сопоставляются в порядке регистрации, точный /api/sales должен победить.
+# Роутеры доменов — до catch-all /api/{page}; точный /api/sales побеждает.
 app.include_router(sales_router)
 
 
@@ -61,12 +49,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         raise exc
     logger.exception("Unhandled error on %s", request.url.path)
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
-
-def load(name: str) -> dict:
-    path = DATA / f"{name}.json"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail=f"Нет данных для «{name}»")
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @app.get("/api/{page}")
@@ -81,5 +63,4 @@ def get_page(request: Request, page: str) -> JSONResponse:
 # Статику монтируем ПОСЛЕ маршрутов API. STATIC_DIR=frontend/dist в production (Фаза 8).
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
-# Backward compatibility for tests importing PAGES.
 PAGES = ALLOWED_PAGES
