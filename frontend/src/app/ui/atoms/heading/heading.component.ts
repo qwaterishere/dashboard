@@ -25,6 +25,11 @@ import { Component, input } from '@angular/core';
       font-weight: 700;
     }
 
+    h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
     h3 {
       font-size: 0.98rem;
       font-weight: 700;

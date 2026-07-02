@@ -1,0 +1,88 @@
+.block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.pos-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.abc-axis {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--mut);
+}
+
+.abc-summary {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.abc-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 13px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: all 0.14s;
+  color: inherit;
+  font-family: inherit;
+
+  &:hover {
+    border-color: #39456b;
+  }
+
+  &.off {
+    opacity: 0.4;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+  }
+
+  &.A .dot {
+    background: var(--grn);
+  }
+
+  &.B .dot {
+    background: var(--vio);
+  }
+
+  &.C .dot {
+    background: var(--mut2);
+  }
+
+  b {
+    font-weight: 800;
+  }
+
+  .meta {
+    color: var(--mut2);
+    font-size: 0.7rem;
+  }
+}

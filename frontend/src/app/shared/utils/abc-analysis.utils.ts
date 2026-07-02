@@ -6,9 +6,9 @@ export interface AbcItem {
 }
 
 /** ABC-классификация: A ≤80%, B ≤95%, C >95% кумулятивной доли. */
-export function computeAbcClasses<T extends Record<string, number>>(
+export function computeAbcClasses<T extends object>(
   items: T[],
-  axis: keyof T & string,
+  axis: keyof T,
 ): (T & { abc: AbcClass })[] {
   const sorted = [...items].sort((a, b) => (b[axis] as number) - (a[axis] as number));
   const total = sorted.reduce((sum, item) => sum + (item[axis] as number), 0);
