@@ -1,3 +1,8 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
 .kpi {
   background: var(--card);
   border: 1px solid var(--line);
@@ -7,6 +12,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 100%;
 }
 
 .k-top {
@@ -20,6 +27,8 @@
   font-size: 0.7rem;
   color: var(--mut);
   margin-top: 6px;
+  min-height: 1.35rem;
+  flex: 1;
 }
 
 .k-sub :global(b) {

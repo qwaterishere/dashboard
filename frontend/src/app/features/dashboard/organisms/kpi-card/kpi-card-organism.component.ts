@@ -3,7 +3,7 @@ import { Component, input } from '@angular/core';
 import { LabelComponent } from '../../../../ui/atoms/label/label.component';
 import { KpiValueComponent } from '../../../../ui/molecules/kpi-value/kpi-value.component';
 import { GoalTrackComponent } from '../../../../ui/molecules/goal-track/goal-track.component';
-import type { LflDirection } from '../../../../shared/models';
+import type { DetailPopover, LflDirection } from '../../../../shared/models';
 
 export type KpiTone = 'kpi-rev' | 'kpi-check' | 'kpi-guests';
 
@@ -21,12 +21,16 @@ export type KpiTone = 'kpi-rev' | 'kpi-check' | 'kpi-guests';
         [format]="valueFormat()"
         [lflPct]="lflPct()"
         [lflDir]="lflDir()"
+        [lflPopoverKey]="lflPopoverKey()"
+        [popoverDetails]="popoverDetails()"
       />
       <p class="k-sub"><ng-content select="[subtext]" /></p>
       <app-goal-track
         [headline]="forecastHeadline()"
         [trackPct]="trackPct()"
         [risk]="risk()"
+        [goalPopoverKey]="goalPopoverKey()"
+        [popoverDetails]="popoverDetails()"
       />
     </div>
   `,
@@ -42,6 +46,9 @@ export class KpiCardOrganismComponent {
   readonly forecastHeadline = input.required<string>();
   readonly trackPct = input.required<number>();
   readonly risk = input(false);
+  readonly lflPopoverKey = input<string | undefined>();
+  readonly goalPopoverKey = input<string | undefined>();
+  readonly popoverDetails = input<Record<string, DetailPopover>>({});
 
   modifierClass(): string {
     const map: Record<KpiTone, string> = {

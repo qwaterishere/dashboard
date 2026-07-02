@@ -8,7 +8,7 @@ import { HeadingComponent } from '../../atoms/heading/heading.component';
   imports: [HeadingComponent],
   template: `
     <div class="p-head">
-      <app-heading [level]="3">{{ title() }}</app-heading>
+      <app-heading [level]="3" [text]="title()" />
       <div class="sp">
         <ng-content />
       </div>
