@@ -1,0 +1,61 @@
+.discounts {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  margin-top: 16px;
+}
+
+.losses-head {
+  margin-bottom: 16px;
+}
+
+.losses-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--mut2);
+  margin-top: 4px;
+}
+
+.disc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.disc-cell {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 17px;
+}
+
+.dc-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mut2);
+}
+
+.dc-val {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 8px 0 4px;
+
+  &.amber {
+    color: var(--amber);
+  }
+}
+
+.dc-cap {
+  font-size: 0.7rem;
+  color: var(--mut);
+}
+
+@media (max-width: 900px) {
+  .disc-grid {
+    grid-template-columns: 1fr;
+  }
+}

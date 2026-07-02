@@ -1,6 +1,10 @@
 import { Component, computed, input, model } from '@angular/core';
 
-import { buildDonutChartLayout } from '../../../shared/utils/donut-chart.utils';
+import {
+  buildDonutChartLayout,
+  DONUT_LAYOUT_COMPACT,
+  DONUT_LAYOUT_DEFAULT,
+} from '../../../shared/utils/donut-chart.utils';
 
 export interface DonutChartSlice {
   key: string;
@@ -11,9 +15,12 @@ export interface DonutChartSlice {
 @Component({
   selector: 'app-donut-chart-organism',
   standalone: true,
+  host: {
+    '[class.compact]': 'variant() === "compact"',
+  },
   template: `
     <div class="donut-side">
-      <svg viewBox="0 0 220 220" aria-label="структура продаж">
+      <svg [attr.viewBox]="'0 0 ' + viewSize() + ' ' + viewSize()" [attr.aria-label]="ariaLabel()">
         <defs>
           @for (slice of layout().slices; track slice.key) {
             <linearGradient [attr.id]="slice.gradientId" x1="0" y1="0" x2="0" y2="1">
@@ -70,6 +77,10 @@ export class DonutChartOrganismComponent {
   readonly centerLabel = input('');
   readonly centerValue = input.required<string>();
   readonly centerSub = input('');
+  readonly variant = input<'default' | 'compact'>('default');
+  readonly ariaLabel = input('структура продаж');
+
+  protected readonly viewSize = computed(() => (this.variant() === 'compact' ? 190 : 220));
 
   protected readonly layout = computed(() =>
     buildDonutChartLayout(
@@ -78,6 +89,7 @@ export class DonutChartOrganismComponent {
         color: slice.color,
         value: slice.value,
       })),
+      this.variant() === 'compact' ? DONUT_LAYOUT_COMPACT : DONUT_LAYOUT_DEFAULT,
     ),
   );
 }

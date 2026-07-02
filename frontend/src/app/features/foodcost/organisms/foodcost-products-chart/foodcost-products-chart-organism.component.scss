@@ -1,0 +1,177 @@
+.prodchart {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  margin-top: 16px;
+  position: relative;
+}
+
+.catfc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.losses-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--mut2);
+  margin-top: 4px;
+  max-width: 640px;
+}
+
+.pc-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+:host ::ng-deep .seg-sm .seg {
+  border-radius: 9px;
+}
+
+:host ::ng-deep .seg-sm app-button button {
+  padding: 5px 12px;
+  font-size: 0.74rem;
+}
+
+.pc-side-label {
+  display: flex;
+  gap: 18px;
+  font-size: 0.74rem;
+  margin: 6px 0 14px;
+}
+
+.pcs.ok {
+  color: var(--grn);
+}
+
+.pcs.bad {
+  color: var(--red);
+}
+
+.pc-chart-wrap {
+  position: relative;
+}
+
+.pc-chart {
+  white-space: nowrap;
+  height: 330px;
+  padding-top: 10px;
+  overflow-x: auto;
+  font-size: 0;
+}
+
+.pc-bar {
+  display: inline-block;
+  vertical-align: bottom;
+  width: 42px;
+  text-align: center;
+  cursor: pointer;
+  white-space: normal;
+}
+
+.pc-col {
+  display: inline-block;
+  width: 34px;
+  border-radius: 5px 5px 0 0;
+  position: relative;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.pc-bar:hover .pc-col {
+  opacity: 0.82;
+}
+
+.pc-cost {
+  display: block;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+.pc-bar.good .pc-col {
+  background: rgba(61, 220, 151, 0.22);
+}
+
+.pc-bar.good .pc-cost {
+  background: linear-gradient(180deg, var(--grn2), #147a52);
+}
+
+.pc-bar.bad .pc-col {
+  background: rgba(255, 107, 107, 0.18);
+}
+
+.pc-bar.bad .pc-cost {
+  background: linear-gradient(180deg, #c8453f, #8f2f2b);
+}
+
+.pc-fc {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.pc-bar.good .pc-fc {
+  color: var(--grn);
+}
+
+.pc-bar.bad .pc-fc {
+  color: var(--red);
+}
+
+.pc-name {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--mut);
+  margin-top: 7px;
+  line-height: 1.2;
+  height: 30px;
+  overflow: hidden;
+}
+
+.pc-divider {
+  display: inline-block;
+  vertical-align: bottom;
+  width: 1px;
+  height: 250px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
+  margin: 0 9px;
+}
+
+.pc-tip {
+  position: absolute;
+  pointer-events: none;
+  background: #0a0e18;
+  border: 1px solid #2b3554;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  z-index: 5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -110%);
+
+  b {
+    font-weight: 800;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    color: var(--mut);
+    margin-top: 3px;
+
+    b {
+      color: var(--txt);
+    }
+  }
+}

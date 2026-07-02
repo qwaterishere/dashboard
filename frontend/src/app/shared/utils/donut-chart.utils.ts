@@ -22,7 +22,10 @@ export interface DonutChartLayout {
   slices: DonutSliceLayout[];
 }
 
-const DEFAULTS = { cx: 110, cy: 110, r: 82, strokeWidth: 30, gap: 1.2 };
+export const DONUT_LAYOUT_DEFAULT = { cx: 110, cy: 110, r: 82, strokeWidth: 30, gap: 1.2 };
+export const DONUT_LAYOUT_COMPACT = { cx: 95, cy: 95, r: 70, strokeWidth: 26, gap: 1.2 };
+
+const DEFAULTS = DONUT_LAYOUT_DEFAULT;
 
 /** SVG-сегменты пончика (sales + warehouse). */
 export function buildDonutChartLayout(

@@ -11,6 +11,26 @@
   }
 }
 
+:host(.compact) {
+  .donut-side {
+    width: 190px;
+    height: 190px;
+
+    svg {
+      width: 190px;
+      height: 190px;
+    }
+  }
+
+  .dc-label {
+    font-size: 0.6rem;
+  }
+
+  .dc-val {
+    font-size: 1.15rem;
+  }
+}
+
 .donut-seg {
   transition: opacity 0.15s;
   cursor: default;
