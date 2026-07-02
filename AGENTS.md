@@ -310,7 +310,6 @@ dashboard/
 │   │   ├── backend-ci.yml
 │   │   ├── security-ci.yml          # SAST, dependency audit, secrets scan
 │   │   └── deploy.yml
-│   └── dependabot.yml
 └── security/
     ├── SECURITY.md                  # политика уязвимостей + responsible disclosure
     └── headers.conf                 # эталон CSP / security headers (nginx/reference)
@@ -516,7 +515,7 @@ npx playwright install
 | **Defense in depth** | CSP + sanitization + typed templates + rate limiting + minimal CORS |
 | **Least privilege** | API только GET; нет write-эндпоинтов без auth; минимальные CI permissions |
 | **No secrets in repo** | `.env` в `.gitignore`; GitHub Secrets для CI; pre-commit secret scan |
-| **Supply chain integrity** | Lockfiles (`package-lock.json`, `requirements.txt` с pins); Dependabot; audit в CI |
+| **Supply chain integrity** | Lockfiles (`package-lock.json`, `requirements.txt` с pins); audit в CI |
 | **No backdoors** | Запрет `eval`, `Function()`, dynamic `import()` из user input, `bypassSecurityTrust*`, postinstall-скриптов без review |
 | **Fail secure** | При ошибке API — generic message пользователю, детали только в server logs |
 | **Security tests mandatory** | Каждый PR: lint + unit + security scans; security-тесты не skip'аются |
@@ -580,7 +579,7 @@ npx lockfile-lint --path package-lock.json --allowed-hosts npm
 
 - Review **каждой** новой npm-зависимости: maintainer, downloads, postinstall scripts
 - **Запрет** packages с `preinstall`/`postinstall` shell без явного approval
-- Pin major versions; Dependabot weekly
+- Pin major versions; обновлять deps вручную по необходимости
 
 #### Build security
 
@@ -859,20 +858,6 @@ jobs:
       - uses: github/codeql-action/analyze@v3
 ```
 
-#### `.github/dependabot.yml`
-
-```yaml
-version: 2
-updates:
-  - package-ecosystem: npm
-    directory: /frontend
-    schedule: { interval: weekly }
-    open-pull-requests-limit: 5
-  - package-ecosystem: pip
-    directory: /backend
-    schedule: { interval: weekly }
-```
-
 #### Branch protection (GitHub Settings)
 
 Required checks on `main`:
@@ -914,7 +899,6 @@ Do NOT open public GitHub issues for security bugs.
 - [ ] No `innerHTML` / `bypassSecurityTrust*` в codebase (grep CI check)
 - [ ] Auth implemented (если real data)
 - [ ] Error messages generic для пользователя
-- [ ] Dependabot enabled
 - [ ] CodeQL / bandit без high findings
 - [ ] OWASP ZAP baseline — 0 high alerts на staging
 
@@ -1215,7 +1199,7 @@ jobs:
 | ABC regression | Unit-тесты до порта |
 | Scope creep | Purchases/Settings — placeholder only |
 | **XSS через API data** | Strict templates + XSS unit tests + no innerHTML |
-| **Supply chain attack (npm/pip)** | Lockfiles + audit CI + Dependabot + review new deps |
+| **Supply chain attack (npm/pip)** | Lockfiles + audit CI + review new deps |
 | **Secret leak в repo** | gitleaks pre-commit + CI |
 | **Broken auth (future)** | authGuard + JWT tests before real DB |
 
@@ -1247,7 +1231,7 @@ jobs:
 - [ ] No `innerHTML` / `bypassSecurityTrust*` (CI grep)
 - [ ] StaticFiles → только `dist/`
 - [ ] SECURITY.md опубликован
-- [ ] Dependabot + branch protection (lint + test + build + **security-ci**)
+- [ ] Branch protection (lint + test + build + **security-ci**)
 - [ ] Auth (если подключена реальная БД)
 
 ### Качество
