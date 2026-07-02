@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app import app, PAGES
+from src.main import app, PAGES
 
 client = TestClient(app)
 

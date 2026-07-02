@@ -2,12 +2,6 @@
 
 Сейчас эндпоинты просто отдают файлы data/<страница>.json — это рабочая
 заглушка, чтобы фронтенд завёлся с реальным API.
-
-Запуск из папки sezony-dashboard:
-    pip install -r backend/requirements.txt
-    uvicorn backend.app:app --reload --port 8000
-Откройте http://localhost:8000/  (FastAPI отдаёт и сайт, и API — CORS не нужен).
-API: http://localhost:8000/api/dashboard
 """
 import json
 from pathlib import Path
@@ -16,9 +10,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from database.db import DataBaseManager
 
-ROOT = Path(__file__).resolve().parent.parent      # папка sezony-dashboard
+from src.database import db_manager
+
+ROOT = Path(__file__).resolve().parent.parent      # папка seasons
 DATA = ROOT / "data"
 PAGES = {"dashboard", "sales", "warehouse", "foodcost"}
 
@@ -26,14 +21,17 @@ app = FastAPI(title="Сезоны — API дашборда")
 
 # CORS нужен только если фронтенд открыт с другого origin (другой порт/домен).
 # При запуске через этот же uvicorn (вариант выше) он не задействуется.
+# Явный список вместо "*": wildcard открывает API любому сайту.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
 
-db_manager = DataBaseManager()
 db_manager.create_all()
 
 
