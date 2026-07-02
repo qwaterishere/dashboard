@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.app import app, PAGES
+from backend.app import PAGES, app
 
 client = TestClient(app)
 
@@ -18,6 +18,7 @@ def test_api_known_pages_return_200(page: str):
 def test_api_unknown_page_returns_404():
     response = client.get("/api/evil")
     assert response.status_code == 404
+    assert response.json()["detail"] == "Not found"
 
 
 def test_api_path_traversal_blocked():
@@ -31,4 +32,31 @@ def test_cors_not_wildcard_on_api_response():
         headers={"Origin": "https://evil.example"},
     )
     allow_origin = response.headers.get("access-control-allow-origin")
-    assert allow_origin != "*" or allow_origin is None
+    assert allow_origin != "*"
+    assert allow_origin != "https://evil.example"
+
+
+def test_cors_allows_local_dev_origin():
+    response = client.get(
+        "/api/dashboard",
+        headers={"Origin": "http://localhost:4200"},
+    )
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:4200"
+
+
+def test_security_headers_present():
+    response = client.get("/api/dashboard")
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert "Content-Security-Policy" in response.headers
+
+
+def test_rate_limit_blocks_excessive_requests():
+    app.state.limiter.enabled = True
+    try:
+        for _ in range(70):
+            client.get("/api/dashboard")
+        response = client.get("/api/dashboard")
+        assert response.status_code == 429
+    finally:
+        app.state.limiter.enabled = False
