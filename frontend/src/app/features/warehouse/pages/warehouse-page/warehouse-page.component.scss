@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+.loading {
+  color: var(--mut2);
+  font-size: 0.9rem;
+}
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+}

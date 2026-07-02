@@ -1,0 +1,108 @@
+.pos-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: right;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mut2);
+    font-weight: 700;
+    padding: 0 12px 11px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+
+    &:first-child {
+      text-align: left;
+    }
+
+    &:hover {
+      color: var(--txt);
+    }
+
+    .arr {
+      opacity: 0;
+      font-size: 0.7rem;
+    }
+
+    &.sorted .arr {
+      opacity: 1;
+    }
+  }
+
+  td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #1b2236;
+    font-size: 0.84rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+
+    &:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+  }
+
+  tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.pos-name small {
+  display: block;
+  color: var(--mut2);
+  font-size: 0.68rem;
+  font-weight: 400;
+}
+
+.abc-tag {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.74rem;
+
+  &.A {
+    background: rgba(61, 220, 151, 0.15);
+    color: var(--grn);
+  }
+
+  &.B {
+    background: rgba(110, 107, 255, 0.15);
+    color: #9d9bff;
+  }
+
+  &.C {
+    background: rgba(90, 100, 128, 0.2);
+    color: var(--mut);
+  }
+}
+
+.gp-cell {
+  color: var(--grn);
+  font-weight: 700;
+}
+
+.fc-cell {
+  font-weight: 700;
+
+  &.lo {
+    color: var(--grn);
+  }
+
+  &.hi {
+    color: var(--red);
+  }
+}
+
+@media (max-width: 900px) {
+  .pos-table {
+    font-size: 0.78rem;
+  }
+}

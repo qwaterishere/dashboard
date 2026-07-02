@@ -12,7 +12,7 @@ import type { CategoryKey } from '../../../../shared/models';
   imports: [HeadingComponent, MoneyPipe, ProgressFillComponent, ProgressTrackComponent],
   template: `
     <div class="r-block">
-      <app-heading [level]="4">Остаток на складе</app-heading>
+      <app-heading [level]="4" text="Остаток на складе" />
       <div class="stock-total">
         <div class="st-sum">{{ stock().total | money }}</div>
       </div>

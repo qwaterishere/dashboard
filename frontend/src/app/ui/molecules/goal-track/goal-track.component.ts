@@ -4,13 +4,25 @@ import { ProgressFillComponent } from '../../atoms/progress-fill/progress-fill.c
 import { ProgressTrackComponent } from '../../atoms/progress-track/progress-track.component';
 import { MarkLineComponent } from '../../atoms/mark-line/mark-line.component';
 import { TextComponent } from '../../atoms/text/text.component';
+import { PopoverTriggerDirective } from '../../directives/popover-trigger.directive';
+import type { DetailPopover } from '../../../shared/models';
 
 @Component({
   selector: 'app-goal-track',
   standalone: true,
-  imports: [ProgressTrackComponent, ProgressFillComponent, MarkLineComponent, TextComponent],
+  imports: [
+    ProgressTrackComponent,
+    ProgressFillComponent,
+    MarkLineComponent,
+    TextComponent,
+    PopoverTriggerDirective,
+  ],
   template: `
-    <div class="k-goal">
+    <div
+      class="k-goal"
+      [appPopoverTrigger]="goalPopoverKey()"
+      [popoverDetails]="popoverDetails()"
+    >
       <div class="g-row">
         <app-text tone="muted">{{ label() }}</app-text>
         <b [class.r]="risk()">{{ headline() }}</b>
@@ -22,10 +34,15 @@ import { TextComponent } from '../../atoms/text/text.component';
     </div>
   `,
   styles: `
-    .k-goal {
+    :host {
+      display: block;
       margin-top: auto;
+    }
+
+    .k-goal {
       padding-top: 12px;
       border-top: 1px solid #1b2236;
+      cursor: pointer;
     }
     .g-row {
       display: flex;
@@ -48,4 +65,6 @@ export class GoalTrackComponent {
   readonly headline = input.required<string>();
   readonly trackPct = input.required<number>();
   readonly risk = input(false);
+  readonly goalPopoverKey = input<string | undefined>();
+  readonly popoverDetails = input<Record<string, DetailPopover>>({});
 }

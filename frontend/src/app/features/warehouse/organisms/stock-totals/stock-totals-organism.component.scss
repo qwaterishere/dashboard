@@ -1,0 +1,70 @@
+.block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+}
+
+.total-big {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.tb-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mut2);
+}
+
+.tb-val {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 6px 0 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-sub {
+  font-size: 0.74rem;
+  color: var(--mut);
+}
+
+.tb-stores {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.store-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #1b2236;
+  font-size: 0.82rem;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.store-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.store-row .sn {
+  flex: 1;
+  color: var(--mut);
+}
+
+.store-row b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

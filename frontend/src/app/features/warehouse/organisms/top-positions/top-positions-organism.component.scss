@@ -1,0 +1,108 @@
+.block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+:host ::ng-deep .seg-sm .seg {
+  border-radius: 9px;
+}
+
+:host ::ng-deep .seg-sm app-button button {
+  padding: 5px 12px;
+  font-size: 0.73rem;
+}
+
+.top-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.top-rank {
+  width: 22px;
+  flex: none;
+  text-align: right;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--mut2);
+}
+
+.top-name {
+  width: 180px;
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-track {
+  flex: 1;
+  height: 20px;
+  background: #161d30;
+  border-radius: 6px;
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 6px;
+  }
+
+  &.k i {
+    background: linear-gradient(90deg, var(--grn2), var(--grn));
+  }
+
+  &.b i {
+    background: linear-gradient(90deg, #4b49c9, var(--vio2));
+  }
+
+  &.w i {
+    background: linear-gradient(90deg, #8a2d52, #c7466f);
+  }
+}
+
+.top-val {
+  width: 130px;
+  flex: none;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.84rem;
+
+  small {
+    color: var(--mut2);
+    font-weight: 600;
+    font-size: 0.7rem;
+    margin-left: 3px;
+  }
+}
+
+@media (max-width: 900px) {
+  .top-name {
+    width: 120px;
+  }
+
+  .top-val {
+    width: 96px;
+  }
+}

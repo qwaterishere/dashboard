@@ -14,7 +14,7 @@ import type { CategoryKey } from '../../../../shared/models';
     <div class="r-block">
       <div class="r-head">
         <div>
-          <app-heading [level]="4">Продажи по категориям</app-heading>
+          <app-heading [level]="4" text="Продажи по категориям" />
           <p class="r-cap">Доля в выручке за период</p>
         </div>
       </div>

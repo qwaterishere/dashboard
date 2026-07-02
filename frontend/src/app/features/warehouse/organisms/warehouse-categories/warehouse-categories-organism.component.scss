@@ -1,0 +1,118 @@
+.block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px 22px;
+  height: 100%;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+:host ::ng-deep .seg-sm .seg {
+  border-radius: 9px;
+}
+
+:host ::ng-deep .seg-sm app-button button {
+  padding: 5px 12px;
+  font-size: 0.73rem;
+}
+
+.donut-wrap {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.legend-side {
+  flex: 1;
+  min-width: 240px;
+}
+
+:host ::ng-deep app-legend-row .lg-row {
+  padding: 10px 0;
+  border-bottom: 1px solid #1b2236;
+  cursor: default;
+}
+
+:host ::ng-deep app-legend-row:last-child .lg-row {
+  border-bottom: 0;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar-group {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.bg-title {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mut2);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  &::before {
+    content: '';
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    background: var(--cc);
+  }
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0;
+}
+
+.br-name {
+  width: 150px;
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.br-track {
+  flex: 1;
+  height: 16px;
+  background: #161d30;
+  border-radius: 6px;
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--grn2), var(--grn));
+  }
+}
+
+.br-val {
+  width: 120px;
+  flex: none;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.84rem;
+}

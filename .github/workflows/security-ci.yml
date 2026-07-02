@@ -37,7 +37,7 @@ jobs:
       - run: pip install -r backend/requirements.txt pip-audit bandit pytest httpx
       - run: pip-audit -r backend/requirements.txt || true
       - run: bandit -r backend/ -ll -q || true
-      - run: pytest backend/tests/ -v --ignore=backend/tests/test_security.py || pytest backend/tests/test_security.py -v 2>/dev/null || echo "Backend tests pending"
+      - run: pytest backend/tests/ -v
 
   secret-scan:
     runs-on: ubuntu-latest
