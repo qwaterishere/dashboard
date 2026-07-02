@@ -17,7 +17,11 @@ class Order(Base):
     session_number = Column(Integer, nullable=False)
     day = Column(Date, nullable=False)
     guests_number = Column(Integer, nullable=False)
-    pay_type = Column(String, nullable=True)  # PayTypes.Group: CARD / CASH ...
+    # PayTypes.Group: CARD / CASH; 'MIXED' — сплит-оплата разными способами;
+    # None — чек без оплаты (комплимент).
+    pay_type = Column(String, nullable=True)
+    pay_type_name = Column(String, nullable=True)  # PayTypes: Optima POS / QR / Яндекс / Наличные
+    order_type = Column(String, nullable=True)     # OrderType: Обычный заказ / Конференции / Бар ...
 
     dish_sales = relationship('DishSale', back_populates='order')
 
@@ -34,7 +38,8 @@ class DishSale(Base):
     id = Column(Uuid, primary_key=True)
     name = Column(String, nullable=False)
     cost = Column(DECIMAL(10, 4), nullable=True)
-    price = Column(DECIMAL(10, 4), nullable=False)
+    price = Column(DECIMAL(10, 4), nullable=False)      # сумма без скидки (прейскурант)
+    paid_sum = Column(DECIMAL(10, 4), nullable=False)   # фактически уплачено — источник выручки
     discount = Column(DECIMAL(10, 4), nullable=True)
     dish_category = Column(String, nullable=False)
     dish_group = Column(String, nullable=False)

@@ -15,3 +15,4 @@ Thumbs.db
 # Local data / secrets
 *.db
 .env
+/raw_june.json

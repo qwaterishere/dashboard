@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "src.main:app", "--port", "8000"],
+      "port": 8000
+    },
+    {
       "name": "static",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8000"],

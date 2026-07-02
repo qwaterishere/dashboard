@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.database import db_manager
+from src.sales.router import router as sales_router
 
 ROOT = Path(__file__).resolve().parent.parent      # папка seasons
 DATA = ROOT / "data"
@@ -33,6 +34,10 @@ app.add_middleware(
 )
 
 db_manager.create_all()
+
+# Роутеры доменов подключаются ДО заглушки /api/{page}: маршруты
+# сопоставляются в порядке регистрации, точный /api/sales должен победить.
+app.include_router(sales_router)
 
 
 def load(name: str) -> dict:
