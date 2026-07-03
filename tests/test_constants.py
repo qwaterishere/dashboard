@@ -19,3 +19,4 @@ def test_unknown_folder_is_other():
     assert resolve_unit('Кальяны') == CAT_OTHER
     assert resolve_unit('Хоспер') == CAT_OTHER
     assert resolve_unit('') == CAT_OTHER
+    assert resolve_unit(None) == CAT_OTHER   # блюдо без группы (история 2024)

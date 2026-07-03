@@ -44,7 +44,7 @@ class DishSale(Base):
     discount = Column(DECIMAL(10, 4), nullable=True)
     dish_category = Column(String, nullable=False)
     dish_group = Column(String, nullable=False)
-    top_group = Column(String, nullable=False)  # папка 1-го уровня -> юнит дашборда
+    top_group = Column(String, nullable=True)  # папка 1-го уровня -> юнит; None = блюдо без группы
 
     order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
 

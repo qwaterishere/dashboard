@@ -21,6 +21,11 @@ CAT_OTHER = 'o'   # «вне подразделений»
 _UNIT_BY_NORMALIZED = {name.lower(): unit for name, unit in UNIT_BY_TOP_GROUP.items()}
 
 
-def resolve_unit(top_group: str) -> str:
-    """Юнит по имени папки 1-го уровня; терпима к регистру и пробелам."""
+def resolve_unit(top_group: str | None) -> str:
+    """Юнит по имени папки 1-го уровня; терпима к регистру и пробелам.
+
+    None (блюдо без группы) — «вне подразделений».
+    """
+    if top_group is None:
+        return CAT_OTHER
     return _UNIT_BY_NORMALIZED.get(top_group.strip().lower(), CAT_OTHER)

@@ -33,8 +33,9 @@ class SaleRecord(BaseModel):
     dish_group: str = Field(alias='DishGroup')
     # Папка 1-го уровня в дереве номенклатуры: определяет юнит (Кухня/Бар/Вино).
     # Для группы, лежащей в корне, iiko возвращает саму группу ->
-    # 'вне подразделений' на дашборде.
-    top_group: str = Field(alias='DishGroup.TopParent')
+    # 'вне подразделений' на дашборде. None — блюдо без группы вовсе
+    # (встречается в истории 2024 г.) — тоже 'вне подразделений'.
+    top_group: str | None = Field(alias='DishGroup.TopParent')
 
     @field_validator('dish_category', 'dish_group', mode='before')
     @classmethod

@@ -5,7 +5,7 @@ class SalesPosition(StrictModel):
     name: str
     sub: str
     cat: CategoryKey
-    qty: int
+    qty: float  # порций; дробное у весовых блюд (например, 4.5 кг)
     price: float
     unitCost: float
 

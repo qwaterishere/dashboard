@@ -4,7 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-CategoryKey = Literal["k", "b", "w"]
+# 'o' — «вне подразделений»: группы iiko вне папок Кухня/Бар/Вино
+# (docs/iiko-setup-standard.md, раздел 1). В донат юнитов не входит,
+# в таблице позиций и общей выручке — участвует.
+CategoryKey = Literal["k", "b", "w", "o"]
 LflDirection = Literal["up", "dn"]
 DiscountTone = Literal["amber"]
 
