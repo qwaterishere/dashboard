@@ -13,9 +13,11 @@ RAW = {
     'DiscountSum': 0,
     'DishCategory': 'Прочее',
     'DishGroup': 'Прочее',
+    'DishGroup.TopParent': 'Кухня',
     'DishName': 'Контейнер',
     'DishSumInt': 25,
     'DishDiscountSumInt': 25,
+    'DishAmountInt': 1,
     'GuestNum': 2,
     'ItemSaleEvent.Id': '918f62e8-71dc-4a3b-86c0-3bc3699b985a',
     'OpenDate.Typed': '2026-06-22',
@@ -81,8 +83,10 @@ def test_split_payment_rows_merge_into_one_dish(session):
     # iiko отдаёт две строки с одним ItemSaleEvent.Id.
     records = parse_records([
         make_raw(**{'DishSumInt': 1265.27, 'DishDiscountSumInt': 1265.27,
+                    'DishAmountInt': 0.22,
                     'PayTypes.Group': 'CASH', 'PayTypes': 'Наличные'}),
         make_raw(**{'DishSumInt': 4494.73, 'DishDiscountSumInt': 4494.73,
+                    'DishAmountInt': 0.78,
                     'PayTypes.Group': 'CARD', 'PayTypes': 'Optima POS'}),
     ])
     ingest_records(session, records)
@@ -90,6 +94,7 @@ def test_split_payment_rows_merge_into_one_dish(session):
 
     dish = session.query(DishSale).one()          # блюдо одно, не два
     assert float(dish.paid_sum) == 5760.0         # суммы частей сложились
+    assert float(dish.amount) == 1.0              # и порции: 0.22 + 0.78
     order = session.query(Order).one()
     assert order.pay_type == 'MIXED'              # чек помечен как сплит
     assert order.pay_type_name == 'MIXED'

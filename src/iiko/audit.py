@@ -7,10 +7,9 @@
 """
 from datetime import date
 
+from src.constants import CAT_OTHER, STANDARD_UNITS, resolve_unit
 from src.iiko.client import IikoClient
 
-# Раздел 1 паспорта: корневые группы номенклатуры.
-STANDARD_UNITS = {'Кухня', 'Бар', 'Вино'}
 # Раздел 2 паспорта: допустимые типы заказов.
 STANDARD_ORDER_TYPES = {'Обычный заказ', 'Конференции', 'Бар', 'Завтраки'}
 # Раздел 5: допустимая доля выручки удалённых заказов/блюд.
@@ -45,17 +44,31 @@ def _olap(client: IikoClient, group_by: list[str], aggregates: list[str],
 
 
 def check_nomenclature_tree(client, date_from, date_to) -> list[str]:
-    """Раздел 1: группы 1-го уровня — только Кухня/Бар/Вино."""
+    """Раздел 1: корневые папки Кухня/Бар/Вино существуют и несут основное меню.
+
+    Группы ВНЕ папок — не нарушение (выбор ресторана): они не попадают
+    в разрезы по юнитам, но остаются в общей выручке. Нарушение — когда
+    дерева нет вовсе или в нём лишь незначительная часть продаж.
+    """
     rows = _olap(client, ['DishGroup.TopParent'], ['DishDiscountSumInt'],
                  date_from, date_to)
-    violations = []
-    for r in rows:
-        top = r['DishGroup.TopParent']
-        if top not in STANDARD_UNITS:
-            violations.append(
-                f'группа вне дерева Кухня/Бар/Вино: {top!r} '
-                f'(выручка {r["DishDiscountSumInt"]:,.0f})')
-    return violations
+    # Сопоставление через resolve_unit — та же терпимость к регистру
+    # и пробелам, что у боевого кода: аудит и дашборд не могут разойтись.
+    in_tree = sum(r['DishDiscountSumInt'] for r in rows
+                  if resolve_unit(r['DishGroup.TopParent']) != CAT_OTHER)
+    total = sum(r['DishDiscountSumInt'] for r in rows)
+    if not total:
+        return ['за период нет продаж — аудит невозможен']
+    outside = [r['DishGroup.TopParent'] for r in rows
+               if resolve_unit(r['DishGroup.TopParent']) == CAT_OTHER]
+    if in_tree == 0:
+        return ['корневые папки Кухня/Бар/Вино отсутствуют — вся номенклатура '
+                f'вне дерева ({len(outside)} групп в корне)']
+    share = in_tree / total
+    if share < 0.5:
+        return [f'в папках Кухня/Бар/Вино лишь {share:.0%} выручки — '
+                f'основное меню вне дерева ({len(outside)} групп в корне)']
+    return []
 
 
 def check_order_types(client, date_from, date_to) -> list[str]:
@@ -108,6 +121,16 @@ def check_directory_hygiene(client, date_from, date_to) -> list[str]:
         if group == 'Удаленные':
             violations.append('продажи из группы «Удаленные» '
                               f'({r["DishDiscountSumInt"]:,.0f})')
+
+    # Папка юнита с неканоничным написанием ('КУХНЯ ', 'вино'):
+    # дашборд её поймёт (resolve_unit терпим), но имя надо поправить.
+    rows_top = _olap(client, ['DishGroup.TopParent'], ['DishDiscountSumInt'],
+                     date_from, date_to)
+    for r in rows_top:
+        top = r['DishGroup.TopParent']
+        if resolve_unit(top) != CAT_OTHER and top not in STANDARD_UNITS:
+            violations.append(f'имя папки отличается от канонического: {top!r} '
+                              '— переименуйте (Кухня/Бар/Вино)')
     return violations
 
 

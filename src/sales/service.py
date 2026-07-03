@@ -19,7 +19,7 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from src.sales.constants import resolve_cat
+from src.constants import UNIT_BY_TOP_GROUP, CAT_OTHER, resolve_unit
 from src.sales.models import Order, DishSale
 from src.sales.schemas import SaleRecord, SalesPage, SalesPosition, Period
 
@@ -44,6 +44,7 @@ def _merge_split_payments(records: list[SaleRecord]) -> list[SaleRecord]:
         else:
             seen.price += rec.price
             seen.paid_sum += rec.paid_sum
+            seen.amount += rec.amount
             if rec.discount is not None:
                 seen.discount = (seen.discount or 0) + rec.discount
             if rec.cost is not None:
@@ -115,9 +116,11 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
             cost=rec.cost,
             price=rec.price,
             paid_sum=rec.paid_sum,
+            amount=rec.amount,
             discount=rec.discount,
             dish_category=rec.dish_category,
             dish_group=rec.dish_group,
+            top_group=rec.top_group,
         )
         # ORM-способ: присваиваем объект, а не order_id.
         # SQLAlchemy сам проставит внешний ключ при flush/commit.
@@ -126,15 +129,32 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
     session.flush()
 
 
+def replace_day(session: Session, day: date, records: list[SaleRecord]) -> None:
+    """Идемпотентная загрузка дня: данные дня удаляются и вставляются заново.
+
+    Повторный запуск не создаёт дублей и подхватывает изменения задним
+    числом (сторно, правки в iiko). Коммит — на вызывающем коде.
+    """
+    day_records = [r for r in records if r.day == day]
+
+    order_ids = [oid for (oid,) in session.query(Order.id).filter(Order.day == day)]
+    if order_ids:
+        session.query(DishSale).filter(DishSale.order_id.in_(order_ids)) \
+            .delete(synchronize_session=False)
+        session.query(Order).filter(Order.id.in_(order_ids)) \
+            .delete(synchronize_session=False)
+
+    ingest_records(session, day_records)
+
+
 def build_sales(session: Session,
                 date_from: date | None = None,
                 date_to: date | None = None) -> SalesPage:
     """Страница «Продажи»: агрегат по позициям в структуре data/sales.json.
 
-    Без параметров берётся весь период, что есть в БД. qty пока считается
-    по строкам продаж (одна строка может содержать несколько порций —
-    для точного qty нужен DishAmountInt из iiko); суммы при этом точные:
-    price/unitCost — средние на строку, фронтенд восстанавливает
+    Без параметров берётся весь период, что есть в БД.
+    qty = сумма порций (дробное у весовых блюд), price/unitCost — средняя
+    фактическая цена и себестоимость ПОРЦИИ; фронтенд восстанавливает
     rev = qty*price = фактическая выручка.
     """
     if date_from is None:
@@ -148,7 +168,8 @@ def build_sales(session: Session,
         session.query(
             DishSale.name,
             func.max(DishSale.dish_category),
-            func.count(DishSale.id),
+            func.max(DishSale.top_group),
+            func.sum(DishSale.amount),
             func.sum(DishSale.paid_sum),
             func.sum(func.coalesce(DishSale.cost, 0)),
         )
@@ -165,12 +186,14 @@ def build_sales(session: Session,
         SalesPosition(
             name=name,
             sub=category,
-            cat=resolve_cat(category),
-            qty=qty,
-            price=round(float(paid) / qty, 2),
-            unitCost=round(float(cost) / qty, 2),
+            # юнит = папка 1-го уровня в iiko; вне папок -> «вне подразделений»
+            cat=resolve_unit(top_group),
+            # UNIT_BY_TOP_GROUP.get(top_group, CAT_OTHER),
+            qty=round(float(qty), 2),
+            price=round(float(paid) / float(qty), 2),
+            unitCost=round(float(cost) / float(qty), 2),
         )
-        for name, category, qty, paid, cost in rows
+        for name, category, top_group, qty, paid, cost in rows
     ]
     period = Period(
         label=f'{date_from:%d.%m} — {date_to:%d.%m.%Y}',

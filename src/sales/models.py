@@ -40,9 +40,11 @@ class DishSale(Base):
     cost = Column(DECIMAL(10, 4), nullable=True)
     price = Column(DECIMAL(10, 4), nullable=False)      # сумма без скидки (прейскурант)
     paid_sum = Column(DECIMAL(10, 4), nullable=False)   # фактически уплачено — источник выручки
+    amount = Column(DECIMAL(12, 3), nullable=False)     # порций (дробное у весовых блюд)
     discount = Column(DECIMAL(10, 4), nullable=True)
     dish_category = Column(String, nullable=False)
     dish_group = Column(String, nullable=False)
+    top_group = Column(String, nullable=False)  # папка 1-го уровня -> юнит дашборда
 
     order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
 

@@ -43,6 +43,7 @@ class IikoClient:
             "reportType": "SALES",
             "buildSummary": False,
             "groupByRowFields": ["ItemSaleEvent.Id", "DishName", "DishCategory", "DishGroup",
+                                 "DishGroup.TopParent",
                                  "OrderNum", "SessionNum", "OpenDate.Typed", "GuestNum",
                                  "PayTypes.Group", "PayTypes", "OrderType"],
             "aggregateFields": ["DishSumInt", "DiscountSum", "ProductCostBase.ProductCost",

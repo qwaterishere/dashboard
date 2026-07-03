@@ -24,9 +24,17 @@ class SaleRecord(BaseModel):
     cost: Decimal | None = Field(default=None, alias='ProductCostBase.ProductCost')
     price: Decimal = Field(alias='DishSumInt')                # сумма БЕЗ скидки (прейскурант)
     paid_sum: Decimal = Field(alias='DishDiscountSumInt')     # фактически уплачено (= выручка)
+    # Порций в строке: кассир пробивает "Эспрессо x3" одной строкой;
+    # дробное у весовых блюд. При сплит-оплате iiko делит количество
+    # пропорционально долям оплат (проверено: 0.911 + 0.089 = 1).
+    amount: Decimal = Field(alias='DishAmountInt')
     discount: Decimal | None = Field(default=None, alias='DiscountSum')
     dish_category: str = Field(alias='DishCategory')
     dish_group: str = Field(alias='DishGroup')
+    # Папка 1-го уровня в дереве номенклатуры: определяет юнит (Кухня/Бар/Вино).
+    # Для группы, лежащей в корне, iiko возвращает саму группу ->
+    # 'вне подразделений' на дашборде.
+    top_group: str = Field(alias='DishGroup.TopParent')
 
     @field_validator('dish_category', 'dish_group', mode='before')
     @classmethod
@@ -64,9 +72,9 @@ class SalesPosition(BaseModel):
     name: str
     sub: str        # подкатегория (категория iiko)
     cat: str        # юнит: k / b / w
-    qty: int
-    price: float     # средняя фактическая цена за единицу
-    unitCost: float  # средняя себестоимость за единицу
+    qty: float       # порций (дробное у весовых блюд)
+    price: float     # средняя фактическая цена за порцию
+    unitCost: float  # средняя себестоимость за порцию
 
 
 class SalesPage(BaseModel):
