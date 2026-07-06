@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сезоны — концепт главной (стиль-референс aino.agency)</title>
+<!--
+  КОНЦЕПТ для обсуждения с фронтенд-разработчиком, НЕ production-код.
+  Данные статичны и взяты из фикстуры контракта v2 (docs/frontend-handoff.md §1).
+  Все проценты/дельты здесь захардкожены так, как их посчитал бы фронт
+  из value/prev; в реальном фронте они вычисляются из /api/v2/dashboard.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f2ed;          /* тёплый off-white, aino-подобный */
+    --ink: #111110;         /* почти чёрный */
+    --ink-2: #55544f;       /* вторичный */
+    --ink-3: #a3a199;       /* приглушённый */
+    --line: #dddad2;        /* hairline */
+    --line-2: #c8c5bc;      /* hairline сильнее */
+    --track: #e9e6df;       /* подложка баров */
+    --down: #c2402a;        /* хуже */
+    --up: #2e7d4f;          /* лучше */
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter Tight", "Helvetica Neue", Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1120px; margin: 0 auto; padding: 28px 40px 48px; }
+  .mono {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; letter-spacing: 0.05em; color: var(--ink-3);
+  }
+  .rule   { border-top: 1px solid var(--line); }
+  .rule-2 { border-top: 1px solid var(--line-2); }
+
+  header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 16px; }
+  .wordmark { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
+  .wordmark span { color: var(--ink-3); }
+  nav { display: flex; gap: 32px; }
+  nav a { text-decoration: none; }
+  nav a.on { color: var(--ink); }
+
+  .section-head { display: flex; justify-content: space-between; padding: 22px 0 0; }
+
+  .hero {
+    font-size: clamp(88px, 12vw, 148px);
+    font-weight: 600; letter-spacing: -0.055em; line-height: 1.02;
+    margin: 14px 0 6px;
+  }
+  .hero-meta { display: flex; gap: 36px; flex-wrap: wrap; align-items: baseline; margin: 4px 0 34px; }
+  .hero-meta .delta { font-size: 15px; color: var(--down); }
+  .hero-meta .void  { font-size: 14px; color: var(--ink-3); }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .kpi { padding: 20px 22px 24px 0; }
+  .kpi + .kpi { border-left: 1px solid var(--line); padding-left: 22px; }
+  .kpi .label { margin-bottom: 12px; }
+  .kpi .value { font-size: 38px; font-weight: 600; letter-spacing: -0.03em; }
+  .kpi .delta { font-size: 13px; margin-top: 6px; }
+  .kpi .delta.dn { color: var(--down); }
+  .kpi .delta.up { color: var(--up); }
+  .kpi .was { font-size: 12px; color: var(--ink-3); margin-top: 3px; }
+
+  .dayrow { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+  .dayrow .d { width: 56px; }
+  .dayrow .track { flex: 1; height: 40px; background: var(--track); }
+  .dayrow .bar { height: 100%; background: var(--ink); }
+  .dayrow .sum { width: 92px; text-align: right; font-size: 14px; font-weight: 500; }
+  .dayrow.pending .sum { color: var(--ink-3); font-weight: 400; }
+  .dayrow .note { font-size: 12px; color: var(--ink-3); padding-left: 14px; align-self: center; }
+
+  .unit { display: flex; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+  .unit .name { width: 190px; font-size: 15px; }
+  .unit .track { flex: 1; height: 6px; background: var(--track); }
+  .unit .bar { height: 100%; background: var(--ink); }
+  .unit .bar.ghost { background: var(--ink-3); }
+  .unit .sum { width: 110px; text-align: right; font-size: 15px; font-weight: 500; }
+  .unit .fc { width: 64px; text-align: right; }
+  .unit.zero .name, .unit.zero .sum { color: var(--ink-3); font-weight: 400; }
+  .hint { font-size: 12.5px; color: var(--ink-3); padding: 6px 0 30px 206px; }
+
+  footer { display: flex; justify-content: space-between; padding-top: 14px; }
+
+  @media (max-width: 760px) {
+    .page { padding: 20px; }
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .kpi:nth-child(3) { border-left: none; padding-left: 0; }
+    .unit .name { width: 120px; }
+    .hint { padding-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="wordmark">сезоны<span>.</span></div>
+    <nav class="mono">
+      <a class="on" href="#">дашборд</a><a href="#">продажи</a><a href="#">склад</a><a href="#">фудкост</a>
+    </nav>
+  </header>
+  <div class="rule-2"></div>
+
+  <div class="section-head mono">
+    <span>s001 — выручка, сом</span>
+    <span>июль 2026 · 1–2 · закрытые дни</span>
+  </div>
+  <div class="hero">590&#8202;572</div>
+  <div class="hero-meta">
+    <span class="delta">−4,7 % к июлю 2025 ↘</span>
+    <span class="void">прогноз — · после 7 закрытых дней</span>
+    <span class="void">план — · не внесён</span>
+  </div>
+
+  <div class="rule"></div>
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label mono">чеки</div>
+      <div class="value">91</div>
+      <div class="delta dn">−10,8 %</div>
+      <div class="was">июль'25 · 102</div>
+    </div>
+    <div class="kpi">
+      <div class="label mono">гости</div>
+      <div class="value">210</div>
+      <div class="delta dn">−19,2 %</div>
+      <div class="was">июль'25 · 260</div>
+    </div>
+    <div class="kpi">
+      <div class="label mono">средний чек</div>
+      <div class="value">6&#8202;490</div>
+      <div class="delta up">+6,8 %</div>
+      <div class="was">июль'25 · 6&#8202;078</div>
+    </div>
+    <div class="kpi">
+      <div class="label mono">на гостя</div>
+      <div class="value">2&#8202;812</div>
+      <div class="delta up">+17,9 %</div>
+      <div class="was">июль'25 · 2&#8202;385</div>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <div class="section-head mono">
+    <span>s002 — динамика по дням</span>
+    <span>план не внесён · —</span>
+  </div>
+  <div style="padding-bottom: 30px;">
+    <div class="dayrow">
+      <span class="d mono">01 ср</span>
+      <div class="track"><div class="bar" style="width:70%"></div></div>
+      <span class="sum">244&#8202;044</span>
+    </div>
+    <div class="dayrow">
+      <span class="d mono">02 чт</span>
+      <div class="track"><div class="bar" style="width:100%"></div></div>
+      <span class="sum">346&#8202;528</span>
+    </div>
+    <div class="dayrow pending">
+      <span class="d mono">03 пт</span>
+      <div class="track"><span class="note">смена открыта — данные завтра</span></div>
+      <span class="sum">·</span>
+    </div>
+  </div>
+
+  <div class="section-head mono" style="padding-top:0;">
+    <span>s003 — подразделения</span>
+    <span>выручка · фудкост</span>
+  </div>
+  <div class="rule" style="margin-top:14px;"></div>
+  <div class="unit zero">
+    <span class="name">кухня</span>
+    <div class="track"></div>
+    <span class="sum">0</span>
+    <span class="fc mono">—</span>
+  </div>
+  <div class="unit zero">
+    <span class="name">бар</span>
+    <div class="track"></div>
+    <span class="sum">0</span>
+    <span class="fc mono">—</span>
+  </div>
+  <div class="unit">
+    <span class="name">вино</span>
+    <div class="track"><div class="bar" style="width:4%; min-width:8px;"></div></div>
+    <span class="sum">305&#8202;916</span>
+    <span class="fc mono" style="color:var(--ink-2)">32,5 %</span>
+  </div>
+  <div class="unit" style="border-bottom:none;">
+    <span class="name">вне подразделений</span>
+    <div class="track"><div class="bar ghost" style="width:97%"></div></div>
+    <span class="sum">8&#8202;863&#8202;748</span>
+    <span class="fc mono">·</span>
+  </div>
+  <div class="hint">соберите дерево номенклатуры в iiko — суммы разъедутся по юнитам со следующей выгрузки</div>
+
+  <div class="rule-2"></div>
+  <footer class="mono">
+    <span>0 — проверьте кассу&nbsp;&nbsp;·&nbsp;&nbsp;«—» — данных ещё нет</span>
+    <span>отзывы · склад — модули не подключены</span>
+  </footer>
+
+</div>
+</body>
+</html>
