@@ -61,23 +61,35 @@ class SaleRecord(BaseModel):
     order_type: str | None = Field(alias='OrderType')
 
 
-# --- ответы API (контракт с фронтендом, структура data/sales.json) ---
+# --- ответы API (контракт с фронтендом, структура data/sales.json;
+#     описания полей видны фронтендеру в OpenAPI /docs) ---
 
 class Period(BaseModel):
-    label: str
-    note: str
+    label: str = Field(description='Готовая подпись периода, например '
+                                   '"02.06 — 01.07.2026" (v1-стиль; в контрактах '
+                                   'v2 период отдаётся числами)')
+    note: str = Field(description='Подстрока-пояснение под подписью периода')
 
 
 class SalesPosition(BaseModel):
-    """Строка таблицы позиций: фронтенд сам считает rev = qty*price и т.д."""
-    name: str
-    sub: str        # подкатегория (категория iiko)
-    cat: str        # юнит: k / b / w
-    qty: float       # порций (дробное у весовых блюд)
-    price: float     # средняя фактическая цена за порцию
-    unitCost: float  # средняя себестоимость за порцию
+    """Строка таблицы позиций. Производные считает фронт:
+    rev = qty*price, cost = qty*unitCost, gp = rev-cost, fc = cost/rev."""
+
+    name: str = Field(description='Название блюда (как в iiko, пробелы подстрижены)')
+    sub: str = Field(description='Подкатегория для второго уровня детализации '
+                                 '(категория блюда из iiko)')
+    cat: str = Field(description="Юнит: k кухня, b бар, w вино, o «вне "
+                                 "подразделений» (в донат не входит, "
+                                 "в таблице и общей выручке — участвует)")
+    qty: float = Field(description='Продано порций за период; дробное '
+                                   'у весовых блюд (4.5 кг)')
+    price: float = Field(description='Средняя фактическая цена порции '
+                                     '(со скидками, = выручка/qty)')
+    unitCost: float = Field(description='Средняя себестоимость порции')
 
 
 class SalesPage(BaseModel):
     period: Period
-    positions: list[SalesPosition]
+    positions: list[SalesPosition] = Field(
+        description='Агрегат по блюдам за период; позиции с нулевой '
+                    'оплатой (проработки, включённые в банкет) исключены')

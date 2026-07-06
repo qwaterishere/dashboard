@@ -14,7 +14,9 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
 
-@pytest.mark.parametrize("page", sorted(PAGES))
+# dashboard живёт на реальных данных (контракт v2), его JSON-мокап удалён —
+# фикстурная проверка осталась только для страниц-заглушек
+@pytest.mark.parametrize("page", sorted(PAGES - {"dashboard"}))
 def test_fixture_json_matches_strict_schema(page: str):
     raw = json.loads((DATA / f"{page}.json").read_text(encoding="utf-8"))
     model = validate_page(page, raw)

@@ -2,13 +2,16 @@ from typing import Type
 
 from pydantic import BaseModel
 
-from .dashboard import DashboardData
+from src.dashboard.schemas import DashboardV2
+
 from .foodcost import FoodcostData
 from .sales import SalesData
 from .warehouse import WarehouseData
 
 SCHEMA_REGISTRY: dict[str, type[BaseModel]] = {
-    "dashboard": DashboardData,
+    # дашборд живёт на контракте v2 (src/dashboard/schemas.py) —
+    # одна схема на роутер и на этот реестр, двух правд нет
+    "dashboard": DashboardV2,
     "sales": SalesData,
     "warehouse": WarehouseData,
     "foodcost": FoodcostData,

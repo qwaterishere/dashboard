@@ -8,10 +8,13 @@ from src.database import get_db
 from src.sales.schemas import SalesPage
 from src.sales.service import build_sales
 
-router = APIRouter()
+router = APIRouter(tags=['Продажи'])
 
 
-@router.get('/api/sales', response_model=SalesPage)
+@router.get('/api/sales', response_model=SalesPage,
+            summary='Позиции за период: порции, цены, себестоимость',
+            response_description='Агрегат по блюдам; бесплатные порции '
+                                 'исключены из qty и средних цен')
 def get_sales(date_from: date | None = None,
               date_to: date | None = None,
               db: Session = Depends(get_db)) -> SalesPage:

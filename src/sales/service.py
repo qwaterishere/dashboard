@@ -14,6 +14,7 @@
 (src/sales/schemas.py) ДО попадания сюда.
 """
 from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import func
@@ -72,13 +73,15 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
     """
     # --- проход 1: агрегация -------------------------------------------
     # Способы оплаты чека собираем ДО схлопывания: сплит виден только
-    # по исходным строкам.
+    # по исходным строкам. Здесь же — оплаченная сумма каждого чека.
     order_pay_types: dict[tuple, set] = {}
     order_pay_names: dict[tuple, set] = {}
+    order_paid: dict[tuple, Decimal] = {}
     for rec in records:
         key = (rec.order_number, rec.session_number, rec.day)
         order_pay_types.setdefault(key, set()).add(rec.pay_type)
         order_pay_names.setdefault(key, set()).add(rec.pay_type_name)
+        order_paid[key] = order_paid.get(key, Decimal(0)) + rec.paid_sum
 
     dishes = _merge_split_payments(records)
 
@@ -103,11 +106,15 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
                     session_number=rec.session_number,
                     day=rec.day,
                     guests_number=rec.guests_number,
+                    paid_total=order_paid[key],
                     pay_type=_resolve_pay_field(order_pay_types[key]),
                     pay_type_name=_resolve_pay_field(order_pay_names[key]),
                     order_type=rec.order_type,
                 )
                 session.add(order)
+            else:
+                # заказ уже в БД с прошлой пачки — новые блюда дополняют сумму
+                order.paid_total = order.paid_total + order_paid[key]
             orders_cache[key] = order
 
         dish = DishSale(
@@ -175,10 +182,12 @@ def build_sales(session: Session,
         )
         .join(Order)
         .filter(Order.day >= date_from, Order.day <= date_to)
+        # Бесплатные строки (комплименты, проработки, включённые в банкет)
+        # не входят в продажные qty и средние цены — они не продажи.
+        # Построчный фильтр строже прежнего HAVING: у блюда, проданного
+        # и за деньги, и комплиментом, в qty идут только платные порции.
+        .filter(DishSale.paid_sum > 0)
         .group_by(DishSale.name)
-        # Нулевые позиции (проработки, банкетные включённые блюда) —
-        # не продажи; фронтенд на rev=0 делит на ноль в фудкосте.
-        .having(func.sum(DishSale.paid_sum) > 0)
         .all()
     )
 

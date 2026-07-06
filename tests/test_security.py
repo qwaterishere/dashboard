@@ -52,11 +52,13 @@ def test_security_headers_present():
 
 
 def test_rate_limit_blocks_excessive_requests():
+    # /api/dashboard обслуживается доменным роутером (без лимитера) —
+    # лимитер висит на catch-all страницах-заглушках, проверяем на них
     app.state.limiter.enabled = True
     try:
         for _ in range(70):
-            client.get("/api/dashboard")
-        response = client.get("/api/dashboard")
+            client.get("/api/foodcost")
+        response = client.get("/api/foodcost")
         assert response.status_code == 429
     finally:
         app.state.limiter.enabled = False

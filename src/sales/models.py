@@ -17,6 +17,10 @@ class Order(Base):
     session_number = Column(Integer, nullable=False)
     day = Column(Date, nullable=False)
     guests_number = Column(Integer, nullable=False)
+    # Сумма paid_sum блюд чека (считается при ingest). 0 — чек целиком
+    # бесплатный (представительские, стафф): не участвует в продажных
+    # метриках (чеки/гости/средний чек), но остаётся в данных.
+    paid_total = Column(DECIMAL(12, 4), nullable=False)
     # PayTypes.Group: CARD / CASH; 'MIXED' — сплит-оплата разными способами;
     # None — чек без оплаты (комплимент).
     pay_type = Column(String, nullable=True)
