@@ -29,9 +29,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync fallback JSON from data/
-        run: npm run sync:data
-
       - name: Security grep
         run: npm run lint:security
 
