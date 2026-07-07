@@ -18,7 +18,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.constants import resolve_unit, CAT_OTHER
-from src.dashboard.schemas import DashboardV2
+from src.dashboard.schemas import Dashboard
 from src.sales.models import Order, DishSale
 
 # Прогноз считается от 7 закрытых дней: первая неделя месяца покрывает
@@ -174,7 +174,7 @@ def _forecast(daily: dict[date, dict], history: dict[date, dict], metric: str,
 # сборка
 # --------------------------------------------------------------------------
 
-def build_dashboard(session: Session) -> DashboardV2:
+def build_dashboard(session: Session) -> Dashboard:
     last_day = session.query(func.max(Order.day)).scalar()
     if last_day is None:
         # новый инстанс до первой загрузки: сегодняшний месяц, нули,
@@ -216,15 +216,15 @@ def _zero_units() -> dict[str, dict]:
 
 def _assemble(d_from: date, d_to: date, cur: dict, prev: dict | None,
               daily: dict, units: dict, prev_units: dict,
-              forecasts: dict) -> DashboardV2:
+              forecasts: dict) -> Dashboard:
     def metric(name: str) -> dict:
         return {'value': cur[name],
-                'prev': prev[name] if prev else None,
+                'prevValue': prev[name] if prev else None,
                 'forecast': forecasts[name]}
 
     avg_check = {
         'value': round(cur['revenue'] / cur['checks']) if cur['checks'] else 0,
-        'prev': (round(prev['revenue'] / prev['checks'])
+        'prevValue': (round(prev['revenue'] / prev['checks'])
                  if prev and prev['checks'] else None),
         'forecast': (round(forecasts['revenue'] / forecasts['checks'])
                      if forecasts['revenue'] and forecasts['checks'] else None),
@@ -247,7 +247,7 @@ def _assemble(d_from: date, d_to: date, cur: dict, prev: dict | None,
     p_from, p_to = _same_period_last_year(d_from, d_to)
     # model_validate на выходе: опечатка в ключе или дыра в структуре
     # ловится в момент сборки (юнит-тестом), а не на HTTP-запросе.
-    return DashboardV2.model_validate({
+    return Dashboard.model_validate({
         'period': _period_dict(d_from, d_to),
         'compare': _period_dict(p_from, p_to),
         'kpis': {'revenue': metric('revenue'),

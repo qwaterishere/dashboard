@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 
-from src.dashboard.schemas import DashboardV2
+from src.dashboard.schemas import Dashboard
 from src.dashboard.service import build_dashboard, _same_period_last_year
 from src.database import DataBaseManager, Base
 from src.sales.service import ingest_records, parse_records
@@ -30,9 +30,9 @@ def _sale(day: str, order: int, uid: str, paid: float = 500, guests: int = 2):
 
 def test_empty_db_gives_typed_zeros(session):
     page = build_dashboard(session)
-    assert isinstance(page, DashboardV2)
+    assert isinstance(page, Dashboard)
     assert page.kpis.revenue.value == 0
-    assert page.kpis.revenue.prev is None        # сравнивать не с чем
+    assert page.kpis.revenue.prevValue is None        # сравнивать не с чем
     assert page.kpis.revenue.forecast is None    # прогноз не готов
     assert [u.key for u in page.units] == ['k', 'b', 'w', 'o']
 
@@ -50,7 +50,7 @@ def test_lfl_and_calendar(session):
     assert page.period.year == 2026 and page.period.dayTo == 3
     assert page.compare.year == 2025
     assert page.kpis.revenue.value == 1200
-    assert page.kpis.revenue.prev == 400
+    assert page.kpis.revenue.prevValue == 400
     # полный календарь: 2 июня без продаж, но присутствует нулями
     assert [d.day for d in page.revenueByDay] == [1, 2, 3]
     assert page.revenueByDay[1].revenue == 0

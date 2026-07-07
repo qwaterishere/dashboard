@@ -1,10 +1,8 @@
-"""Контракт v2 страницы «Дашборд» — исполняемая часть договора с фронтендом.
+"""Контракт страницы «Дашборд» — исполняемая часть договора с фронтендом.
 
-Человеческая часть (семантика null/0, что считает фронт) —
-docs/frontend-handoff.md, раздел 1. Принцип: бэкенд отдаёт факты,
+Принцип: бэкенд отдаёт факты,
 представление (проценты, доли, валюта, падежи) — зона фронтенда.
-Описания полей видны фронтендеру в OpenAPI (/docs).
-"""
+Описания полей  в /docs."""
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,7 +12,7 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
-class PeriodV2(StrictModel):
+class Period(StrictModel):
     """Период календарными числами — имя месяца и падежи форматирует фронт."""
 
     year: int = Field(description='Год, например 2026')
@@ -25,10 +23,10 @@ class PeriodV2(StrictModel):
 
 class KpiMetric(StrictModel):
     """Метрика KPI-карточки. LfL-процент и стрелку фронт считает сам:
-    (value - prev) / prev."""
+    (value - prevValue) / prevValue."""
 
-    value: float = Field(description='Значение за период period')
-    prev: float | None = Field(
+    value: float = Field(description='Значение за текущий период')
+    prevValue: float | None = Field(
         description='Значение за период compare (тот же прошлого года); '
                     'null — сравнивать не с чем (нет прошлого года)')
     forecast: float | None = Field(
@@ -36,7 +34,7 @@ class KpiMetric(StrictModel):
                     'null — прогноз не готов (< 7 закрытых дней)')
 
 
-class RevenueDayV2(StrictModel):
+class RevenueDay(StrictModel):
     """Один день графика. Отдаётся полный календарь периода:
     закрытые дни заведения присутствуют с нулями."""
 
@@ -73,17 +71,17 @@ class Kpis(StrictModel):
                     'forecast выручки / forecast чеков')
 
 
-class DashboardV2(StrictModel):
-    period: PeriodV2 = Field(description='Показываемый период: месяц '
+class Dashboard(StrictModel):
+    period: Period = Field(description='Показываемый период: месяц '
                                          'последнего закрытого дня')
-    compare: PeriodV2 = Field(description='Период сравнения: те же числа '
+    compare: Period = Field(description='Период сравнения: те же числа '
                                           'прошлого года (29.02 -> 28.02)')
     kpis: Kpis
-    revenueByDay: list[RevenueDayV2] = Field(
+    revenueByDay: list[RevenueDay] = Field(
         description='Полный календарь периода, закрытые дни — нулями')
     units: list[UnitSums] = Field(
         description='Всегда четыре элемента: k, b, w, o (нулевые включены)')
-    # Всегда null в v2.0 — форма блоков будет согласована
+    # Всегда null — форма блоков будет согласована
     # с появлением модулей отзывов и склада.
     reviews: None = None
     stock: None = None
