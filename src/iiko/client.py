@@ -3,15 +3,22 @@ from datetime import timedelta
 
 import httpx
 
-from src.iiko.config import settings
+from src.iiko.config import get_settings
 from src.iiko.exceptions import IikoAuthError, IikoRequestError
 
 
 class IikoClient:
     def __init__(self,
-                 url: str = settings.url,
-                 login: str = settings.login,
-                 password: str = settings.password):
+                 url: str | None = None,
+                 login: str | None = None,
+                 password: str | None = None):
+        # Настройки читаются лениво и только если параметр не передан явно:
+        # импорт модуля (и сбор тестов в CI без .env) кредов не требует.
+        if url is None or login is None or password is None:
+            settings = get_settings()
+            url = url or settings.url
+            login = login or settings.login
+            password = password or settings.password
         self._url = url
         self._login = login
         self._password = password
