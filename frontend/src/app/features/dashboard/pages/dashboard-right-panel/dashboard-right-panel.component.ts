@@ -18,13 +18,14 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
     StockPanelOrganismComponent,
   ],
   template: `
-    @if (dashboard.hasValue()) {
-      @let d = dashboard.value();
+    @if (viewModel(); as d) {
       <aside class="right">
         <app-profile-block />
         <app-categories-panel-organism [categories]="d.categories" />
-        <app-divider variant="right" />
-        <app-stock-panel-organism [stock]="d.stock" />
+        @if (d.stock) {
+          <app-divider variant="right" />
+          <app-stock-panel-organism [stock]="d.stock" />
+        }
       </aside>
     } @else if (dashboard.error()) {
       <aside class="right"><app-load-error message="Не удалось загрузить боковую панель" /></aside>
@@ -64,4 +65,5 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
 export class DashboardRightPanelComponent {
   private readonly store = inject(DashboardDataStore);
   protected readonly dashboard = this.store.dashboard;
+  protected readonly viewModel = this.store.viewModel;
 }

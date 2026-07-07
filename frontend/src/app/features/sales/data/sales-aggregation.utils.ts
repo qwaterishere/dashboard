@@ -110,7 +110,7 @@ export function buildBarGroups(
   raw: SalesPositionComputed[],
   level: SalesStructureLevel,
 ): SalesBarGroup[] {
-  const groups: Record<CategoryKey, SalesBarRow[]> = { k: [], b: [], w: [] };
+  const groups: Record<CategoryKey, SalesBarRow[]> = { k: [], b: [], w: [], o: [] };
 
   if (level === 'cat') {
     const aggregated = aggregateSalesBy(raw, 'cat');

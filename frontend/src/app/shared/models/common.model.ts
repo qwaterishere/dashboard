@@ -1,5 +1,5 @@
-/** Ключ категории: k — кухня, b — бар, w — вино. */
-export type CategoryKey = 'k' | 'b' | 'w';
+/** Ключ категории: k — кухня, b — бар, w — вино, o — вне подразделений. */
+export type CategoryKey = 'k' | 'b' | 'w' | 'o';
 
 export type LflDirection = 'up' | 'dn';
 

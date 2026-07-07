@@ -4,11 +4,5 @@
     "secure": false,
     "changeOrigin": true,
     "logLevel": "warn"
-  },
-  "/data/*": {
-    "target": "http://localhost:8000",
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "warn"
   }
 }

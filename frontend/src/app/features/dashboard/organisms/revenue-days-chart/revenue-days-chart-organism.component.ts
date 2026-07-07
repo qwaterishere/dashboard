@@ -134,7 +134,7 @@ export class RevenueDaysChartOrganismComponent {
     event.stopPropagation();
     const bar = this.layout().bars[index];
     const target = event.currentTarget as SVGRectElement;
-    const dp = ((bar.day.revenue - bar.day.plan) / bar.day.plan) * 100;
+    const dp = bar.day.plan ? ((bar.day.revenue - bar.day.plan) / bar.day.plan) * 100 : 0;
     const tone = dp >= 0 ? 'up' : 'dn';
 
     if (this.selectedIndex() === index && this.popovers.active()?.key === `day-${index}`) {

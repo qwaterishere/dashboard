@@ -3,12 +3,12 @@ import { Component, input } from '@angular/core';
 import { KpiCardOrganismComponent } from '../kpi-card/kpi-card-organism.component';
 import { PopoverTriggerDirective } from '../../../../ui/directives/popover-trigger.directive';
 import type { DashboardData } from '../../../../shared/models';
-import { FmtPipe, MoneyPipe, MillionsPipe } from '../../../../shared/pipes/format.pipes';
+import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 
 @Component({
   selector: 'app-kpi-grid-organism',
   standalone: true,
-  imports: [KpiCardOrganismComponent, PopoverTriggerDirective, FmtPipe, MoneyPipe, MillionsPipe],
+  imports: [KpiCardOrganismComponent, PopoverTriggerDirective, FmtPipe, MoneyPipe],
   template: `
     <div class="kpis">
       <app-kpi-card-organism
@@ -16,9 +16,9 @@ import { FmtPipe, MoneyPipe, MillionsPipe } from '../../../../shared/pipes/forma
         tone="kpi-rev"
         [value]="kpis().revenue.value"
         valueFormat="money"
-        [lflPct]="kpis().revenue.lfl.pct"
-        [lflDir]="kpis().revenue.lfl.dir"
-        [forecastHeadline]="(kpis().revenue.forecast.value | millions) + ' · ' + kpis().revenue.forecast.planPct + ' %'"
+        [lflPct]="kpis().revenue.lfl?.pct"
+        [lflDir]="kpis().revenue.lfl?.dir"
+        [forecastHeadline]="kpis().revenue.forecast.headline ?? '—'"
         [trackPct]="kpis().revenue.forecast.trackPct"
         [risk]="kpis().revenue.forecast.risk"
         lflPopoverKey="rev-lfl"
@@ -35,9 +35,9 @@ import { FmtPipe, MoneyPipe, MillionsPipe } from '../../../../shared/pipes/forma
         tone="kpi-check"
         [value]="kpis().avgCheck.value"
         valueFormat="money"
-        [lflPct]="kpis().avgCheck.lfl.pct"
-        [lflDir]="kpis().avgCheck.lfl.dir"
-        [forecastHeadline]="(kpis().avgCheck.forecast.value | money) + ' · ' + kpis().avgCheck.forecast.planPct + ' %'"
+        [lflPct]="kpis().avgCheck.lfl?.pct"
+        [lflDir]="kpis().avgCheck.lfl?.dir"
+        [forecastHeadline]="kpis().avgCheck.forecast.headline ?? '—'"
         [trackPct]="kpis().avgCheck.forecast.trackPct"
         [risk]="kpis().avgCheck.forecast.risk"
         lflPopoverKey="check-lfl"
@@ -69,9 +69,9 @@ import { FmtPipe, MoneyPipe, MillionsPipe } from '../../../../shared/pipes/forma
         tone="kpi-guests"
         [value]="kpis().guests.value"
         valueFormat="number"
-        [lflPct]="kpis().guests.lfl.pct"
-        [lflDir]="kpis().guests.lfl.dir"
-        [forecastHeadline]="(kpis().guests.forecast.value | fmt) + ' · ' + kpis().guests.forecast.planPct + ' %'"
+        [lflPct]="kpis().guests.lfl?.pct"
+        [lflDir]="kpis().guests.lfl?.dir"
+        [forecastHeadline]="kpis().guests.forecast.headline ?? '—'"
         [trackPct]="kpis().guests.forecast.trackPct"
         [risk]="kpis().guests.forecast.risk"
         lflPopoverKey="guests-lfl"

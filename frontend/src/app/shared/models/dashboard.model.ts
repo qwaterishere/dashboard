@@ -2,12 +2,13 @@ import type { CategoryKey, DetailPopover, LflMetric, PeriodInfo } from './common
 
 export interface KpiBlock {
   value: number;
-  lfl: LflMetric;
+  lfl?: LflMetric | null;
   forecast: {
     value: number;
     planPct: number;
     trackPct: number;
     risk: boolean;
+    headline?: string;
   };
 }
 
@@ -58,7 +59,7 @@ export interface DashboardData {
       badPct: number;
     };
     sources: { name: string; score: number; count: number }[];
-  };
+  } | null;
   foodcostMini: {
     caption: string;
     items: {
@@ -74,6 +75,6 @@ export interface DashboardData {
   stock: {
     total: number;
     items: { key: CategoryKey; name: string; value: number }[];
-  };
+  } | null;
   details: Record<string, DetailPopover>;
 }

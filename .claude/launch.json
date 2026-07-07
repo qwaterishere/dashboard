@@ -3,14 +3,9 @@
   "configurations": [
     {
       "name": "api",
-      "runtimeExecutable": "venv/Scripts/python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "src.main:app", "--port", "8000"],
-      "port": 8000
-    },
-    {
-      "name": "static",
+      "cwd": "backend",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8000"],
+      "runtimeArgs": ["-m", "uvicorn", "src.main:app", "--reload", "--port", "8000"],
       "port": 8000
     }
   ]

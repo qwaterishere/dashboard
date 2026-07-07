@@ -3,15 +3,14 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "start:with-api": "ng serve --proxy-config proxy.conf.json",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "start:offline": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --no-watch",
     "audit:security": "npm audit --audit-level=high",
-    "lint:security": "node scripts/security-grep.mjs",
-    "sync:data": "cp ../data/*.json public/data/"
+    "lint:security": "node scripts/security-grep.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.8",

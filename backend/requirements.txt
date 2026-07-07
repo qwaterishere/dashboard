@@ -1,2 +1,0 @@
--r ../requirements/base.txt
-slowapi>=0.1.9

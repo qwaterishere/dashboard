@@ -41,8 +41,8 @@ export class KpiCardOrganismComponent {
   readonly tone = input<KpiTone>('kpi-rev');
   readonly value = input.required<number>();
   readonly valueFormat = input<'money' | 'number'>('money');
-  readonly lflPct = input.required<number>();
-  readonly lflDir = input.required<LflDirection>();
+  readonly lflPct = input<number | undefined>();
+  readonly lflDir = input<LflDirection | undefined>();
   readonly forecastHeadline = input.required<string>();
   readonly trackPct = input.required<number>();
   readonly risk = input(false);

@@ -60,5 +60,5 @@ import type { DashboardData } from '../../../../shared/models';
   styleUrl: './reviews-panel-organism.component.scss',
 })
 export class ReviewsPanelOrganismComponent {
-  readonly reviews = input.required<DashboardData['reviews']>();
+  readonly reviews = input.required<NonNullable<DashboardData['reviews']>>();
 }

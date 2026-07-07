@@ -21,8 +21,7 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
     FoodcostMiniOrganismComponent,
   ],
   template: `
-    @if (dashboard.hasValue()) {
-      @let d = dashboard.value();
+    @if (viewModel(); as d) {
       <app-kpi-grid-organism [kpis]="d.kpis" [details]="d.details" />
       <app-revenue-days-chart-organism
         [days]="d.revenueByDay"
@@ -30,7 +29,9 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
         [periodLabel]="d.period.label"
       />
       <div class="row2">
-        <app-reviews-panel-organism [reviews]="d.reviews" />
+        @if (d.reviews) {
+          <app-reviews-panel-organism [reviews]="d.reviews" />
+        }
         <app-foodcost-mini-organism [foodcost]="d.foodcostMini" />
       </div>
       <app-detail-popover-organism />
@@ -56,6 +57,7 @@ export class DashboardPageComponent {
   private readonly popovers = inject(PopoverController);
 
   protected readonly dashboard = this.store.dashboard;
+  protected readonly viewModel = this.store.viewModel;
 
   @HostListener('document:click')
   onDocumentClick(): void {
