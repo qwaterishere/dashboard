@@ -34,10 +34,10 @@
   "compare": {"year": 2025, "month": 7, "dayFrom": 1, "dayTo": 2},
 
   "kpis": {
-    "revenue":  {"value": 590572, "prev": 620013, "forecast": null},
-    "checks":   {"value": 91,     "prev": 102,    "forecast": null},
-    "guests":   {"value": 210,    "prev": 260,    "forecast": null},
-    "avgCheck": {"value": 6490,   "prev": 6078,   "forecast": null}
+    "revenue":  {"value": 590572, "prevValue": 620013, "forecast": null},
+    "checks":   {"value": 91,     "prevValue": 102,    "forecast": null},
+    "guests":   {"value": 210,    "prevValue": 260,    "forecast": null},
+    "avgCheck": {"value": 6490,   "prevValue": 6078,   "forecast": null}
   },
 
   "revenueByDay": [
@@ -65,8 +65,8 @@
   с 1-го числа (`dayFrom`) по последний закрытый день (`dayTo`).
 - `compare` — период сравнения: те же календарные числа прошлого года
   (29 февраля в невисокосном году усекается до 28-го).
-- `kpis.*.prev` — значение метрики за `compare`; LfL-процент и стрелку
-  фронт считает сам: `(value - prev) / prev`.
+- `kpis.*.prevValue` — значение метрики за `compare`; LfL-процент и стрелку
+  фронт считает сам: `(value - prevValue) / prevValue`.
 - `checks`/`guests` — только по чекам **с выручкой**: целиком бесплатный
   чек (представительские, стафф-питание) — не продажа и не размывает
   средний чек. Гости платного чека с бесплатными позициями считаются все.
@@ -117,4 +117,4 @@
    Предлагается настройка валюты на стороне фронта (конфиг инстанса).
 4. **`lfl` в v1-контрактах остальных страниц**: у ресторана без прошлого
    года сравнивать не с чем — при миграции страниц на v2-стиль
-   закладывайте `prev: null`.
+   закладывайте `prevValue: null`.

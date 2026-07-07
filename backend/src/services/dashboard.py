@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from src.domain.constants import resolve_unit, CAT_OTHER
 from src.db.models.sales import Order, DishSale
-from src.schemas.dashboard import DashboardV2
+from src.schemas.dashboard import Dashboard
 
 # Прогноз считается от 7 закрытых дней: первая неделя месяца покрывает
 # каждый день недели ровно один раз — раньше run-rate экстраполирует шум.
@@ -174,23 +174,23 @@ def _forecast(daily: dict[date, dict], history: dict[date, dict], metric: str,
 # сборка
 # --------------------------------------------------------------------------
 
-def build_dashboard(session: Session) -> DashboardV2:
-    last_day = session.query(func.max(Order.day)).scalar()
+def build_dashboard(session: Session) -> Dashboard:
+    last_day = session.query(func.max(Order.day)).scalar() # datetime.date(2026, 7, 5)
     if last_day is None:
-        # новый инстанс до первой загрузки: сегодняшний месяц, нули,
-        # prev/forecast None — фронту не нужен отдельный код-путь
+        # None == пустая база, если первый день месяца покажет весь предыдущий
+        # в этом случае prev/forecast == None
         today = date.today()
-        return _assemble(d_from=today.replace(day=1), d_to=today,
+        return _assemble_response(d_from=today.replace(day=1), d_to=today,
                          cur=_ZERO_TOTALS, prev=None, daily={},
                          units=_zero_units(), prev_units=_zero_units(),
                          forecasts={'revenue': None, 'checks': None, 'guests': None})
 
     d_from, d_to = last_day.replace(day=1), last_day
-    p_from, p_to = _same_period_last_year(d_from, d_to)
+    prev_from, prev_to = _same_period_last_year(d_from, d_to)
     days_in_month = calendar.monthrange(d_from.year, d_from.month)[1]
 
     cur = _totals(session, d_from, d_to)
-    prev_raw = _totals(session, p_from, p_to)
+    prev_raw = _totals(session, prev_from, prev_to)
     # None -> в периоде сравнения не было ни одного чека: новый ресторан,
     # сезонная пауза. «Сравнивать не с чем» != «в прошлом году был ноль».
     prev = prev_raw if prev_raw['checks'] > 0 else None
@@ -202,9 +202,9 @@ def build_dashboard(session: Session) -> DashboardV2:
     forecasts = {m: _forecast(daily, history, m, d_from, d_to, days_in_month)
                  for m in ('revenue', 'checks', 'guests')}
 
-    return _assemble(d_from, d_to, cur, prev, daily,
+    return _assemble_response(d_from, d_to, cur, prev, daily,
                      _unit_sums(session, d_from, d_to),
-                     _unit_sums(session, p_from, p_to), forecasts)
+                     _unit_sums(session, prev_from, prev_to), forecasts)
 
 
 _ZERO_TOTALS = {'revenue': 0.0, 'cost': 0.0, 'checks': 0, 'guests': 0}
@@ -214,17 +214,17 @@ def _zero_units() -> dict[str, dict]:
     return {key: {'revenue': 0.0, 'cost': 0.0} for key in UNIT_KEYS}
 
 
-def _assemble(d_from: date, d_to: date, cur: dict, prev: dict | None,
+def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
               daily: dict, units: dict, prev_units: dict,
-              forecasts: dict) -> DashboardV2:
+              forecasts: dict) -> Dashboard:
     def metric(name: str) -> dict:
         return {'value': cur[name],
-                'prev': prev[name] if prev else None,
+                'prevValue': prev[name] if prev else None,
                 'forecast': forecasts[name]}
 
     avg_check = {
         'value': round(cur['revenue'] / cur['checks']) if cur['checks'] else 0,
-        'prev': (round(prev['revenue'] / prev['checks'])
+        'prevValue': (round(prev['revenue'] / prev['checks'])
                  if prev and prev['checks'] else None),
         'forecast': (round(forecasts['revenue'] / forecasts['checks'])
                      if forecasts['revenue'] and forecasts['checks'] else None),
@@ -245,9 +245,9 @@ def _assemble(d_from: date, d_to: date, cur: dict, prev: dict | None,
         day += timedelta(days=1)
 
     p_from, p_to = _same_period_last_year(d_from, d_to)
-    # model_validate на выходе: опечатка в ключе или дыра в структуре
-    # ловится в момент сборки (юнит-тестом), а не на HTTP-запросе.
-    return DashboardV2.model_validate({
+        # model_validate на выходе: опечатка в ключе или дыра в структуре
+        # ловится в момент сборки (юнит-тестом), а не на HTTP-запросе.
+    return Dashboard.model_validate({
         'period': _period_dict(d_from, d_to),
         'compare': _period_dict(p_from, p_to),
         'kpis': {'revenue': metric('revenue'),
