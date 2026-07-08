@@ -2,11 +2,9 @@
 
 | Пакет | Путь | Стек |
 |-------|------|------|
-| **Frontend** | `frontend/` | Angular 22 |
+| **Frontend** | `frontend/` | Angular 22 SPA |
 | **Backend** | `backend/` | FastAPI, SQLAlchemy |
 | **Контракты** | `docs/frontend-handoff.md` | shared API spec |
-
-Legacy HTML (`index.html`, `app/js/`).
 
 ## Запуск (dev)
 
@@ -23,8 +21,6 @@ cd frontend
 npm install && npm start    # http://localhost:4200, proxy /api → :8000
 ```
 
-Переменные окружения: `backend/.env` (шаблон — `backend/.env.example`).
-
 ## API
 
 | Эндпоинт | Источник |
@@ -32,10 +28,12 @@ npm install && npm start    # http://localhost:4200, proxy /api → :8000
 | `/api/dashboard` | БД (v2) |
 | `/api/sales` | БД |
 | `/api/warehouse`, `/api/foodcost` | `backend/data/*.json` (до миграции) |
+| `/health` | liveness probe |
 
-Подробности бэкенда — [backend/README.md](backend/README.md).
+Подробности бэкенда — [backend/README.md](backend/README.md).  
+Parity checklist и E2E — [frontend/README.md](frontend/README.md).
 
 ## Принцип контракта
 
 **Бэкенд присылает сырые числа, фронтенд форматирует.**  
-Категория — ключ `"k"`, имя «Кухня» подставит фронт. Позиции: `qty`, `price`, `unitCost`.
+Категория — ключ `"k"`, имя «Кухня» подставит фронт. KPI: `prevValue`, не строка LfL.

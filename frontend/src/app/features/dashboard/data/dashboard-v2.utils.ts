@@ -1,43 +1,26 @@
 import { CAT_NAME } from '../../../shared/constants/category.constants';
-import type { CategoryKey, DetailPopover, LflDirection, LflMetric } from '../../../shared/models/common.model';
+import type { CategoryKey, DetailPopover, LflDirection, LflMetric, PeriodGranularity } from '../../../shared/models/common.model';
 import type { DashboardData, RevenueDay } from '../../../shared/models/dashboard.model';
 import type {
   DashboardV2,
   KpiMetricV2,
-  PeriodV2,
   RevenueDayV2,
   UnitSumsV2,
 } from '../../../shared/models/dashboard-v2.model';
+import type { WarehouseData } from '../../../shared/models/warehouse.model';
+import {
+  buildPeriodInfo,
+  filterRevenueDays,
+  formatChartPeriodLabel,
+  formatCompareWith,
+  formatPeriodRange,
+} from '../../../shared/utils/period-format.utils';
 
-const MONTHS_GENITIVE = [
-  'января',
-  'февраля',
-  'марта',
-  'апреля',
-  'мая',
-  'июня',
-  'июля',
-  'августа',
-  'сентября',
-  'октября',
-  'ноября',
-  'декабря',
-] as const;
-
-const MONTHS_NOMINATIVE = [
-  'январь',
-  'февраль',
-  'март',
-  'апрель',
-  'май',
-  'июнь',
-  'июль',
-  'август',
-  'сентябрь',
-  'октябрь',
-  'ноябрь',
-  'декабрь',
-] as const;
+export interface DashboardViewModelOptions {
+  granularity?: PeriodGranularity;
+  stock?: DashboardData['stock'];
+  chartPeriodLabel?: string;
+}
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
 
@@ -47,34 +30,6 @@ function lfl(value: number, prev: number | null): LflMetric | null {
   return { pct, dir: (pct >= 0 ? 'up' : 'dn') as LflDirection };
 }
 
-function formatPeriodRange(p: PeriodV2): string {
-  const month = MONTHS_GENITIVE[p.month - 1] ?? '';
-  if (p.dayFrom === p.dayTo) {
-    return `${p.dayTo} ${month} ${p.year}`;
-  }
-  return `${p.dayFrom}–${p.dayTo} ${month} ${p.year}`;
-}
-
-function formatCompareWith(p: PeriodV2): string {
-  const month = MONTHS_INSTRUMENTAL[p.month - 1] ?? MONTHS_NOMINATIVE[p.month - 1] ?? '';
-  return `${month} ${p.year}`;
-}
-
-const MONTHS_INSTRUMENTAL = [
-  'январём',
-  'февралём',
-  'мартом',
-  'апрелем',
-  'маем',
-  'июнем',
-  'июлем',
-  'августом',
-  'сентябрём',
-  'октябрём',
-  'ноябрём',
-  'декабрём',
-] as const;
-
 function formatMoney(value: number): string {
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
 }
@@ -82,11 +37,6 @@ function formatMoney(value: number): string {
 function formatSignedMoney(delta: number): string {
   const sign = delta >= 0 ? '+' : '−';
   return `${sign}${formatMoney(Math.abs(delta))}`;
-}
-
-function formatSignedPct(value: number): string {
-  const sign = value >= 0 ? '+' : '−';
-  return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} %`;
 }
 
 function forecastBlock(metric: KpiMetricV2, formatValue: (n: number) => string) {
@@ -178,14 +128,30 @@ function toRevenueDays(days: RevenueDayV2[]): RevenueDay[] {
   }));
 }
 
-/** Преобразует контракт v2 API в view-model для существующих organism-компонентов. */
-export function buildDashboardViewModel(data: DashboardV2): DashboardData {
-  const { kpis, period, compare } = data;
-  const revLfl = lfl(kpis.revenue.value, kpis.revenue.prev);
-  const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prev);
-  const guestsLfl = lfl(kpis.guests.value, kpis.guests.prev);
+/** Собирает stock panel из stub GET /api/warehouse. */
+export function buildStockFromWarehouse(data: WarehouseData): NonNullable<DashboardData['stock']> {
+  return {
+    total: data.totals.value,
+    items: data.totals.byStore.map((store) => ({
+      key: store.key,
+      name: store.name,
+      value: store.value,
+    })),
+  };
+}
 
-  const periodLabel = formatPeriodRange(period);
+/** Преобразует контракт v2 API в view-model для существующих organism-компонентов. */
+export function buildDashboardViewModel(
+  data: DashboardV2,
+  options: DashboardViewModelOptions = {},
+): DashboardData {
+  const { kpis, period, compare } = data;
+  const granularity = options.granularity ?? 'month';
+  const revLfl = lfl(kpis.revenue.value, kpis.revenue.prevValue);
+  const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prevValue);
+  const guestsLfl = lfl(kpis.guests.value, kpis.guests.prevValue);
+
+  const periodInfo = buildPeriodInfo(period, compare);
   const compareLabel = formatCompareWith(compare);
 
   const details: Record<string, DetailPopover> = {
@@ -193,7 +159,7 @@ export function buildDashboardViewModel(data: DashboardV2): DashboardData {
       'LfL — выручка',
       compareLabel,
       kpis.revenue.value,
-      kpis.revenue.prev,
+      kpis.revenue.prevValue,
       formatMoney,
       `Сравнение календарное: ${formatPeriodRange(compare)}.`,
     ),
@@ -201,7 +167,7 @@ export function buildDashboardViewModel(data: DashboardV2): DashboardData {
       'LfL — средний чек',
       compareLabel,
       kpis.avgCheck.value,
-      kpis.avgCheck.prev,
+      kpis.avgCheck.prevValue,
       formatMoney,
       'Средний чек = выручка / число чеков с выручкой.',
     ),
@@ -209,7 +175,7 @@ export function buildDashboardViewModel(data: DashboardV2): DashboardData {
       'LfL — гости',
       compareLabel,
       kpis.guests.value,
-      kpis.guests.prev,
+      kpis.guests.prevValue,
       (n) => Math.round(n).toLocaleString('ru-RU'),
       `Сравнение календарное: ${formatPeriodRange(compare)}.`,
     ),
@@ -218,15 +184,17 @@ export function buildDashboardViewModel(data: DashboardV2): DashboardData {
     'guests-goal': buildGoalPopover('Прогноз — гости', kpis.guests, (n) => Math.round(n).toLocaleString('ru-RU')),
   };
 
-  const revenueDays = toRevenueDays(data.revenueByDay);
+  const filteredDays = filterRevenueDays(data.revenueByDay, period, granularity);
+  const revenueDays = toRevenueDays(filteredDays);
   const maxRevenue = revenueDays.reduce((max, d) => Math.max(max, d.revenue, d.plan), 1);
+  const chartLabel =
+    options.chartPeriodLabel ?? formatChartPeriodLabel(period, granularity);
 
   return {
     greeting: '',
     period: {
-      label: periodLabel,
-      note: 'закрытые дни',
-      compareWith: compareLabel,
+      ...periodInfo,
+      label: chartLabel,
     },
     kpis: {
       revenue: {
@@ -255,10 +223,10 @@ export function buildDashboardViewModel(data: DashboardV2): DashboardData {
     },
     revenueByDay: revenueDays,
     revenueByDayMax: maxRevenue * 1.1,
-    reviews: null,
+    reviews: data.reviews,
     foodcostMini: buildFoodcostMini(data.units),
     categories: buildCategories(data.units),
-    stock: null,
+    stock: options.stock ?? data.stock,
     details,
   };
 }

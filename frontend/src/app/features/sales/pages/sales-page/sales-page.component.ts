@@ -1,6 +1,7 @@
 import { httpResource } from '@angular/common/http';
-import { Component, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 
+import { DashboardDataStore } from '../../../dashboard/data/dashboard-data.store';
 import type { SalesData } from '../../../../shared/models';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
 import { computeSalesRaw } from '../../data/sales-aggregation.utils';
@@ -34,7 +35,20 @@ import { AbcAnalysisOrganismComponent } from '../../organisms/abc-analysis/abc-a
   `,
 })
 export class SalesPageComponent {
-  readonly data = httpResource<SalesData>(() => ({ url: '/api/sales' }));
+  private readonly store = inject(DashboardDataStore);
+
+  readonly data = httpResource<SalesData>(() => {
+    const useRange = this.store.granularity() === 'week';
+    const query = useRange ? this.store.salesQuery() : null;
+    if (!query) {
+      return { url: '/api/sales' };
+    }
+    const params = new URLSearchParams({
+      date_from: query.dateFrom,
+      date_to: query.dateTo,
+    });
+    return { url: `/api/sales?${params.toString()}` };
+  });
 
   readonly positions = computed(() => {
     if (!this.data.hasValue()) return [];

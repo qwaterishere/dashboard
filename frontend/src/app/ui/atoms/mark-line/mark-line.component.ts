@@ -10,11 +10,11 @@ import { Component, input } from '@angular/core';
       top: 0;
       bottom: 0;
       width: 2px;
-      background: #5a6480;
+      background: var(--mark-plan);
       transform: translateX(-50%);
     }
     :host(.mark--goal) .mark {
-      background: #e9edf6;
+      background: var(--mark-goal);
       opacity: 0.65;
       top: -3px;
       bottom: -3px;

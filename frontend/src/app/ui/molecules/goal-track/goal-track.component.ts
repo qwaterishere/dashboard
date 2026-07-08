@@ -41,7 +41,7 @@ import type { DetailPopover } from '../../../shared/models';
 
     .k-goal {
       padding-top: 12px;
-      border-top: 1px solid #1b2236;
+      border-top: 1px solid var(--border-subtle);
       cursor: pointer;
     }
     .g-row {

@@ -29,11 +29,11 @@ import { BadgeComponent } from '../../atoms/badge/badge.component';
       border-radius: 10px;
       transition: all 0.15s;
     }
-    a:hover { color: var(--txt); background: #11182a; }
+    a:hover { color: var(--txt); background: var(--nav-hover-bg); }
     a.on {
-      color: #fff;
-      background: linear-gradient(90deg, rgba(110, 107, 255, 0.28), rgba(61, 220, 151, 0.14));
-      box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.35);
+      color: var(--nav-active-fg);
+      background: var(--nav-active-bg);
+      box-shadow: var(--nav-active-ring);
     }
   `,
 })

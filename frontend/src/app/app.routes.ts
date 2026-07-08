@@ -43,8 +43,20 @@ export const routes: Routes = [
             (m) => m.PurchasesPageComponent,
           ),
       },
-      { path: 'settings', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'support', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/pages/settings-page/settings-page.component').then(
+            (m) => m.SettingsPageComponent,
+          ),
+      },
+      {
+        path: 'support',
+        loadComponent: () =>
+          import('./features/support/pages/support-page/support-page.component').then(
+            (m) => m.SupportPageComponent,
+          ),
+      },
       { path: '**', redirectTo: 'dashboard' },
     ],
   },

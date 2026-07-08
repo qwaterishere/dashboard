@@ -44,10 +44,13 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
       width: var(--right-panel-width, 296px);
       max-width: var(--right-panel-width, 296px);
       min-width: var(--right-panel-width, 296px);
+      height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
       padding: 24px 22px;
-      border-left: 1px solid #141a2b;
-      background: #0b101d;
-      align-self: stretch;
+      border-left: 1px solid var(--border-strong);
+      background: var(--surface-right);
+      align-self: start;
     }
 
     .loading {

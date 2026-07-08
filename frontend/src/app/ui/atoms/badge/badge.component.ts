@@ -26,7 +26,7 @@ import { Component, input } from '@angular/core';
       color: var(--mut);
     }
     .badge--abc-a { background: rgba(61, 220, 151, 0.15); color: var(--grn); padding: 2px 8px; font-size: 0.72rem; }
-    .badge--abc-b { background: rgba(201, 161, 75, 0.15); color: #d9b45f; padding: 2px 8px; font-size: 0.72rem; }
+    .badge--abc-b { background: rgba(201, 161, 75, 0.15); color: var(--amber); padding: 2px 8px; font-size: 0.72rem; }
     .badge--abc-c { background: rgba(255, 107, 107, 0.12); color: var(--red); padding: 2px 8px; font-size: 0.72rem; }
   `,
 })

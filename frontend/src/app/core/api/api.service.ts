@@ -11,7 +11,7 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly config = inject(API_CONFIG);
 
-  /** Загрузить данные страницы. Fallback — через interceptor. */
+  /** Загрузить данные страницы через whitelist API. */
   fetchPage<T>(page: PageName): Promise<T> {
     if (!isAllowedPage(page)) {
       return Promise.reject(new Error('Неизвестная страница'));

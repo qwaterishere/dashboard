@@ -90,11 +90,13 @@ export class AbcAnalysisOrganismComponent {
     const desc = this.sortDesc();
 
     rows = [...rows].sort((a, b) => {
-      let result = 0;
-      if (key === 'name') result = a.name.localeCompare(b.name);
-      else if (key === 'abc') result = 'ABC'.indexOf(a.abc) - 'ABC'.indexOf(b.abc);
-      else result = a[key] - b[key];
-      return desc ? -result : result;
+      const cmp =
+        key === 'name'
+          ? a.name.localeCompare(b.name)
+          : key === 'abc'
+            ? 'ABC'.indexOf(a.abc) - 'ABC'.indexOf(b.abc)
+            : a[key] - b[key];
+      return desc ? -cmp : cmp;
     });
 
     return rows;

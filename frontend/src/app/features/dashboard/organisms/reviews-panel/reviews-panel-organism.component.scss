@@ -29,7 +29,7 @@
   line-height: 1;
 
   span {
-    color: #e8b84b;
+    color: var(--amber);
     font-size: 1.3rem;
     margin-left: 2px;
   }
@@ -53,7 +53,7 @@
   overflow: hidden;
   display: flex;
   gap: 2px;
-  background: #1b2236;
+  background: var(--surface-inset);
 
   i {
     height: 100%;
@@ -65,7 +65,7 @@
   }
 
   i.mid {
-    background: #c9a14b;
+    background: var(--amber);
   }
 
   i.bad {
@@ -92,7 +92,7 @@
 }
 
 .mid-t {
-  color: #d9b45f;
+  color: var(--amber);
 }
 
 .bad-t {
@@ -109,7 +109,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-top: 1px solid #1b2236;
+  border-top: 1px solid var(--border-subtle);
   padding-top: 4px;
 }
 
@@ -118,7 +118,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid #161d30;
+  border-bottom: 1px solid var(--surface-muted);
   font-size: 0.82rem;
 
   &:last-child {

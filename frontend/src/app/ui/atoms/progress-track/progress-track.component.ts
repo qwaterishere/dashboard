@@ -11,14 +11,14 @@ import { Component, input } from '@angular/core';
   styles: `
     .track {
       border-radius: 99px;
-      background: #1b2236;
+      background: var(--surface-inset);
       overflow: hidden;
       position: relative;
     }
     .track--goal { height: 6px; }
     .track--bar { height: 7px; }
     .track--fc { height: 8px; overflow: visible; }
-    .track--rev { height: 9px; display: flex; gap: 2px; background: #1b2236; }
+    .track--rev { height: 9px; display: flex; gap: 2px; background: var(--surface-inset); }
   `,
 })
 export class ProgressTrackComponent {

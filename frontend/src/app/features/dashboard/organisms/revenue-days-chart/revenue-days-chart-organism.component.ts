@@ -37,14 +37,14 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               [attr.y1]="line.y"
               [attr.x2]="layout().width - layout().paddingRight"
               [attr.y2]="line.y"
-              stroke="#1B2236"
+              stroke="var(--chart-grid)"
             />
             <text
               [attr.x]="layout().paddingLeft - 8"
               [attr.y]="line.y + 4"
               text-anchor="end"
               font-size="10"
-              fill="#5A6480"
+              fill="var(--chart-axis)"
               font-family="Manrope"
             >
               {{ line.label }}
@@ -69,7 +69,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               [attr.y1]="bar.planY"
               [attr.x2]="bar.x + bar.w + 3"
               [attr.y2]="bar.planY"
-              stroke="#5A6480"
+              stroke="var(--chart-axis)"
               stroke-width="2"
               stroke-linecap="round"
               pointer-events="none"
@@ -79,7 +79,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               [attr.y]="layout().height - 9"
               text-anchor="middle"
               font-size="10"
-              [attr.fill]="bar.weekend ? '#9D9BFF' : '#5A6480'"
+              [attr.fill]="bar.weekend ? 'var(--chart-weekend)' : 'var(--chart-axis)'"
               font-family="Manrope"
             >
               {{ bar.label }}
@@ -95,7 +95,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               [attr.height]="sel.h"
               rx="5"
               fill="none"
-              stroke="#6E6BFF"
+              stroke="var(--chart-selection)"
               stroke-width="2"
               style="filter: drop-shadow(0 0 6px rgba(110, 107, 255, 0.7))"
               pointer-events="none"

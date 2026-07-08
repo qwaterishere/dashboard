@@ -106,7 +106,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
       width: 19px;
       height: 19px;
       margin-left: 5px;
-      color: #d9a861;
+      color: var(--amber);
       cursor: pointer;
       vertical-align: -4px;
     }

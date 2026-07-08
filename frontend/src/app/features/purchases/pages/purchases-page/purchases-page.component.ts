@@ -1,17 +1,17 @@
 import { Component } from '@angular/core';
 
+import { PlaceholderLayoutTemplateComponent } from '../../../../ui/templates/placeholder-layout/placeholder-layout-template.component';
+
 @Component({
   selector: 'app-purchases-page',
   standalone: true,
-  template: `<p class="stub">Раздел в разработке (Фаза 7)</p>`,
-  styles: `
-    :host {
-      display: block;
-    }
-
-    .stub {
-      color: var(--mut2);
-    }
+  imports: [PlaceholderLayoutTemplateComponent],
+  template: `
+    <app-placeholder-layout-template
+      title="Закупки"
+      message="Модуль закупок появится в следующем релизе."
+      hint="Пока используйте разделы Продажи, Склад и Фудкост."
+    />
   `,
 })
 export class PurchasesPageComponent {}

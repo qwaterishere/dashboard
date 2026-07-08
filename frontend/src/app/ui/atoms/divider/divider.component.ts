@@ -5,7 +5,7 @@ import { Component, input } from '@angular/core';
   standalone: true,
   template: `<div [class]="classes()"></div>`,
   styles: `
-    .divider { height: 1px; background: #161d30; }
+    .divider { height: 1px; background: var(--border-subtle); }
     .divider--nav { margin: 18px 8px; }
     .divider--right { margin: 22px 0; }
   `,

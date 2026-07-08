@@ -13,7 +13,7 @@ import { FoodcostCategoriesOrganismComponent } from '../../organisms/foodcost-ca
 @Component({
   selector: 'app-foodcost-page',
   standalone: true,
-  host: { class: 'page-foodcost' },
+  host: { 'data-page': 'foodcost' },
   imports: [
     LoadErrorComponent,
     FoodcostOverviewOrganismComponent,

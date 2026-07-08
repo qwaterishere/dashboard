@@ -9,7 +9,7 @@ export interface PeriodV2 {
 
 export interface KpiMetricV2 {
   value: number;
-  prev: number | null;
+  prevValue: number | null;
   forecast: number | null;
 }
 
