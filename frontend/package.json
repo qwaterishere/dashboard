@@ -53,5 +53,12 @@
     "@angular/platform-browser-dynamic": "22.0.4",
     "@compodoc/compodoc": "^2.0.0",
     "eslint-plugin-storybook": "^10.4.6"
+  },
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "esbuild": "0.28.1",
+    "http-proxy-middleware": "3.0.7",
+    "uuid": "11.1.1",
+    "webpack-dev-server": "6.0.0"
   }
 }
