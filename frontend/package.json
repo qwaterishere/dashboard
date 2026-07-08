@@ -50,7 +50,7 @@
     "@angular-devkit/build-angular": "^22.0.0",
     "@angular-devkit/architect": "^0.2200.0",
     "@angular-devkit/core": "^22.0.0",
-    "@angular/platform-browser-dynamic": "^22.0.0",
+    "@angular/platform-browser-dynamic": "22.0.4",
     "@compodoc/compodoc": "^2.0.0",
     "eslint-plugin-storybook": "^10.4.6"
   }

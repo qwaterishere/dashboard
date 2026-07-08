@@ -8,7 +8,7 @@ SPA дашборда «Сезоны». Данные **только с бэкен
 
 ```bash
 cd backend && uvicorn src.main:app --reload --port 8000   # терминал 1
-cd frontend && npm install --legacy-peer-deps && npm start # терминал 2 → :4200
+cd frontend && npm install && npm start # терминал 2 → :4200
 ```
 
 Proxy (`proxy.conf.json`) проксирует `/api/*` → `localhost:8000`.
@@ -33,7 +33,7 @@ Proxy (`proxy.conf.json`) проксирует `/api/*` → `localhost:8000`.
 
 ```bash
 cd frontend
-npm install --legacy-peer-deps   # если ещё не ставили deps
+npm install
 npm run storybook                # http://localhost:6006
 ```
 
@@ -76,7 +76,6 @@ src/app/ui/molecules/segment-control/segment-control.stories.ts
 
 ## Deploy
 
-Production build: `frontend/dist/frontend/browser/`.  
-GitHub Pages: `.github/workflows/deploy.yml` (SPA fallback через `404.html`).
+Production build: `frontend/dist/frontend/browser/`.
 
 **Важно:** статический хостинг без API покажет ошибки загрузки — для полного UX нужен бэкенд или reverse proxy на `/api`.
