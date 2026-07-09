@@ -3,7 +3,6 @@ import { Component, HostListener, inject } from '@angular/core';
 import { DashboardDataStore } from '../../data/dashboard-data.store';
 import { PopoverController } from '../../../../core/state/popover.controller';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
-import { DetailPopoverOrganismComponent } from '../../../../ui/organisms/detail-popover/detail-popover-organism.component';
 import { KpiGridOrganismComponent } from '../../organisms/kpi-grid/kpi-grid-organism.component';
 import { RevenueDaysChartOrganismComponent } from '../../organisms/revenue-days-chart/revenue-days-chart-organism.component';
 import { ReviewsPanelOrganismComponent } from '../../organisms/reviews-panel/reviews-panel-organism.component';
@@ -14,7 +13,6 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
   standalone: true,
   imports: [
     LoadErrorComponent,
-    DetailPopoverOrganismComponent,
     KpiGridOrganismComponent,
     RevenueDaysChartOrganismComponent,
     ReviewsPanelOrganismComponent,
@@ -26,6 +24,7 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
       <app-revenue-days-chart-organism
         [days]="d.revenueByDay"
         [max]="d.revenueByDayMax"
+        [period]="d.chartPeriod"
         [periodLabel]="d.period.label"
       />
       <div class="row2">
@@ -34,7 +33,6 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
         }
         <app-foodcost-mini-organism [foodcost]="d.foodcostMini" />
       </div>
-      <app-detail-popover-organism />
     } @else if (dashboard.error()) {
       <app-load-error message="Не удалось загрузить данные дашборда" />
     } @else {
@@ -59,8 +57,11 @@ export class DashboardPageComponent {
   protected readonly dashboard = this.store.dashboard;
   protected readonly viewModel = this.store.viewModel;
 
-  @HostListener('document:click')
-  onDocumentClick(): void {
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.dbar, .kpop, [appPopoverTrigger]')) return;
     this.popovers.hide();
   }
 

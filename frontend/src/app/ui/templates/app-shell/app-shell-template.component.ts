@@ -2,10 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 import { DashboardDataStore } from '../../../features/dashboard/data/dashboard-data.store';
+import { PopoverController } from '../../../core/state/popover.controller';
 import { NavActiveService } from '../../../core/routing/nav-active.service';
 import { PageGreetingComponent } from '../../molecules/page-greeting/page-greeting.component';
 import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import { SidebarOrganismComponent } from '../../organisms/sidebar/sidebar-organism.component';
+import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/detail-popover-organism.component';
 import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/dashboard-right-panel/dashboard-right-panel.component';
 
 @Component({
@@ -14,6 +16,7 @@ import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/
   imports: [
     RouterOutlet,
     SidebarOrganismComponent,
+    DetailPopoverOrganismComponent,
     PageGreetingComponent,
     PeriodBarComponent,
     DashboardRightPanelComponent,
@@ -27,7 +30,7 @@ import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/
     }
     <div class="app">
       <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
-      <main class="app-main">
+      <main class="app-main" (scroll)="onMainScroll()">
         <app-page-greeting />
         <app-period-bar
           [period]="store.period()"
@@ -42,11 +45,13 @@ import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/
         <app-dashboard-right-panel />
       }
     </div>
+    <app-detail-popover-organism />
   `,
   styleUrl: './app-shell-template.component.scss',
 })
 export class AppShellTemplateComponent {
   protected readonly store = inject(DashboardDataStore);
+  private readonly popovers = inject(PopoverController);
   protected readonly sidebarOpen = signal(false);
 
   private readonly navActive = inject(NavActiveService);
@@ -62,5 +67,9 @@ export class AppShellTemplateComponent {
 
   closeSidebar(): void {
     this.sidebarOpen.set(false);
+  }
+
+  onMainScroll(): void {
+    this.popovers.hide();
   }
 }

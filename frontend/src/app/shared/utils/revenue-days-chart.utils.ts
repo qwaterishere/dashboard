@@ -7,6 +7,7 @@ export interface RevenueDayBarLayout {
   w: number;
   h: number;
   planY: number;
+  hasPlan: boolean;
   labelX: number;
   label: string;
   weekend: boolean;
@@ -52,9 +53,10 @@ export function buildRevenueDaysChartLayout(
     const x = PADDING.left + slot * index + slot * 0.2;
     const w = slot * 0.6;
     const y = PADDING.top + ih - h;
-    const planY = PADDING.top + ih - (day.plan / max) * ih;
+    const hasPlan = day.plan !== null && day.plan > 0;
+    const planY = hasPlan ? PADDING.top + ih - ((day.plan as number) / max) * ih : 0;
     const labelX = PADDING.left + slot * index + slot / 2;
-    const weekend = day.weekday === 5 || day.weekday === 6 || day.weekday === 0;
+    const weekend = day.weekday === 0 || day.weekday === 6;
     const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
 
     return {
@@ -64,6 +66,7 @@ export function buildRevenueDaysChartLayout(
       w: round1(w),
       h: round1(h),
       planY: round1(planY),
+      hasPlan,
       labelX: round1(labelX),
       label: `${day.day} ${weekdays[day.weekday]}`,
       weekend,

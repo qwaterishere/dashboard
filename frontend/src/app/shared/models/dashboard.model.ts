@@ -1,4 +1,5 @@
 import type { CategoryKey, DetailPopover, LflMetric, PeriodInfo } from './common.model';
+import type { PeriodV2 } from './dashboard-v2.model';
 
 export interface KpiBlock {
   value: number;
@@ -31,7 +32,7 @@ export interface RevenueDay {
   day: number;
   weekday: number;
   revenue: number;
-  plan: number;
+  plan: number | null;
   checks: number;
   guests: number;
   avg: number;
@@ -40,6 +41,7 @@ export interface RevenueDay {
 export interface DashboardData {
   greeting: string;
   period: PeriodInfo;
+  chartPeriod: PeriodV2;
   kpis: {
     revenue: RevenueKpi;
     avgCheck: AvgCheckKpi;

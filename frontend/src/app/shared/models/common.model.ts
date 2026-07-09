@@ -35,4 +35,6 @@ export interface DetailPopover {
   title: string;
   rows: [string, string, ('' | 'up' | 'dn')?][];
   footnote: string;
+  footnoteLink?: string;
+  footnoteQueryParams?: Record<string, string>;
 }

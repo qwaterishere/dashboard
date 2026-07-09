@@ -1,18 +1,22 @@
 import {
   Component,
   ElementRef,
+  Injector,
   afterNextRender,
   effect,
   inject,
   signal,
   viewChild,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { PopoverController } from '../../../core/state/popover.controller';
+import type { PopoverState } from '../../../core/state/popover.controller';
 
 @Component({
   selector: 'app-detail-popover-organism',
   standalone: true,
+  imports: [RouterLink],
   template: `
     @if (state(); as pop) {
       <div
@@ -34,7 +38,18 @@ import { PopoverController } from '../../../core/state/popover.controller';
             <b [class.up]="row[2] === 'up'" [class.dn]="row[2] === 'dn'">{{ row[1] }}</b>
           </div>
         }
-        <div class="ft">{{ pop.detail.footnote }}</div>
+        @if (pop.detail.footnoteLink) {
+          <a
+            class="ft link"
+            [routerLink]="pop.detail.footnoteLink"
+            [queryParams]="pop.detail.footnoteQueryParams ?? {}"
+            (click)="popovers.hide()"
+          >
+            {{ pop.detail.footnote }}
+          </a>
+        } @else {
+          <div class="ft">{{ pop.detail.footnote }}</div>
+        }
       </div>
     }
   `,
@@ -42,6 +57,7 @@ import { PopoverController } from '../../../core/state/popover.controller';
 })
 export class DetailPopoverOrganismComponent {
   protected readonly popovers = inject(PopoverController);
+  private readonly injector = inject(Injector);
   private readonly root = viewChild<ElementRef<HTMLElement>>('root');
 
   protected readonly state = this.popovers.active;
@@ -51,22 +67,31 @@ export class DetailPopoverOrganismComponent {
   protected readonly positioned = signal(false);
 
   constructor() {
-    afterNextRender(() => {
-      effect(() => {
-        const pop = this.state();
-        if (!pop) {
-          this.positioned.set(false);
-          return;
-        }
+    effect(() => {
+      const pop = this.state();
+      if (!pop) {
+        this.positioned.set(false);
+        return;
+      }
 
-        queueMicrotask(() => this.layout(pop));
-      });
+      this.positioned.set(false);
+      afterNextRender(
+        () => this.layoutWhenReady(pop),
+        { injector: this.injector },
+      );
     });
   }
 
-  private layout(pop: NonNullable<ReturnType<typeof this.state>>): void {
+  private layoutWhenReady(pop: PopoverState, attempt = 0): void {
+    if (this.state()?.key !== pop.key) return;
+
     const el = this.root()?.nativeElement;
-    if (!el) return;
+    if (!el) {
+      if (attempt < 5) {
+        requestAnimationFrame(() => this.layoutWhenReady(pop, attempt + 1));
+      }
+      return;
+    }
 
     const pw = el.offsetWidth;
     const ph = el.offsetHeight;

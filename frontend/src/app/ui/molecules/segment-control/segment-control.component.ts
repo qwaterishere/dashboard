@@ -20,6 +20,10 @@ import type { SegmentOption } from './segment-control.model';
     </div>
   `,
   styles: `
+    :host {
+      flex-shrink: 0;
+    }
+
     .seg {
       display: flex;
       background: var(--card);

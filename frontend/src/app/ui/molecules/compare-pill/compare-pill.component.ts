@@ -10,6 +10,10 @@ import { Component, input } from '@angular/core';
     </div>
   `,
   styles: `
+    :host {
+      flex-shrink: 0;
+    }
+
     .cmp-pill {
       display: flex;
       align-items: center;
@@ -21,6 +25,7 @@ import { Component, input } from '@angular/core';
       font-size: 0.76rem;
       font-weight: 600;
       color: #a5a3ff;
+      white-space: nowrap;
     }
     b { color: #c9c8ff; }
     .x { margin-left: 4px; opacity: 0.6; cursor: pointer; }

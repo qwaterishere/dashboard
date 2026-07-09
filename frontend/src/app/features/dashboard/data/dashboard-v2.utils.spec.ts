@@ -53,6 +53,8 @@ describe('dashboard-v2.utils', () => {
     expect(vm.categories).toHaveLength(2);
     expect(vm.reviews).toBeNull();
     expect(vm.stock).toBeNull();
+    expect(vm.revenueByDay[0].plan).toBeNull();
+    expect(vm.chartPeriod).toEqual(sample.period);
   });
 
   it('filters chart days for week granularity', () => {

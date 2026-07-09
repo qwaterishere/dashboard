@@ -1,9 +1,10 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, effect, inject, input, signal } from '@angular/core';
 
 import { PopoverController } from '../../../../core/state/popover.controller';
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
-import { WEEKDAYS_FULL } from '../../../../shared/constants/category.constants';
-import type { DetailPopover, RevenueDay } from '../../../../shared/models';
+import type { PeriodV2 } from '../../../../shared/models/dashboard-v2.model';
+import type { RevenueDay } from '../../../../shared/models';
+import { buildDayDetailPopover } from '../../../../shared/utils/day-detail.utils';
 import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-days-chart.utils';
 
 @Component({
@@ -64,16 +65,18 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               style="cursor: pointer"
               (click)="onBarClick($event, bar.index)"
             />
-            <line
-              [attr.x1]="bar.x - 3"
-              [attr.y1]="bar.planY"
-              [attr.x2]="bar.x + bar.w + 3"
-              [attr.y2]="bar.planY"
-              stroke="var(--chart-axis)"
-              stroke-width="2"
-              stroke-linecap="round"
-              pointer-events="none"
-            />
+            @if (bar.hasPlan) {
+              <line
+                [attr.x1]="bar.x - 3"
+                [attr.y1]="bar.planY"
+                [attr.x2]="bar.x + bar.w + 3"
+                [attr.y2]="bar.planY"
+                stroke="var(--chart-axis)"
+                stroke-width="2"
+                stroke-linecap="round"
+                pointer-events="none"
+              />
+            }
             <text
               [attr.x]="bar.labelX"
               [attr.y]="layout().height - 9"
@@ -122,9 +125,19 @@ export class RevenueDaysChartOrganismComponent {
 
   readonly days = input.required<RevenueDay[]>();
   readonly max = input.required<number>();
+  readonly period = input.required<PeriodV2>();
   readonly periodLabel = input('Июнь 2026');
 
   protected readonly selectedIndex = signal<number | null>(null);
+
+  constructor() {
+    effect(() => {
+      const active = this.popovers.active();
+      if (!active?.key.startsWith('day-')) {
+        this.selectedIndex.set(null);
+      }
+    });
+  }
 
   protected layout() {
     return buildRevenueDaysChartLayout(this.days(), this.max());
@@ -132,10 +145,8 @@ export class RevenueDaysChartOrganismComponent {
 
   onBarClick(event: MouseEvent, index: number): void {
     event.stopPropagation();
+    event.preventDefault();
     const bar = this.layout().bars[index];
-    const target = event.currentTarget as SVGRectElement;
-    const dp = bar.day.plan ? ((bar.day.revenue - bar.day.plan) / bar.day.plan) * 100 : 0;
-    const tone = dp >= 0 ? 'up' : 'dn';
 
     if (this.selectedIndex() === index && this.popovers.active()?.key === `day-${index}`) {
       this.selectedIndex.set(null);
@@ -148,24 +159,8 @@ export class RevenueDaysChartOrganismComponent {
       key: `day-${index}`,
       placement: 'above',
       variant: 'day',
-      anchor: target.getBoundingClientRect(),
-      detail: {
-        title: `${bar.day.day} июня · ${WEEKDAYS_FULL[bar.day.weekday]}`,
-        rows: [
-          ['Выручка', this.formatMoney(bar.day.revenue)],
-          [
-            `К плану дня (${this.formatMoney(bar.day.plan)})`,
-            this.formatSignedPct(dp),
-            tone,
-          ],
-          [
-            'Чеки · средний чек',
-            `${bar.day.checks} · ${this.formatMoney(bar.day.avg)}`,
-          ],
-          ['Гости', this.formatGuests(bar.day.guests)],
-        ],
-        footnote: 'Подробнее о дне →',
-      } satisfies DetailPopover,
+      anchor: (event.currentTarget as SVGRectElement).getBoundingClientRect(),
+      detail: buildDayDetailPopover(bar.day, this.period()),
     });
   }
 
@@ -173,18 +168,5 @@ export class RevenueDaysChartOrganismComponent {
     if ((event.target as Element).classList?.contains('dbar')) return;
     this.selectedIndex.set(null);
     this.popovers.hide();
-  }
-
-  private formatMoney(value: number): string {
-    return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
-  }
-
-  private formatSignedPct(value: number): string {
-    const sign = value >= 0 ? '+' : '−';
-    return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} %`;
-  }
-
-  private formatGuests(value: number): string {
-    return Math.round(value).toLocaleString('ru-RU');
   }
 }

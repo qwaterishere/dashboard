@@ -20,6 +20,14 @@ describe('revenue-days-chart.utils', () => {
       expect(layout.bars).toHaveLength(2);
     });
 
+    it('hides plan line when plan is null', () => {
+      const days: RevenueDay[] = [
+        { day: 1, weekday: 1, revenue: 637000, plan: null, checks: 306, guests: 704, avg: 2082 },
+      ];
+      const layout = buildRevenueDaysChartLayout(days, 1200000);
+      expect(layout.bars[0].hasPlan).toBe(false);
+    });
+
     it('marks weekend labels', () => {
       const days: RevenueDay[] = [
         { day: 7, weekday: 0, revenue: 845000, plan: 800000, checks: 389, guests: 895, avg: 2172 },

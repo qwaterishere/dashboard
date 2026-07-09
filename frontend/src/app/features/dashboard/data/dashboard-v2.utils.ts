@@ -121,7 +121,7 @@ function toRevenueDays(days: RevenueDayV2[]): RevenueDay[] {
     day: d.day,
     weekday: d.weekday,
     revenue: d.revenue,
-    plan: d.plan ?? 0,
+    plan: d.plan,
     checks: d.checks,
     guests: d.guests,
     avg: d.checks ? d.revenue / d.checks : 0,
@@ -186,12 +186,16 @@ export function buildDashboardViewModel(
 
   const filteredDays = filterRevenueDays(data.revenueByDay, period, granularity);
   const revenueDays = toRevenueDays(filteredDays);
-  const maxRevenue = revenueDays.reduce((max, d) => Math.max(max, d.revenue, d.plan), 1);
+  const maxRevenue = revenueDays.reduce(
+    (max, d) => Math.max(max, d.revenue, d.plan ?? 0),
+    1,
+  );
   const chartLabel =
     options.chartPeriodLabel ?? formatChartPeriodLabel(period, granularity);
 
   return {
     greeting: '',
+    chartPeriod: period,
     period: {
       ...periodInfo,
       label: chartLabel,
