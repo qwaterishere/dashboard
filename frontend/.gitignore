@@ -38,6 +38,12 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+documentation.json
+
+# E2E (Playwright)
+/test-results/
+/playwright-report/
+/blob-report/
 
 # System files
 .DS_Store
