@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const ROUTES = [
   { path: '/dashboard', heading: 'Дашборд', panel: 'Выручка по дням' },

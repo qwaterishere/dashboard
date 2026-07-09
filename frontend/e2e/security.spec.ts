@@ -1,8 +1,12 @@
-import { expect, test } from '@playwright/test';
+import { API_BASE } from './auth.constants';
+import { ensureE2eUserSession, expect, test } from './fixtures';
 
 test.describe('security', () => {
-  test('API responses include security headers', async ({ request }) => {
-    const response = await request.get('http://127.0.0.1:8000/api/dashboard');
+  test('API responses include security headers', async ({ page, request }) => {
+    const token = await ensureE2eUserSession(page);
+    const response = await request.get(`${API_BASE}/api/dashboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     expect(response.ok()).toBeTruthy();
     const headers = response.headers();
     expect(headers['x-content-type-options']).toBe('nosniff');
@@ -11,7 +15,7 @@ test.describe('security', () => {
   });
 
   test('health endpoint is reachable', async ({ request }) => {
-    const response = await request.get('http://127.0.0.1:8000/health');
+    const response = await request.get(`${API_BASE}/health`);
     expect(response.ok()).toBeTruthy();
     await expect(response.json()).resolves.toEqual({ status: 'ok' });
   });
