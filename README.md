@@ -18,7 +18,7 @@ uvicorn src.main:app --reload --port 8000
 **Frontend:**
 ```bash
 cd frontend
-npm install && npm start    # http://localhost:4200, proxy /api → :8000
+npm install && npm start    # http://localhost:4200
 ```
 
 ## API

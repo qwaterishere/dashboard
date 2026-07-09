@@ -28,9 +28,20 @@ def month_chunks(date_from: date, date_to: date):
         cur = month_end + timedelta(days=1)
 
 
-def load_range(date_from: date, date_to: date) -> None:
+def date_chunks(date_from: date, date_to: date, *, chunk_days: int = 1):
+    """Дробит диапазон на короткие интервалы для OLAP (iiko рвёт большие ответы)."""
+    if chunk_days < 1:
+        raise ValueError('chunk_days must be >= 1')
+    cur = date_from
+    while cur <= date_to:
+        end = min(cur + timedelta(days=chunk_days - 1), date_to)
+        yield cur, end
+        cur = end + timedelta(days=1)
+
+
+def load_range(date_from: date, date_to: date, *, chunk_days: int = 1) -> None:
     with IikoClient() as client:
-        for chunk_from, chunk_to in month_chunks(date_from, date_to):
+        for chunk_from, chunk_to in date_chunks(date_from, date_to, chunk_days=chunk_days):
             raw = client.fetch_sales(chunk_from, chunk_to)
             records = parse_records(raw)
 
@@ -69,6 +80,14 @@ def main() -> None:
         type=date.fromisoformat,
         metavar="ГГГГ-ММ-ДД",
     )
+    parser.add_argument(
+        "--chunk-days",
+        dest="chunk_days",
+        type=int,
+        default=1,
+        metavar="N",
+        help="дней за один OLAP-запрос (1 — надёжнее, 7 — быстрее при стабильном iiko)",
+    )
     args = parser.parse_args()
 
     yesterday = date.today() - timedelta(days=1)
@@ -97,7 +116,7 @@ def main() -> None:
         print(f"нечего загружать: {date_from} позже {date_to}")
         return
 
-    load_range(date_from, date_to)
+    load_range(date_from, date_to, chunk_days=max(1, args.chunk_days))
 
 
 if __name__ == "__main__":

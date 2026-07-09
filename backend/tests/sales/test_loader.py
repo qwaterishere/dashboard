@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from src.cli.sales_loader import history_limit, month_chunks
+from src.cli.sales_loader import date_chunks, history_limit, month_chunks
 
 
 def test_history_limit_is_jan1_of_previous_year():
@@ -23,4 +23,19 @@ def test_month_chunks_split_and_bounds():
 def test_month_chunks_single_day():
     assert list(month_chunks(date(2026, 6, 1), date(2026, 6, 1))) == [
         (date(2026, 6, 1), date(2026, 6, 1)),
+    ]
+
+
+def test_date_chunks_daily():
+    assert list(date_chunks(date(2026, 6, 1), date(2026, 6, 3))) == [
+        (date(2026, 6, 1), date(2026, 6, 1)),
+        (date(2026, 6, 2), date(2026, 6, 2)),
+        (date(2026, 6, 3), date(2026, 6, 3)),
+    ]
+
+
+def test_date_chunks_weekly():
+    assert list(date_chunks(date(2026, 6, 1), date(2026, 6, 10), chunk_days=7)) == [
+        (date(2026, 6, 1), date(2026, 6, 7)),
+        (date(2026, 6, 8), date(2026, 6, 10)),
     ]

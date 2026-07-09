@@ -36,7 +36,11 @@ uvicorn src.main:app --reload --port 8000
 cd backend
 python -m src.cli.sales_loader
 python -m src.cli.sales_loader --from 2026-01-01 --to 2026-01-31
+python -m src.cli.sales_loader --from 2026-06-01 --to 2026-06-30 --chunk-days 1
 ```
+
+OLAP iiko часто обрывает большие ответы (`RemoteProtocolError: incomplete chunked read`).
+По умолчанию загрузчик бьёт диапазон **по 1 дню**; при стабильном сервере можно `--chunk-days 7`.
 
 ## Тесты
 

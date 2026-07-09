@@ -1,10 +1,20 @@
 import hashlib
+import time
 from datetime import timedelta
 
 import httpx
 
 from src.core.config import get_settings
 from src.integrations.iiko.exceptions import IikoAuthError, IikoRequestError
+
+_TRANSIENT_ERRORS = (
+    httpx.RemoteProtocolError,
+    httpx.ReadTimeout,
+    httpx.ConnectError,
+    httpx.WriteTimeout,
+    httpx.PoolTimeout,
+)
+_MAX_RETRIES = 3
 
 
 class IikoClient:
@@ -13,6 +23,8 @@ class IikoClient:
         url: str | None = None,
         login: str | None = None,
         password: str | None = None,
+        *,
+        timeout: float = 300,
     ):
         settings = get_settings()
         if url is None or login is None or password is None:
@@ -21,7 +33,7 @@ class IikoClient:
         self._login = login
         self._password = password
         self._token: str | None = None
-        self._http = httpx.Client(base_url=url, timeout=120)
+        self._http = httpx.Client(base_url=url, timeout=timeout)
 
     def __enter__(self):
         password_hash = hashlib.sha1(self._password.encode('utf-8')).hexdigest()
@@ -64,9 +76,24 @@ class IikoClient:
                 "Storned": {"filterType": "IncludeValues", "values": ["FALSE"]},
             }
         }
-        response = self._http.post('resto/api/v2/reports/olap', params={'key': self._token}, json=body)
-
-        if response.status_code != 200:
-            raise IikoRequestError(f'olap failed: {response.status_code} {response.text}')
-
-        return response.json()['data']
+        last_error: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                response = self._http.post(
+                    'resto/api/v2/reports/olap',
+                    params={'key': self._token},
+                    json=body,
+                )
+                if response.status_code != 200:
+                    raise IikoRequestError(
+                        f'olap failed: {response.status_code} {response.text}'
+                    )
+                return response.json()['data']
+            except _TRANSIENT_ERRORS as exc:
+                last_error = exc
+                if attempt + 1 >= _MAX_RETRIES:
+                    break
+                time.sleep(2 ** attempt)
+        raise IikoRequestError(
+            f'olap failed after {_MAX_RETRIES} attempts: {last_error}'
+        ) from last_error
