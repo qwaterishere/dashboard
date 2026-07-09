@@ -6,10 +6,26 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.core.paths import BACKEND_ROOT
+
+
+def resolve_sqlite_url(db_url: str) -> str:
+    """Относительный sqlite:///file.db → абсолютный путь в backend/.
+
+    Иначе uvicorn и CLI, запущенные из разных cwd, читают разные файлы.
+    После пересоздания dashboard.db работающий uvicorn может держать старый inode.
+    """
+    if not db_url.startswith('sqlite:///'):
+        return db_url
+    if db_url in ('sqlite:///:memory:', 'sqlite://'):
+        return db_url
+    path_part = db_url.removeprefix('sqlite:///')
+    if not path_part or path_part.startswith('/'):
+        return db_url
+    return f'sqlite:///{(BACKEND_ROOT / path_part).resolve()}'
 
 
 class Settings(BaseSettings):
@@ -22,6 +38,11 @@ class Settings(BaseSettings):
     )
 
     db_url: str = Field(default="sqlite:///dashboard.db", validation_alias="DB_URL")
+
+    @field_validator('db_url', mode='after')
+    @classmethod
+    def normalize_db_url(cls, value: str) -> str:
+        return resolve_sqlite_url(value)
 
     # --- HTTP / безопасность ---
     cors_origins: str = Field(
