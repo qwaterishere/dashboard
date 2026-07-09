@@ -149,7 +149,7 @@ export function buildDashboardViewModel(
   const granularity = options.granularity ?? 'month';
   const revLfl = lfl(kpis.revenue.value, kpis.revenue.prevValue);
   const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prevValue);
-  const guestsLfl = lfl(kpis.guests.value, kpis.guests.prevValue);
+  const checksLfl = lfl(kpis.checks.value, kpis.checks.prevValue);
 
   const periodInfo = buildPeriodInfo(period, compare);
   const compareLabel = formatCompareWith(compare);
@@ -172,16 +172,20 @@ export function buildDashboardViewModel(
       'Средний чек = выручка / число чеков с выручкой.',
     ),
     'guests-lfl': buildLflPopover(
-      'LfL — гости',
+      'LfL — чеки',
       compareLabel,
-      kpis.guests.value,
-      kpis.guests.prevValue,
+      kpis.checks.value,
+      kpis.checks.prevValue,
       (n) => Math.round(n).toLocaleString('ru-RU'),
       `Сравнение календарное: ${formatPeriodRange(compare)}.`,
     ),
     'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney),
     'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney),
-    'guests-goal': buildGoalPopover('Прогноз — гости', kpis.guests, (n) => Math.round(n).toLocaleString('ru-RU')),
+    'guests-goal': buildGoalPopover(
+      'Прогноз — чеки',
+      kpis.checks,
+      (n) => Math.round(n).toLocaleString('ru-RU'),
+    ),
   };
 
   const filteredDays = filterRevenueDays(data.revenueByDay, period, granularity);
@@ -218,11 +222,11 @@ export function buildDashboardViewModel(
         forecast: forecastBlock(kpis.avgCheck, formatMoney),
       },
       guests: {
-        value: kpis.guests.value,
-        lfl: guestsLfl ?? undefined,
+        value: kpis.checks.value,
+        lfl: checksLfl ?? undefined,
+        guests: kpis.guests.value,
         perCheck: kpis.checks.value ? kpis.guests.value / kpis.checks.value : 0,
-        checks: kpis.checks.value,
-        forecast: forecastBlock(kpis.guests, (n) => Math.round(n).toLocaleString('ru-RU')),
+        forecast: forecastBlock(kpis.checks, (n) => Math.round(n).toLocaleString('ru-RU')),
       },
     },
     revenueByDay: revenueDays,

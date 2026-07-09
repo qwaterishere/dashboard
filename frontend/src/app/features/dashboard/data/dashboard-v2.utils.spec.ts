@@ -57,6 +57,13 @@ describe('dashboard-v2.utils', () => {
     expect(vm.chartPeriod).toEqual(sample.period);
   });
 
+  it('maps guests card with checks as headline and guests in subline', () => {
+    const vm = buildDashboardViewModel(sample);
+    expect(vm.kpis.guests.value).toBe(10);
+    expect(vm.kpis.guests.guests).toBe(20);
+    expect(vm.kpis.guests.lfl?.pct).toBe(25);
+  });
+
   it('filters chart days for week granularity', () => {
     const extended: DashboardV2 = {
       ...sample,

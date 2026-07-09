@@ -65,7 +65,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
       </app-kpi-card-organism>
 
       <app-kpi-card-organism
-        title="Гости"
+        title="Чеки"
         tone="kpi-guests"
         [value]="kpis().guests.value"
         valueFormat="number"
@@ -79,8 +79,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
         [popoverDetails]="details()"
       >
         <span subtext>
-          {{ kpis().guests.perCheck | fmt }} гостя на чек ·
-          <b>{{ kpis().guests.checks | fmt }}</b> чеков
+          {{ kpis().guests.guests | fmt }} гостя
         </span>
       </app-kpi-card-organism>
     </div>

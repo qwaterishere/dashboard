@@ -24,8 +24,10 @@ export interface AvgCheckKpi extends KpiBlock {
 }
 
 export interface GuestsKpi extends KpiBlock {
+  /** Гостей за период — подпись под основным числом (чеками). */
+  guests: number;
+  /** Среднее число гостей на чек. */
   perCheck: number;
-  checks: number;
 }
 
 export interface RevenueDay {
