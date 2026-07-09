@@ -1,11 +1,37 @@
 import { Routes } from '@angular/router';
 
 import { AppShellTemplateComponent } from './ui/templates/app-shell/app-shell-template.component';
+import { AuthLayoutTemplateComponent } from './ui/templates/auth-layout/auth-layout-template.component';
+import { authGuard } from './core/auth/auth.guard';
+import { guestGuard } from './core/auth/guest.guard';
 
 export const routes: Routes = [
   {
+    path: 'auth',
+    component: AuthLayoutTemplateComponent,
+    canMatch: [guestGuard],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'login' },
+      {
+        path: 'login',
+        loadComponent: () =>
+          import('./features/auth/pages/login-page/login-page.component').then(
+            (m) => m.LoginPageComponent,
+          ),
+      },
+      {
+        path: 'register',
+        loadComponent: () =>
+          import('./features/auth/pages/register-page/register-page.component').then(
+            (m) => m.RegisterPageComponent,
+          ),
+      },
+    ],
+  },
+  {
     path: '',
     component: AppShellTemplateComponent,
+    canMatch: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
@@ -60,4 +86,5 @@ export const routes: Routes = [
       { path: '**', redirectTo: 'dashboard' },
     ],
   },
+  { path: '**', redirectTo: 'dashboard' },
 ];

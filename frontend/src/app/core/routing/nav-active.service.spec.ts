@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 
 import { routes } from '../../app.routes';
+import { provideMockAuthenticatedAuth } from '../auth/auth.testing';
 import { NavActiveService, readPrimaryNavSegment } from './nav-active.service';
 
 describe('readPrimaryNavSegment', () => {
@@ -18,7 +19,7 @@ describe('NavActiveService', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      providers: [provideRouter(routes)],
+      providers: [provideRouter(routes), provideMockAuthenticatedAuth()],
     }).compileComponents();
 
     router = TestBed.inject(Router);

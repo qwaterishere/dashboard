@@ -1,3 +1,4 @@
+export * from './auth.model';
 export * from './common.model';
 export * from './dashboard.model';
 export * from './dashboard-v2.model';

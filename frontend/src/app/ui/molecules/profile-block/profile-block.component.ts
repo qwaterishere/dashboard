@@ -1,34 +1,58 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { TextComponent } from '../../atoms/text/text.component';
 
 @Component({
   selector: 'app-profile-block',
   standalone: true,
-  imports: [TextComponent],
+  imports: [ButtonComponent, TextComponent],
   template: `
-    <div class="profile">
-      <div class="icon-btn" aria-hidden="true">
-        <span class="ndot"></span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
-          <path d="M10 20a2 2 0 004 0" />
-        </svg>
+    <div class="profile-wrap">
+      <div class="profile">
+        <div class="icon-btn" aria-hidden="true">
+          <span class="ndot"></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
+            <path d="M10 20a2 2 0 004 0" />
+          </svg>
+        </div>
+        <div class="ava">{{ initials() }}</div>
+        <div class="who">
+          <b>{{ name() }}</b>
+          <app-text tone="muted">{{ role() }}</app-text>
+        </div>
       </div>
-      <div class="ava">{{ initials() }}</div>
-      <div class="who">
-        <b>{{ name() }}</b>
-        <app-text tone="muted">{{ role() }}</app-text>
-      </div>
+      @if (showLogout()) {
+        <app-button class="logout" variant="pill" (pressed)="logout.emit()">Выйти</app-button>
+      }
     </div>
   `,
   styles: `
+    .profile-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
     .profile {
       display: flex;
       align-items: center;
       gap: 11px;
-      margin-bottom: 24px;
       justify-content: flex-end;
+    }
+
+    .logout {
+      width: 100%;
+    }
+
+    .logout ::ng-deep button {
+      width: 100%;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.76rem;
     }
     .icon-btn {
       width: 36px;
@@ -72,4 +96,6 @@ export class ProfileBlockComponent {
   readonly initials = input('АК');
   readonly name = input('Артём Ким');
   readonly role = input('Управляющий');
+  readonly showLogout = input(true);
+  readonly logout = output<void>();
 }

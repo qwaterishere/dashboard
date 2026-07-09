@@ -10,6 +10,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from src.api.routes.auth import create_auth_router
 from src.api.routes.dashboard import router as dashboard_router
 from src.api.routes.health import router as health_router
 from src.api.routes.sales import router as sales_router
@@ -24,6 +25,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings = get_settings()
+    if settings.jwt_secret_key.startswith("dev-only-change-me"):
+        logger.warning(
+            "JWT_SECRET_KEY is a development placeholder — set a strong secret in production",
+        )
     db_manager.create_all()
     yield
 
@@ -42,6 +48,7 @@ def create_app() -> FastAPI:
         ),
         openapi_tags=[
             {"name": "Health", "description": "Liveness / load balancer probes"},
+            {"name": "Авторизация", "description": "JWT: register, login, refresh, logout"},
             {"name": "Дашборд", "description": "Главная (v2, БД)"},
             {"name": "Продажи", "description": "Продажи (БД)"},
             {"name": "Заглушки", "description": "warehouse/foodcost из data/*.json"},
@@ -60,11 +67,13 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
-        allow_methods=["GET"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+        allow_credentials=True,
     )
 
     app.include_router(health_router)
+    app.include_router(create_auth_router(limiter))
     app.include_router(sales_router)
     app.include_router(dashboard_router)
     app.include_router(create_stub_router(limiter))

@@ -4,6 +4,7 @@ import { provideRouter, Router } from '@angular/router';
 
 import { App } from '../../../app';
 import { routes } from '../../../app.routes';
+import { provideMockAuthenticatedAuth } from '../../../core/auth/auth.testing';
 import { NavActiveService } from '../../../core/routing/nav-active.service';
 
 describe('App dashboard nav highlight (integration)', () => {
@@ -13,7 +14,7 @@ describe('App dashboard nav highlight (integration)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes), provideHttpClient()],
+      providers: [provideRouter(routes), provideHttpClient(), provideMockAuthenticatedAuth()],
     }).compileComponents();
 
     router = TestBed.inject(Router);

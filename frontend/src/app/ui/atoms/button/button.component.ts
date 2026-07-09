@@ -41,10 +41,24 @@ import { Component, input, output } from '@angular/core';
       border-radius: 99px;
       padding: 6px 13px;
     }
+    button.btn--primary {
+      width: 100%;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0a0e18;
+      background: linear-gradient(90deg, var(--grn), #3ddc97);
+      box-shadow: 0 8px 24px rgba(61, 220, 151, 0.22);
+    }
+    button.btn--primary:hover:not(:disabled) {
+      color: #0a0e18;
+      filter: brightness(1.05);
+    }
   `,
 })
 export class ButtonComponent {
-  readonly variant = input<'default' | 'segment-on' | 'pill'>('default');
+  readonly variant = input<'default' | 'segment-on' | 'pill' | 'primary'>('default');
   readonly type = input<'button' | 'submit'>('button');
   readonly disabled = input(false);
   readonly pressed = output<void>();
@@ -53,6 +67,7 @@ export class ButtonComponent {
     const v = this.variant();
     if (v === 'segment-on') return 'btn--segment-on';
     if (v === 'pill') return 'btn--pill';
+    if (v === 'primary') return 'btn--primary';
     return '';
   }
 }

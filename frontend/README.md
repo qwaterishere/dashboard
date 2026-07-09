@@ -11,7 +11,7 @@ cd backend && uvicorn src.main:app --reload --port 8000   # терминал 1
 cd frontend && npm install && npm start # терминал 2 → :4200
 ```
 
-Proxy (`proxy.conf.json`) проксирует `/api/*` → `localhost:8000`.
+Proxy (`proxy.conf.json`) проксирует `/api` → `localhost:8000` (включая вложенные пути вроде `/api/auth/login`).
 
 ## Scripts
 

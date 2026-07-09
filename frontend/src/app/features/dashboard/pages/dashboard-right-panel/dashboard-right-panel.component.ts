@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 
+import { AuthService } from '../../../../core/auth/auth.service';
 import { DashboardDataStore } from '../../data/dashboard-data.store';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
 import { ProfileBlockComponent } from '../../../../ui/molecules/profile-block/profile-block.component';
@@ -18,20 +19,25 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
     StockPanelOrganismComponent,
   ],
   template: `
-    @if (viewModel(); as d) {
-      <aside class="right">
-        <app-profile-block />
+    <aside class="right">
+      <app-profile-block
+        [initials]="auth.initials()"
+        [name]="auth.displayName()"
+        [role]="auth.user()?.position ?? ''"
+        (logout)="onLogout()"
+      />
+      @if (viewModel(); as d) {
         <app-categories-panel-organism [categories]="d.categories" />
         @if (d.stock) {
           <app-divider variant="right" />
           <app-stock-panel-organism [stock]="d.stock" />
         }
-      </aside>
-    } @else if (dashboard.error()) {
-      <aside class="right"><app-load-error message="Не удалось загрузить боковую панель" /></aside>
-    } @else {
-      <aside class="right"><p class="loading">Загрузка…</p></aside>
-    }
+      } @else if (dashboard.error()) {
+        <app-load-error message="Не удалось загрузить боковую панель" />
+      } @else {
+        <p class="loading">Загрузка…</p>
+      }
+    </aside>
   `,
   styles: `
     :host {
@@ -67,6 +73,11 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
 })
 export class DashboardRightPanelComponent {
   private readonly store = inject(DashboardDataStore);
+  protected readonly auth = inject(AuthService);
   protected readonly dashboard = this.store.dashboard;
   protected readonly viewModel = this.store.viewModel;
+
+  protected onLogout(): void {
+    this.auth.logoutAndRedirect();
+  }
 }

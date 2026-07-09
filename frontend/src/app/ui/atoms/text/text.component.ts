@@ -9,10 +9,11 @@ import { Component, input } from '@angular/core';
     .text--muted { color: var(--mut); font-size: 0.7rem; }
     .text--muted2 { color: var(--mut2); font-size: 0.72rem; }
     .text--caption { color: var(--mut2); font-size: 0.68rem; }
+    .text--danger { color: var(--red); font-size: 0.72rem; }
   `,
 })
 export class TextComponent {
-  readonly tone = input<'default' | 'muted' | 'muted2' | 'caption'>('default');
+  readonly tone = input<'default' | 'muted' | 'muted2' | 'caption' | 'danger'>('default');
 
   classes(): string {
     return this.tone() === 'default' ? 'text' : `text text--${this.tone()}`;

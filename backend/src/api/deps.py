@@ -1,5 +1,73 @@
 """FastAPI dependencies."""
 
+from __future__ import annotations
+
+from typing import Annotated
+from uuid import UUID
+
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from src.core.config import get_settings
+from src.core.security import decode_access_token
+from src.db.models.user import User
 from src.db.session import get_db
 
-__all__ = ["get_db"]
+_bearer = HTTPBearer(auto_error=False)
+
+
+def get_current_user(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> User:
+    settings = get_settings()
+    if not settings.auth_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication is disabled",
+        )
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        payload = decode_access_token(credentials.credentials)
+        user_id = UUID(payload["sub"])
+    except (jwt.PyJWTError, ValueError, KeyError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from None
+
+    user = db.scalar(select(User).where(User.id == user_id))
+    if user is None or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> User | None:
+    settings = get_settings()
+    if not settings.auth_enabled or credentials is None:
+        return None
+    try:
+        return get_current_user(db=db, credentials=credentials)
+    except HTTPException:
+        return None
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+__all__ = ["get_db", "get_current_user", "get_current_user_optional", "CurrentUser"]

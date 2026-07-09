@@ -52,6 +52,28 @@ class Settings(BaseSettings):
     rate_limit: str = Field(default="60/minute", validation_alias="RATE_LIMIT")
     rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
 
+    # --- JWT / авторизация ---
+    jwt_secret_key: str = Field(
+        default="dev-only-change-me-use-openssl-rand-hex-32",
+        validation_alias="JWT_SECRET_KEY",
+        min_length=32,
+    )
+    jwt_algorithm: str = Field(default="HS256", validation_alias="JWT_ALGORITHM")
+    jwt_access_token_expire_minutes: int = Field(
+        default=15,
+        validation_alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES",
+        ge=1,
+        le=60,
+    )
+    jwt_refresh_token_expire_days: int = Field(
+        default=7,
+        validation_alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS",
+        ge=1,
+        le=90,
+    )
+    jwt_cookie_secure: bool = Field(default=False, validation_alias="JWT_COOKIE_SECURE")
+    auth_enabled: bool = Field(default=True, validation_alias="AUTH_ENABLED")
+
     # --- iiko REST API (CLI / admin processes, 12-factor XII) ---
     iiko_url: str | None = Field(default=None, validation_alias="IIKO_URL")
     iiko_login: str | None = Field(default=None, validation_alias="IIKO_LOGIN")

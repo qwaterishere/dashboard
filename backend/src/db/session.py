@@ -2,6 +2,7 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from src.core.config import get_settings
 
@@ -12,11 +13,14 @@ class DataBaseManager:
     def __init__(self, db_url: str | None = None):
         url = db_url or get_settings().db_url
         connect_args = {"check_same_thread": False} if url.startswith("sqlite") else {}
-        self.engine = create_engine(url, connect_args=connect_args)
+        engine_kwargs: dict = {"connect_args": connect_args}
+        if ":memory:" in url:
+            engine_kwargs["poolclass"] = StaticPool
+        self.engine = create_engine(url, **engine_kwargs)
         self.Session = sessionmaker(bind=self.engine, autoflush=False)
 
     def create_all(self) -> None:
-        from src.db.models import sales  # noqa: F401
+        from src.db.models import sales, user  # noqa: F401
 
         Base.metadata.create_all(self.engine)
 
