@@ -12,7 +12,8 @@ test.describe('security', () => {
   });
 
   test('health endpoint is reachable', async ({ page }) => {
-    const response = await page.request.get('/health');
+    const apiOrigin = process.env['PLAYWRIGHT_API_URL'] ?? 'http://127.0.0.1:8000';
+    const response = await page.request.get(`${apiOrigin}/health`);
     expect(response.ok()).toBeTruthy();
     await expect(response.json()).resolves.toEqual({ status: 'ok' });
   });

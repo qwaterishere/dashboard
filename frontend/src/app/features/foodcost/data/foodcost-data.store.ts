@@ -2,16 +2,15 @@ import { inject, Injectable } from '@angular/core';
 
 import { createPageResource } from '../../../core/api/page-data.resource';
 import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync.service';
-import type { WarehouseData } from '../../../shared/models/warehouse.model';
+import type { FoodcostData } from '../../../shared/models/foodcost.model';
 
-/** Единый источник данных склада для dashboard и warehouse page. */
 @Injectable({ providedIn: 'root' })
-export class WarehouseDataStore {
+export class FoodcostDataStore {
   private readonly sync = inject(AnalyticsDataSyncService);
 
-  readonly data = createPageResource<WarehouseData>(() => 'warehouse');
+  readonly data = createPageResource<FoodcostData>(() => 'foodcost');
 
   constructor() {
-    this.sync.register('warehouse', this.data);
+    this.sync.register('foodcost', this.data);
   }
 }

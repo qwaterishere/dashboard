@@ -1,9 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
-import { createPageResource } from '../../../../core/api/page-data.resource';
-import type { FoodcostData } from '../../../../shared/models';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
 import { FoodcostLayoutTemplateComponent } from '../../../../ui/templates/foodcost-layout/foodcost-layout-template.component';
+import { FoodcostDataStore } from '../../data/foodcost-data.store';
 import { FoodcostOverviewOrganismComponent } from '../../organisms/foodcost-overview/foodcost-overview-organism.component';
 import { FoodcostUnitsOrganismComponent } from '../../organisms/foodcost-units/foodcost-units-organism.component';
 import { FoodcostLossesOrganismComponent } from '../../organisms/foodcost-losses/foodcost-losses-organism.component';
@@ -52,5 +51,6 @@ import { FoodcostCategoriesOrganismComponent } from '../../organisms/foodcost-ca
   `,
 })
 export class FoodcostPageComponent {
-  readonly data = createPageResource<FoodcostData>(() => 'foodcost');
+  private readonly store = inject(FoodcostDataStore);
+  readonly data = this.store.data;
 }

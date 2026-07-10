@@ -31,13 +31,25 @@ Proxy (`proxy.conf.json`) проксирует `/api` → `localhost:8000`.
 
 ```
 ui/atoms/ → ui/molecules/ → ui/organisms/ → ui/templates/ → features/*/pages/
-core/services/period.service.ts   — granularity + sales date range
-core/api/page-data.resource.ts    — typed httpResource factory
-core/interceptors/api-fallback    — static JSON fallback
+core/services/period.service.ts        — granularity + sales date range
+core/api/page-data.resource.ts         — typed httpResource factory
+core/data/analytics-data-sync.service.ts — TTL + stale-while-revalidate polling
+core/routing/analytics-route-reuse.strategy.ts — keep analytics pages alive
+core/interceptors/api-fallback           — static JSON fallback
 ```
 
 **Smart layer:** `AppShellHostComponent` (route) — greeting, period, right panel.  
 **Dumb layer:** `AppShellTemplate` — layout slots only.
+
+### Кэш данных и UI (Variant C)
+
+| Слой | Поведение |
+|------|-----------|
+| **Root stores** | `DashboardDataStore`, `SalesDataStore`, `WarehouseDataStore`, `FoodcostDataStore` — единый fetch на вкладку |
+| **RouteReuseStrategy** | dashboard / sales / warehouse / foodcost не уничтожаются при переключении вкладок |
+| **TTL + polling** | `environment.analytics`: `staleAfterMs` (60s), `pollIntervalMs` (45s); `reload()` только для устаревших данных |
+
+При возврате на вкладку UI и локальное состояние (ABC-фильтр, скролл) сохраняются; сеть — только если данные устарели или изменился period/query.
 
 ## Storybook
 
@@ -53,6 +65,7 @@ cd frontend && npm run storybook   # http://localhost:6006
 
 - **4 страницы** + purchases/support placeholders; **настройки** — профиль и смена пароля
 - **PeriodService** — granularity, sales query из dashboard period
+- **Analytics data layer** — root stores + TTL polling + `AnalyticsRouteReuseStrategy`
 - **WarehouseDataStore** — единый fetch `/api/warehouse` для dashboard + warehouse
 - **api-fallback.interceptor** — `/data/{page}.json` при недоступности API
 - **Per-page layout templates** — dashboard, sales, warehouse, foodcost

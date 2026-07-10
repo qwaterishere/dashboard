@@ -1,6 +1,7 @@
 import { computed, effect, inject, Injectable, untracked } from '@angular/core';
 
 import { createPageResource } from '../../../core/api/page-data.resource';
+import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync.service';
 import { PeriodService } from '../../../core/services/period.service';
 import type { PeriodInfo } from '../../../shared/models/common.model';
 import type { DashboardV2 } from '../../../shared/models/dashboard-v2.model';
@@ -15,6 +16,7 @@ const ERROR: PeriodInfo = { label: '—', note: 'нет данных' };
 export class DashboardDataStore {
   private readonly periodService = inject(PeriodService);
   private readonly warehouseStore = inject(WarehouseDataStore);
+  private readonly sync = inject(AnalyticsDataSyncService);
 
   readonly dashboard = createPageResource<DashboardV2>(() => 'dashboard');
   readonly warehouse = this.warehouseStore.data;
@@ -51,6 +53,8 @@ export class DashboardDataStore {
   });
 
   constructor() {
+    this.sync.register('dashboard', this.dashboard);
+
     effect(() => {
       const resource = this.dashboard;
       if (resource.hasValue()) {
