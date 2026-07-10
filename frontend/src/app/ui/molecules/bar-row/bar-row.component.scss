@@ -1,0 +1,68 @@
+.bar-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.78rem;
+  margin-bottom: 8px;
+}
+
+.br-name {
+  color: var(--mut);
+}
+
+.br-track {
+  position: relative;
+  height: 8px;
+  background: var(--track);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.br-track i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--grn);
+}
+
+.br-track--dual {
+  height: 10px;
+}
+
+.br-track--dual .br-rev {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--b);
+  opacity: 0.85;
+}
+
+.br-track--dual .br-gp {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--grn);
+  opacity: 0.75;
+}
+
+.br-vals {
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.br-r {
+  color: var(--txt);
+}
+
+.br-g {
+  color: var(--grn);
+}
+
+.br-vals small {
+  display: block;
+  font-weight: 500;
+  color: var(--mut2);
+  font-size: 0.68rem;
+}

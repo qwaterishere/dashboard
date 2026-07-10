@@ -27,7 +27,7 @@ describe('AuthService', () => {
     service.clearSession();
   });
 
-  it('logs in and loads profile', () => {
+  it('logs in and loads profile via httpOnly cookies', () => {
     service.login({ email: 'user@example.com', password: 'Secret123' }).subscribe((user) => {
       expect(user.email).toBe('user@example.com');
       expect(service.isAuthenticated()).toBe(true);
@@ -35,10 +35,11 @@ describe('AuthService', () => {
 
     const login = http.expectOne('/api/auth/login');
     expect(login.request.withCredentials).toBe(true);
-    login.flush({ access_token: 'access-1', token_type: 'bearer', expires_in: 900 });
+    login.flush({ token_type: 'bearer', expires_in: 900 });
 
     const me = http.expectOne('/api/auth/me');
-    expect(me.request.headers.get('Authorization')).toBe('Bearer access-1');
+    expect(me.request.withCredentials).toBe(true);
+    expect(me.request.headers.has('Authorization')).toBe(false);
     me.flush({
       id: '11111111-1111-1111-1111-111111111111',
       email: 'user@example.com',
@@ -65,13 +66,10 @@ describe('AuthService', () => {
 
     const register = http.expectOne('/api/auth/register');
     expect(register.request.withCredentials).toBe(true);
-    register.flush(
-      { access_token: 'access-2', token_type: 'bearer', expires_in: 900 },
-      { status: 201, statusText: 'Created' },
-    );
+    register.flush({ token_type: 'bearer', expires_in: 900 }, { status: 201, statusText: 'Created' });
 
     const me = http.expectOne('/api/auth/me');
-    expect(me.request.headers.get('Authorization')).toBe('Bearer access-2');
+    expect(me.request.withCredentials).toBe(true);
     me.flush({
       id: '22222222-2222-2222-2222-222222222222',
       email: 'new@example.com',
@@ -84,11 +82,7 @@ describe('AuthService', () => {
 
   it('clears session on logout', () => {
     service.login({ email: 'user@example.com', password: 'Secret123' }).subscribe();
-    http.expectOne('/api/auth/login').flush({
-      access_token: 'access-1',
-      token_type: 'bearer',
-      expires_in: 900,
-    });
+    http.expectOne('/api/auth/login').flush({ token_type: 'bearer', expires_in: 900 });
     http.expectOne('/api/auth/me').flush({
       id: '11111111-1111-1111-1111-111111111111',
       email: 'user@example.com',
@@ -107,11 +101,7 @@ describe('AuthService', () => {
 
   it('clears session when refresh returns 401', () => {
     service.login({ email: 'user@example.com', password: 'Secret123' }).subscribe();
-    http.expectOne('/api/auth/login').flush({
-      access_token: 'access-1',
-      token_type: 'bearer',
-      expires_in: 900,
-    });
+    http.expectOne('/api/auth/login').flush({ token_type: 'bearer', expires_in: 900 });
     http.expectOne('/api/auth/me').flush({
       id: '11111111-1111-1111-1111-111111111111',
       email: 'user@example.com',

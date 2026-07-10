@@ -40,31 +40,3 @@
   border-bottom: 1px solid var(--line);
   margin-bottom: 4px;
 }
-
-:host ::ng-deep app-legend-row .lg-vals {
-  display: flex;
-  gap: 40px;
-}
-
-:host ::ng-deep .lg-r {
-  min-width: 96px;
-  display: inline-block;
-  text-align: right;
-}
-
-:host ::ng-deep .lg-g {
-  min-width: 96px;
-  display: inline-block;
-  text-align: right;
-  color: var(--grn);
-}
-
-:host ::ng-deep app-legend-row .lg-row {
-  padding: 11px 0;
-  border-bottom: 1px solid #1b2236;
-  cursor: default;
-}
-
-:host ::ng-deep app-legend-row:last-child .lg-row {
-  border-bottom: 0;
-}

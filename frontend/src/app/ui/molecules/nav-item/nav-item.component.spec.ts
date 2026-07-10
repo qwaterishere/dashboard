@@ -1,41 +1,31 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter } from '@angular/router';
 
-import { routes } from '../../../app.routes';
-import { provideMockAuthenticatedAuth } from '../../../core/auth/auth.testing';
 import { NavItemComponent } from './nav-item.component';
 
-describe('NavItemComponent (integration)', () => {
-  let router: Router;
+describe('NavItemComponent', () => {
   let fixture: ComponentFixture<NavItemComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NavItemComponent],
-      providers: [provideRouter(routes), provideMockAuthenticatedAuth()],
+      providers: [provideRouter([])],
     }).compileComponents();
 
-    router = TestBed.inject(Router);
     fixture = TestBed.createComponent(NavItemComponent);
     fixture.componentRef.setInput('path', '/dashboard');
     fixture.componentRef.setInput('label', 'Дашборд');
   });
 
-  it('highlights dashboard on /dashboard', async () => {
-    await router.navigateByUrl('/dashboard');
+  it('highlights when active input is true', () => {
+    fixture.componentRef.setInput('active', true);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('a')?.classList.contains('on')).toBe(true);
   });
 
-  it('navigates to dashboard from sales on click', async () => {
-    await router.navigateByUrl('/sales');
+  it('does not highlight when active input is false', () => {
+    fixture.componentRef.setInput('active', false);
     fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('a')?.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-
-    expect(router.url).toBe('/dashboard');
-    expect(fixture.nativeElement.querySelector('a')?.classList.contains('on')).toBe(true);
+    expect(fixture.nativeElement.querySelector('a')?.classList.contains('on')).toBe(false);
   });
 });

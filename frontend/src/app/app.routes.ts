@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { AppShellTemplateComponent } from './ui/templates/app-shell/app-shell-template.component';
+import { AppShellHostComponent } from './ui/templates/app-shell/app-shell-host.component';
 import { AuthLayoutTemplateComponent } from './ui/templates/auth-layout/auth-layout-template.component';
 import { authGuard } from './core/auth/auth.guard';
 import { guestGuard } from './core/auth/guest.guard';
@@ -30,7 +30,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    component: AppShellTemplateComponent,
+    component: AppShellHostComponent,
     canMatch: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },

@@ -1,12 +1,13 @@
-import { httpResource } from '@angular/common/http';
 import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
 
-import { DashboardDataStore } from '../../../dashboard/data/dashboard-data.store';
+import { createPageResource } from '../../../../core/api/page-data.resource';
+import { PeriodService } from '../../../../core/services/period.service';
 import type { SalesData } from '../../../../shared/models';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
+import { SalesLayoutTemplateComponent } from '../../../../ui/templates/sales-layout/sales-layout-template.component';
 import { computeSalesRaw } from '../../data/sales-aggregation.utils';
 import { SalesStructureOrganismComponent } from '../../organisms/sales-structure/sales-structure-organism.component';
 import { AbcAnalysisOrganismComponent } from '../../organisms/abc-analysis/abc-analysis-organism.component';
@@ -14,17 +15,23 @@ import { AbcAnalysisOrganismComponent } from '../../organisms/abc-analysis/abc-a
 @Component({
   selector: 'app-sales-page',
   standalone: true,
-  imports: [LoadErrorComponent, SalesStructureOrganismComponent, AbcAnalysisOrganismComponent],
-  host: { class: 'page-sales' },
+  imports: [
+    LoadErrorComponent,
+    SalesLayoutTemplateComponent,
+    SalesStructureOrganismComponent,
+    AbcAnalysisOrganismComponent,
+  ],
   template: `
-    @if (data.hasValue()) {
-      <app-sales-structure-organism [positions]="positions()" />
-      <app-abc-analysis-organism [positions]="positions()" />
-    } @else if (data.error()) {
-      <app-load-error message="Не удалось загрузить данные продаж" />
-    } @else {
-      <p class="loading">Загрузка…</p>
-    }
+    <app-sales-layout-template>
+      @if (data.hasValue()) {
+        <app-sales-structure-organism [positions]="positions()" />
+        <app-abc-analysis-organism [positions]="positions()" />
+      } @else if (data.error()) {
+        <app-load-error message="Не удалось загрузить данные продаж" />
+      } @else {
+        <p class="loading">Загрузка…</p>
+      }
+    </app-sales-layout-template>
   `,
   styles: `
     :host {
@@ -38,7 +45,7 @@ import { AbcAnalysisOrganismComponent } from '../../organisms/abc-analysis/abc-a
   `,
 })
 export class SalesPageComponent {
-  private readonly store = inject(DashboardDataStore);
+  private readonly periodService = inject(PeriodService);
   private readonly route = inject(ActivatedRoute);
 
   private readonly dayQuery = toSignal(
@@ -55,26 +62,20 @@ export class SalesPageComponent {
     { initialValue: null },
   );
 
-  readonly data = httpResource<SalesData>(() => {
+  readonly data = createPageResource<SalesData>(() => 'sales', () => {
     const dayQuery = this.dayQuery();
     if (dayQuery) {
-      const params = new URLSearchParams({
-        date_from: dayQuery.dateFrom,
-        date_to: dayQuery.dateTo,
-      });
-      return { url: `/api/sales?${params.toString()}` };
+      return {
+        query: { date_from: dayQuery.dateFrom, date_to: dayQuery.dateTo },
+      };
     }
 
-    const useRange = this.store.granularity() === 'week';
-    const query = useRange ? this.store.salesQuery() : null;
+    const useRange = this.periodService.granularity() === 'week';
+    const query = useRange ? this.periodService.salesQuery() : null;
     if (!query) {
-      return { url: '/api/sales' };
+      return {};
     }
-    const params = new URLSearchParams({
-      date_from: query.dateFrom,
-      date_to: query.dateTo,
-    });
-    return { url: `/api/sales?${params.toString()}` };
+    return { query: { date_from: query.dateFrom, date_to: query.dateTo } };
   });
 
   readonly positions = computed(() => {

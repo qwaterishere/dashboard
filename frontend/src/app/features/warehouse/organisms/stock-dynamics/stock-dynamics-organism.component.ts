@@ -18,8 +18,8 @@ type FreqFilter = 'week' | 'month';
       <div class="block-head">
         <app-heading [level]="2" text="Динамика товарных запасов" />
         <div class="controls">
-          <app-segment-control class="seg-sm" [options]="storeOptions" [(value)]="store" />
-          <app-segment-control class="seg-sm" [options]="freqOptions" [(value)]="freq" />
+          <app-segment-control size="sm" [options]="storeOptions" [(value)]="store" />
+          <app-segment-control size="sm" [options]="freqOptions" [(value)]="freq" />
         </div>
       </div>
 

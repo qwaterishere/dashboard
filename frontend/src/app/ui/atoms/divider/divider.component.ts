@@ -1,19 +1,31 @@
-import { Component, input } from '@angular/core';
+import { Component } from '@angular/core';
 
+/**
+ * Горизонтальный разделитель. Занимает 100% ширины родителя.
+ * Вертикальные/горизонтальные отступы — ответственность layout (organism / template).
+ */
 @Component({
   selector: 'app-divider',
   standalone: true,
-  template: `<div [class]="classes()"></div>`,
+  template: `<hr class="divider" />`,
   styles: `
-    .divider { height: 1px; background: var(--border-subtle); }
-    .divider--nav { margin: 18px 8px; }
-    .divider--right { margin: 22px 0; }
+    :host {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .divider {
+      display: block;
+      width: 100%;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-top: 1px solid var(--border-subtle);
+    }
   `,
 })
-export class DividerComponent {
-  readonly variant = input<'nav' | 'right'>('nav');
-
-  classes(): string {
-    return `divider divider--${this.variant()}`;
-  }
-}
+export class DividerComponent {}

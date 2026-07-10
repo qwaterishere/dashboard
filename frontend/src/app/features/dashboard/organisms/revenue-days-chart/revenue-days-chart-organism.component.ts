@@ -17,7 +17,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
         <button type="button" class="pill">{{ periodLabel() }}</button>
       </app-panel-header>
       <div class="legend">
-        <span style="color: var(--mut2)">клик по дню — детали</span>
+        <span class="legend-hint">клик по дню — детали</span>
       </div>
       <div class="chart-wrap">
         <svg
@@ -54,7 +54,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
 
           @for (bar of layout().bars; track bar.index) {
             <rect
-              class="dbar"
+              class="dbar dbar--interactive"
               [attr.data-i]="bar.index"
               [attr.x]="bar.x"
               [attr.y]="bar.y"
@@ -62,7 +62,6 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               [attr.height]="bar.h"
               rx="5"
               fill="url(#dayg)"
-              style="cursor: pointer"
               (click)="onBarClick($event, bar.index)"
             />
             @if (bar.hasPlan) {
@@ -100,7 +99,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               fill="none"
               stroke="var(--chart-selection)"
               stroke-width="2"
-              style="filter: drop-shadow(0 0 6px rgba(110, 107, 255, 0.7))"
+              class="dbar-selection"
               pointer-events="none"
             />
           }
@@ -111,6 +110,18 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
   styles: `
     :host {
       display: block;
+    }
+
+    .legend-hint {
+      color: var(--mut2);
+    }
+
+    .dbar--interactive {
+      cursor: pointer;
+    }
+
+    .dbar-selection {
+      filter: drop-shadow(0 0 6px rgba(110, 107, 255, 0.7));
     }
 
     svg {

@@ -1,7 +1,6 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { NavActiveService } from '../../../core/routing/nav-active.service';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 
 @Component({
@@ -9,7 +8,7 @@ import { BadgeComponent } from '../../atoms/badge/badge.component';
   standalone: true,
   imports: [RouterLink, BadgeComponent],
   template: `
-    <a [routerLink]="path()" [class.on]="isActive()">
+    <a [routerLink]="path()" [class.on]="active()">
       {{ label() }}
       @if (badge()) {
         <app-badge [label]="badge()!" variant="nav" />
@@ -35,18 +34,14 @@ import { BadgeComponent } from '../../atoms/badge/badge.component';
       background: var(--nav-active-bg);
       box-shadow: var(--nav-active-ring);
     }
+    a app-badge {
+      margin-left: auto;
+    }
   `,
 })
 export class NavItemComponent {
   readonly path = input.required<string>();
   readonly label = input.required<string>();
   readonly badge = input<string>();
-
-  private readonly navActive = inject(NavActiveService);
-
-  readonly isActive = computed(() => {
-    const active = this.navActive.segment();
-    const expected = this.path().replace(/^\//, '');
-    return active === expected;
-  });
+  readonly active = input(false);
 }

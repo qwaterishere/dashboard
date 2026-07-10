@@ -1,16 +1,16 @@
 import { Component, input } from '@angular/core';
 
-import { FoodcostOverviewCardComponent } from './foodcost-overview-card.component';
+import { FoodcostOverviewCardOrganismComponent } from './foodcost-overview-card-organism.component';
 import type { FoodcostData } from '../../../../shared/models';
 
 @Component({
   selector: 'app-foodcost-overview-organism',
   standalone: true,
-  imports: [FoodcostOverviewCardComponent],
+  imports: [FoodcostOverviewCardOrganismComponent],
   template: `
     <div class="fc-overview">
-      <app-foodcost-overview-card tone="clean" [card]="overview().clean" />
-      <app-foodcost-overview-card tone="dirty" [card]="overview().dirty" />
+      <app-foodcost-overview-card-organism tone="clean" [card]="overview().clean" />
+      <app-foodcost-overview-card-organism tone="dirty" [card]="overview().dirty" />
     </div>
   `,
   styles: `
@@ -22,8 +22,7 @@ import type { FoodcostData } from '../../../../shared/models';
       align-items: stretch;
     }
 
-    :host ::ng-deep app-foodcost-overview-card {
-      display: block;
+    .fc-overview > * {
       height: 100%;
     }
 

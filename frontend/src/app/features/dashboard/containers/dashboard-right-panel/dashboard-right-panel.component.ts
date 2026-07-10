@@ -7,6 +7,10 @@ import { ProfileBlockComponent } from '../../../../ui/molecules/profile-block/pr
 import { DividerComponent } from '../../../../ui/atoms/divider/divider.component';
 import { CategoriesPanelOrganismComponent } from '../../organisms/categories-panel/categories-panel-organism.component';
 import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-panel-organism.component';
+import {
+  RIGHT_PANEL_HIDE_BREAKPOINT_PX,
+  RIGHT_PANEL_WIDTH_PX,
+} from '../../../../shared/constants/layout.constants';
 
 @Component({
   selector: 'app-dashboard-right-panel',
@@ -29,7 +33,7 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
       @if (viewModel(); as d) {
         <app-categories-panel-organism [categories]="d.categories" />
         @if (d.stock) {
-          <app-divider variant="right" />
+          <app-divider class="panel-divider" />
           <app-stock-panel-organism [stock]="d.stock" />
         }
       } @else if (dashboard.error()) {
@@ -47,9 +51,9 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
     .right {
       grid-column: 3;
       grid-row: 1;
-      width: var(--right-panel-width, 296px);
-      max-width: var(--right-panel-width, 296px);
-      min-width: var(--right-panel-width, 296px);
+      width: var(--right-panel-width, ${RIGHT_PANEL_WIDTH_PX}px);
+      max-width: var(--right-panel-width, ${RIGHT_PANEL_WIDTH_PX}px);
+      min-width: var(--right-panel-width, ${RIGHT_PANEL_WIDTH_PX}px);
       height: 100vh;
       overflow-x: hidden;
       overflow-y: auto;
@@ -64,7 +68,11 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
       font-size: 0.9rem;
     }
 
-    @media (max-width: 1180px) {
+    .panel-divider {
+      margin: 22px 0;
+    }
+
+    @media (max-width: ${RIGHT_PANEL_HIDE_BREAKPOINT_PX}px) {
       .right {
         display: none;
       }

@@ -14,10 +14,9 @@ export class AuthService {
   private readonly api = inject(API_CONFIG);
   private readonly router = inject(Router);
 
-  private readonly accessToken = signal<string | null>(null);
   readonly user = signal<UserPublic | null>(null);
 
-  readonly isAuthenticated = computed(() => this.accessToken() !== null && this.user() !== null);
+  readonly isAuthenticated = computed(() => this.user() !== null);
 
   /** Сессия уже восстанавливалась (app init) — повторный silent refresh не нужен. */
   private readonly sessionBootstrapped = signal(false);
@@ -26,16 +25,12 @@ export class AuthService {
 
   private refreshInFlight: Observable<TokenResponse> | null = null;
 
-  getAccessToken(): string | null {
-    return this.accessToken();
-  }
-
   /** Разрешён ли автоматический refresh (не после явного logout). */
   canAttemptSilentRefresh(): boolean {
     return this.allowSilentRefresh();
   }
 
-  /** Восстановление сессии по httpOnly refresh cookie — только при старте приложения. */
+  /** Восстановление сессии по httpOnly cookies — только при старте приложения. */
   bootstrapSession(): Observable<boolean> {
     if (this.sessionBootstrapped()) {
       return of(this.isAuthenticated());
@@ -60,13 +55,13 @@ export class AuthService {
   login(payload: LoginRequest): Observable<UserPublic> {
     return this.http
       .post<TokenResponse>(this.authUrl('login'), payload, { withCredentials: true })
-      .pipe(switchMap((tokens) => this.establishSession(tokens)));
+      .pipe(switchMap(() => this.establishSession()));
   }
 
   register(payload: RegisterRequest): Observable<UserPublic> {
     return this.http
       .post<TokenResponse>(this.authUrl('register'), payload, { withCredentials: true })
-      .pipe(switchMap((tokens) => this.establishSession(tokens)));
+      .pipe(switchMap(() => this.establishSession()));
   }
 
   refreshAccessToken(): Observable<TokenResponse> {
@@ -80,7 +75,6 @@ export class AuthService {
     this.refreshInFlight = this.http
       .post<TokenResponse>(this.authUrl('refresh'), {}, { withCredentials: true })
       .pipe(
-        tap((tokens) => this.accessToken.set(tokens.access_token)),
         catchError((err: unknown) => {
           if (this.isAuthFailure(err)) {
             this.clearSession();
@@ -96,7 +90,7 @@ export class AuthService {
   }
 
   loadMe(): Observable<UserPublic> {
-    return this.http.get<UserPublic>(this.authUrl('me')).pipe(
+    return this.http.get<UserPublic>(this.authUrl('me'), { withCredentials: true }).pipe(
       tap((user) => this.user.set(user)),
       catchError((err: HttpErrorResponse) => {
         if (this.isAuthFailure(err)) {
@@ -134,13 +128,11 @@ export class AuthService {
   }
 
   clearSession(): void {
-    this.accessToken.set(null);
     this.user.set(null);
     this.allowSilentRefresh.set(false);
   }
 
-  private establishSession(tokens: TokenResponse): Observable<UserPublic> {
-    this.accessToken.set(tokens.access_token);
+  private establishSession(): Observable<UserPublic> {
     this.allowSilentRefresh.set(true);
     this.sessionBootstrapped.set(true);
     return this.loadMe();

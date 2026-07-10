@@ -2,6 +2,7 @@ import { Component, input } from '@angular/core';
 
 import { CAT_COLOR } from '../../../shared/constants/category.constants';
 import { MoneyPipe } from '../../../shared/pipes/format.pipes';
+import { BarRowComponent } from '../../molecules/bar-row/bar-row.component';
 import type { CategoryKey } from '../../../shared/models';
 
 export interface BarChartGroupRow {
@@ -19,7 +20,7 @@ export interface BarChartGroup {
 @Component({
   selector: 'app-bar-chart-groups-organism',
   standalone: true,
-  imports: [MoneyPipe],
+  imports: [MoneyPipe, BarRowComponent],
   template: `
     <div class="bars-legend">
       <span><i class="sw rev"></i>Выручка</span>
@@ -30,18 +31,16 @@ export interface BarChartGroup {
         <div class="bar-group">
           <div class="bg-title" [style.--cc]="color(group.category)">{{ group.title }}</div>
           @for (row of group.rows; track row.name) {
-            <div class="bar-row">
-              <span class="br-name">{{ row.name }}</span>
-              <span class="br-track">
-                <i class="br-rev" [style.width.%]="revWidth(row.rev)"></i>
-                <i class="br-gp" [style.width.%]="gpWidth(row.gp)"></i>
-              </span>
-              <span class="br-vals">
-                <b class="br-r">{{ row.rev | money }}</b>
-                <b class="br-g">{{ row.gp | money }}</b>
-                <small>{{ share(row.rev) }} % от выручки</small>
-              </span>
-            </div>
+            <app-bar-row
+              variant="dual-rev-gp"
+              [name]="row.name"
+              [revWidth]="revWidth(row.rev)"
+              [gpWidth]="gpWidth(row.gp)"
+            >
+              <b class="br-r">{{ row.rev | money }}</b>
+              <b class="br-g">{{ row.gp | money }}</b>
+              <small>{{ share(row.rev) }} % от выручки</small>
+            </app-bar-row>
           }
         </div>
       }

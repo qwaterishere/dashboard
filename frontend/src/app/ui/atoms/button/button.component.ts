@@ -55,19 +55,28 @@ import { Component, input, output } from '@angular/core';
       color: #0a0e18;
       filter: brightness(1.05);
     }
+    button.btn--block {
+      width: 100%;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.76rem;
+    }
   `,
 })
 export class ButtonComponent {
   readonly variant = input<'default' | 'segment-on' | 'pill' | 'primary'>('default');
   readonly type = input<'button' | 'submit'>('button');
   readonly disabled = input(false);
+  readonly block = input(false);
   readonly pressed = output<void>();
 
   classes(): string {
     const v = this.variant();
-    if (v === 'segment-on') return 'btn--segment-on';
-    if (v === 'pill') return 'btn--pill';
-    if (v === 'primary') return 'btn--primary';
-    return '';
+    const base = [];
+    if (v === 'segment-on') base.push('btn--segment-on');
+    else if (v === 'pill') base.push('btn--pill');
+    else if (v === 'primary') base.push('btn--primary');
+    if (this.block()) base.push('btn--block');
+    return base.join(' ');
   }
 }

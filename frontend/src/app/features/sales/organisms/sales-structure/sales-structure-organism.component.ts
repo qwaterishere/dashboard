@@ -53,6 +53,7 @@ import {
             </div>
             @for (slice of donutData(); track slice.key) {
               <app-legend-row
+                layout="sales-dual"
                 [name]="slice.name"
                 [color]="slice.color"
                 [caption]="shareLabel(slice.rev) + ' % от выручки'"

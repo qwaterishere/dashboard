@@ -1,6 +1,10 @@
 import { Component, input, model } from '@angular/core';
 
 import { CAT_NAME } from '../../../../shared/constants/category.constants';
+import {
+  FOODCOST_SEMAPHORE_HIGH_PCT,
+  FOODCOST_SEMAPHORE_LOW_PCT,
+} from '../../../../shared/constants/foodcost.constants';
 import { FmtPipe, MoneyPipe, PctPipe } from '../../../../shared/pipes/format.pipes';
 import type { AbcClass } from '../../../../shared/utils/abc-analysis.utils';
 import type { SalesPositionComputed } from '../../data/sales-aggregation.utils';
@@ -38,7 +42,11 @@ export type PositionsSortKey = 'name' | 'abc' | 'qty' | 'rev' | 'gp' | 'fc';
             <td>{{ row.qty | fmt }}</td>
             <td>{{ row.rev | money }}</td>
             <td class="gp-cell">{{ row.gp | money }}</td>
-            <td class="fc-cell" [class.lo]="row.fc < 28" [class.hi]="row.fc > 33">{{ row.fc | pct }}</td>
+            <td
+              class="fc-cell"
+              [class.lo]="row.fc < fcLow"
+              [class.hi]="row.fc > fcHigh"
+            >{{ row.fc | pct }}</td>
           </tr>
         }
       </tbody>
@@ -50,6 +58,9 @@ export class PositionsTableOrganismComponent {
   readonly rows = input.required<(SalesPositionComputed & { abc: AbcClass })[]>();
   readonly sortKey = model<PositionsSortKey>('gp');
   readonly sortDesc = model(true);
+
+  protected readonly fcLow = FOODCOST_SEMAPHORE_LOW_PCT;
+  protected readonly fcHigh = FOODCOST_SEMAPHORE_HIGH_PCT;
 
   protected readonly columns: { key: PositionsSortKey; label: string }[] = [
     { key: 'name', label: 'Позиция' },

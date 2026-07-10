@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
-import { provideMockAuthenticatedAuth } from '../../../core/auth/auth.testing';
 import { PageGreetingComponent } from './page-greeting.component';
 
 describe('PageGreetingComponent', () => {
@@ -9,15 +9,15 @@ describe('PageGreetingComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PageGreetingComponent],
-      providers: [provideMockAuthenticatedAuth()],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(PageGreetingComponent);
+    fixture.componentRef.setInput('greeting', 'Добрый день, Артём');
     fixture.detectChanges();
   });
 
-  it('renders greeting with user first name', () => {
-    expect(fixture.nativeElement.textContent).toMatch(/Добр(ое утро|ый день|ый вечер)/);
-    expect(fixture.nativeElement.textContent).toContain('Артём');
+  it('renders greeting text', () => {
+    expect(fixture.nativeElement.textContent).toContain('Добрый день, Артём');
   });
 });

@@ -15,15 +15,6 @@
   margin-bottom: 16px;
 }
 
-:host ::ng-deep .seg-sm .seg {
-  border-radius: 9px;
-}
-
-:host ::ng-deep .seg-sm app-button button {
-  padding: 5px 12px;
-  font-size: 0.73rem;
-}
-
 .top-bars {
   display: flex;
   flex-direction: column;

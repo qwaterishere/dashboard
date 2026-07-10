@@ -1,14 +1,19 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
-import { AuthService } from '../../../../core/auth/auth.service';
-import { resolveAuthError } from '../../../../core/auth/auth-errors';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
 import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-field.component';
+
+export interface RegisterFormValue {
+  firstName: string;
+  lastName: string;
+  position: string;
+  email: string;
+  password: string;
+}
 
 @Component({
   selector: 'app-register-form-organism',
@@ -29,7 +34,7 @@ import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-fie
       <app-text tone="danger" class="banner">{{ error() }}</app-text>
     }
 
-    <form class="form" (ngSubmit)="submit()">
+    <form class="form" (ngSubmit)="onSubmit()">
       <div class="row2">
         <app-form-field
           label="Имя"
@@ -135,52 +140,23 @@ import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-fie
   `,
 })
 export class RegisterFormOrganismComponent {
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
+  readonly loading = input(false);
+  readonly error = input<string | null>(null);
+  readonly submitted = output<RegisterFormValue>();
 
   protected firstName = '';
   protected lastName = '';
   protected position = '';
   protected email = '';
   protected password = '';
-  protected readonly loading = signal(false);
-  protected readonly error = signal<string | null>(null);
 
-  submit(): void {
-    this.error.set(null);
-
-    const firstName = this.firstName.trim();
-    const lastName = this.lastName.trim();
-    const position = this.position.trim();
-    const email = this.email.trim();
-
-    if (!firstName || !lastName || !position || !email) {
-      this.error.set('Заполните все поля');
-      return;
-    }
-    if (this.password.length < 8) {
-      this.error.set('Пароль должен содержать минимум 8 символов');
-      return;
-    }
-
-    this.loading.set(true);
-    this.auth
-      .register({
-        email,
-        password: this.password,
-        first_name: firstName,
-        last_name: lastName,
-        position,
-      })
-      .subscribe({
-        next: () => {
-          this.loading.set(false);
-          void this.router.navigate(['/dashboard']);
-        },
-        error: (err: HttpErrorResponse) => {
-          this.loading.set(false);
-          this.error.set(resolveAuthError(err));
-        },
-      });
+  onSubmit(): void {
+    this.submitted.emit({
+      firstName: this.firstName.trim(),
+      lastName: this.lastName.trim(),
+      position: this.position.trim(),
+      email: this.email.trim(),
+      password: this.password,
+    });
   }
 }

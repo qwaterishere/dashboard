@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 
 import { filterRevenueDays } from '../../../shared/utils/period-format.utils';
+import { PeriodService } from '../../../core/services/period.service';
 import { DashboardDataStore } from './dashboard-data.store';
 
 describe('DashboardDataStore', () => {
-  it('defaults granularity to month', () => {
+  it('defaults granularity to month via PeriodService', () => {
     const store = TestBed.inject(DashboardDataStore);
     expect(store.granularity()).toBe('month');
   });
@@ -21,5 +22,14 @@ describe('filterRevenueDays', () => {
 
   it('keeps last 7 days for week granularity', () => {
     expect(filterRevenueDays(days, period, 'week')).toHaveLength(7);
+  });
+});
+
+describe('PeriodService integration', () => {
+  it('shares granularity between store and period service', () => {
+    const store = TestBed.inject(DashboardDataStore);
+    const period = TestBed.inject(PeriodService);
+    store.granularity.set('week');
+    expect(period.granularity()).toBe('week');
   });
 });

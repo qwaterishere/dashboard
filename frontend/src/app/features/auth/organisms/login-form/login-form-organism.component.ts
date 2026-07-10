@@ -1,14 +1,16 @@
-import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 
-import { AuthService } from '../../../../core/auth/auth.service';
-import { resolveAuthError } from '../../../../core/auth/auth-errors';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
 import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-field.component';
+
+export interface LoginFormValue {
+  email: string;
+  password: string;
+}
 
 @Component({
   selector: 'app-login-form-organism',
@@ -32,7 +34,7 @@ import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-fie
       <app-text tone="danger" class="banner">{{ error() }}</app-text>
     }
 
-    <form class="form" (ngSubmit)="submit()">
+    <form class="form" (ngSubmit)="submitted.emit({ email: email.trim(), password })">
       <app-form-field
         label="Email"
         inputId="login-email"
@@ -99,30 +101,11 @@ import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-fie
   `,
 })
 export class LoginFormOrganismComponent {
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
+  readonly loading = input(false);
+  readonly error = input<string | null>(null);
+  readonly sessionExpired = input(false);
+  readonly submitted = output<LoginFormValue>();
 
   protected email = '';
   protected password = '';
-  protected readonly loading = signal(false);
-  protected readonly error = signal<string | null>(null);
-  protected readonly sessionExpired = signal(
-    this.route.snapshot.queryParamMap.get('reason') === 'session_expired',
-  );
-
-  submit(): void {
-    this.error.set(null);
-    this.loading.set(true);
-    this.auth.login({ email: this.email.trim(), password: this.password }).subscribe({
-      next: () => {
-        this.loading.set(false);
-        void this.router.navigate(['/dashboard']);
-      },
-      error: (err: HttpErrorResponse) => {
-        this.loading.set(false);
-        this.error.set(resolveAuthError(err));
-      },
-    });
-  }
 }

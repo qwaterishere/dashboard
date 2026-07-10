@@ -5,9 +5,10 @@ import { MoneyPipe, PctPipe } from '../../../../shared/pipes/format.pipes';
 import type { FoodcostOverviewCard } from '../../../../shared/models';
 
 @Component({
-  selector: 'app-foodcost-overview-card',
+  selector: 'app-foodcost-overview-card-organism',
   standalone: true,
   imports: [LflBadgeComponent, MoneyPipe, PctPipe],
+  host: { class: 'foodcost-overview-card' },
   template: `
     <div class="big-card" [class.clean]="tone() === 'clean'" [class.dirty]="tone() === 'dirty'">
       <div class="bc-head">
@@ -39,9 +40,9 @@ import type { FoodcostOverviewCard } from '../../../../shared/models';
       </div>
     </div>
   `,
-  styleUrl: './foodcost-overview-card.component.scss',
+  styleUrl: './foodcost-overview-card-organism.component.scss',
 })
-export class FoodcostOverviewCardComponent {
+export class FoodcostOverviewCardOrganismComponent {
   readonly card = input.required<FoodcostOverviewCard>();
   readonly tone = input.required<'clean' | 'dirty'>();
 }

@@ -24,7 +24,7 @@ import { TextComponent } from '../../atoms/text/text.component';
         </div>
       </div>
       @if (showLogout()) {
-        <app-button class="logout" variant="pill" (pressed)="logout.emit()">Выйти</app-button>
+        <app-button class="logout" variant="pill" [block]="true" (pressed)="logout.emit()">Выйти</app-button>
       }
     </div>
   `,
@@ -48,12 +48,6 @@ import { TextComponent } from '../../atoms/text/text.component';
       width: 100%;
     }
 
-    .logout ::ng-deep button {
-      width: 100%;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 0.76rem;
-    }
     .icon-btn {
       width: 36px;
       height: 36px;
@@ -93,9 +87,9 @@ import { TextComponent } from '../../atoms/text/text.component';
   `,
 })
 export class ProfileBlockComponent {
-  readonly initials = input('АК');
-  readonly name = input('Артём Ким');
-  readonly role = input('Управляющий');
+  readonly initials = input.required<string>();
+  readonly name = input.required<string>();
+  readonly role = input('');
   readonly showLogout = input(true);
   readonly logout = output<void>();
 }

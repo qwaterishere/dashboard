@@ -1,6 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
-
-import { AuthService } from '../../../core/auth/auth.service';
+import { Component, input } from '@angular/core';
 
 @Component({
   selector: 'app-page-greeting',
@@ -30,13 +28,5 @@ import { AuthService } from '../../../core/auth/auth.service';
   `,
 })
 export class PageGreetingComponent {
-  private readonly auth = inject(AuthService);
-
-  protected readonly greeting = computed(() => {
-    const user = this.auth.user();
-    const name = user?.first_name ?? 'коллега';
-    const hour = new Date().getHours();
-    const salute = hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
-    return `${salute}, ${name}`;
-  });
+  readonly greeting = input.required<string>();
 }

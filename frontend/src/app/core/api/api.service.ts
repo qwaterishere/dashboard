@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { API_CONFIG } from '../config/api-config.token';
+import { createPageResource } from './page-data.resource';
 import { isAllowedPage } from './allowed-pages';
 import type { PageName } from '../../shared/models';
 
@@ -21,5 +22,10 @@ export class ApiService {
         headers: { Accept: 'application/json' },
       }),
     );
+  }
+
+  /** Фабрика httpResource — делегирует в `createPageResource`. */
+  pageResource<T>(page: () => PageName) {
+    return createPageResource<T>(page);
   }
 }

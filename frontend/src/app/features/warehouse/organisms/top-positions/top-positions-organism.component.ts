@@ -18,7 +18,7 @@ import {
     <div class="block">
       <div class="block-head">
         <app-heading [level]="2" text="Наибольший остаток на складе" />
-        <app-segment-control class="seg-sm" [options]="metricOptions" [(value)]="metric" />
+        <app-segment-control size="sm" [options]="metricOptions" [(value)]="metric" />
       </div>
 
       <div class="top-bars">

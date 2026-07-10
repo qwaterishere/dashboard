@@ -20,7 +20,6 @@ export function provideMockAuthenticatedAuth() {
     useValue: {
       user,
       isAuthenticated: computed(() => user() !== null),
-      getAccessToken: () => 'test-token',
       canAttemptSilentRefresh: () => true,
       initials: () => 'АК',
       displayName: () => 'Артём Ким',

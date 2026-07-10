@@ -1,51 +1,38 @@
-import { computed, Injectable, signal } from '@angular/core';
-import { httpResource } from '@angular/common/http';
+import { computed, effect, inject, Injectable, untracked } from '@angular/core';
 
-import type { PeriodGranularity, PeriodInfo } from '../../../shared/models/common.model';
+import { createPageResource } from '../../../core/api/page-data.resource';
+import { PeriodService } from '../../../core/services/period.service';
+import type { PeriodInfo } from '../../../shared/models/common.model';
 import type { DashboardV2 } from '../../../shared/models/dashboard-v2.model';
-import type { WarehouseData } from '../../../shared/models/warehouse.model';
 import { buildPeriodInfo, formatChartPeriodLabel } from '../../../shared/utils/period-format.utils';
-import {
-  buildDashboardViewModel,
-  buildStockFromWarehouse,
-} from './dashboard-v2.utils';
+import { WarehouseDataStore } from '../../warehouse/data/warehouse-data.store';
+import { buildDashboardViewModel, buildStockFromWarehouse } from './dashboard-v2.utils';
 
 const LOADING: PeriodInfo = { label: '…', note: 'загрузка' };
 const ERROR: PeriodInfo = { label: '—', note: 'нет данных' };
 
-export interface DateRangeQuery {
-  dateFrom: string;
-  dateTo: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class DashboardDataStore {
-  readonly granularity = signal<PeriodGranularity>('month');
+  private readonly periodService = inject(PeriodService);
+  private readonly warehouseStore = inject(WarehouseDataStore);
 
-  readonly dashboard = httpResource<DashboardV2>(() => ({ url: '/api/dashboard' }));
-  readonly warehouse = httpResource<WarehouseData>(() => ({ url: '/api/warehouse' }));
+  readonly dashboard = createPageResource<DashboardV2>(() => 'dashboard');
+  readonly warehouse = this.warehouseStore.data;
+
+  readonly granularity = this.periodService.granularity;
 
   readonly period = computed<PeriodInfo>(() => {
     const resource = this.dashboard;
     if (resource.hasValue()) {
       const { period, compare } = resource.value();
       const base = buildPeriodInfo(period, compare);
-      return { ...base, note: this.periodNote(period) };
+      return { ...base, note: this.periodService.periodNote(this.granularity()) };
     }
     if (resource.error()) return ERROR;
     return LOADING;
   });
 
-  readonly salesQuery = computed<DateRangeQuery | null>(() => {
-    const resource = this.dashboard;
-    if (!resource.hasValue()) return null;
-    const period = resource.value().period;
-    const range = this.resolveRange(period, this.granularity());
-    return {
-      dateFrom: this.toIsoDate(period.year, period.month, range.fromDay),
-      dateTo: this.toIsoDate(period.year, period.month, range.toDay),
-    };
-  });
+  readonly salesQuery = this.periodService.salesQuery;
 
   readonly viewModel = computed(() => {
     if (!this.dashboard.hasValue()) return null;
@@ -63,25 +50,12 @@ export class DashboardDataStore {
     });
   });
 
-  private periodNote(_period: DashboardV2['period']): string {
-    const g = this.granularity();
-    if (g === 'week') return 'последние 7 закрытых дней';
-    if (g === 'year') return 'закрытые дни месяца · годовой контекст';
-    return 'закрытые дни';
-  }
-
-  private resolveRange(
-    period: DashboardV2['period'],
-    granularity: PeriodGranularity,
-  ): { fromDay: number; toDay: number } {
-    const toDay = period.dayTo;
-    if (granularity === 'week') {
-      return { fromDay: Math.max(period.dayFrom, toDay - 6), toDay };
-    }
-    return { fromDay: period.dayFrom, toDay };
-  }
-
-  private toIsoDate(year: number, month: number, day: number): string {
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  constructor() {
+    effect(() => {
+      const resource = this.dashboard;
+      if (resource.hasValue()) {
+        untracked(() => this.periodService.dashboardPeriod.set(resource.value().period));
+      }
+    });
   }
 }

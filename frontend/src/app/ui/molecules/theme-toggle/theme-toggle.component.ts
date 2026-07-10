@@ -1,12 +1,10 @@
-import { Component, computed, inject } from '@angular/core';
-
-import { ThemeService } from '../../../core/state/theme.service';
+import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-theme-toggle',
   standalone: true,
   template: `
-    <button type="button" class="mode" (click)="onToggle()" [attr.aria-pressed]="isDark()">
+    <button type="button" class="mode" (click)="toggled.emit()" [attr.aria-pressed]="isDark()">
       <span class="sun" [class.on]="isDark()"></span>
       {{ isDark() ? 'Тёмная тема' : 'Светлая тема' }}
     </button>
@@ -41,11 +39,6 @@ import { ThemeService } from '../../../core/state/theme.service';
   `,
 })
 export class ThemeToggleComponent {
-  private readonly themeService = inject(ThemeService);
-
-  protected readonly isDark = computed(() => this.themeService.theme() === 'dark');
-
-  onToggle(): void {
-    this.themeService.toggle();
-  }
+  readonly isDark = input(false);
+  readonly toggled = output<void>();
 }

@@ -5,6 +5,7 @@ import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
 import { LegendRowComponent } from '../../../../ui/molecules/legend-row/legend-row.component';
 import { DonutChartOrganismComponent } from '../../../../ui/organisms/donut-chart/donut-chart-organism.component';
+import { BarRowComponent } from '../../../../ui/molecules/bar-row/bar-row.component';
 import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
 import type { CategoryKey } from '../../../../shared/models';
 import {
@@ -23,13 +24,14 @@ import {
     SegmentControlComponent,
     DonutChartOrganismComponent,
     LegendRowComponent,
+    BarRowComponent,
     MoneyPipe,
   ],
   template: `
     <div class="block">
       <div class="block-head">
         <app-heading [level]="2" text="Запасы по категориям" />
-        <app-segment-control class="seg-sm" [options]="levelOptions" [(value)]="level" />
+        <app-segment-control size="sm" [options]="levelOptions" [(value)]="level" />
       </div>
 
       @if (level() === 'cat') {
@@ -46,6 +48,7 @@ import {
           <div class="legend-side">
             @for (slice of donutData(); track slice.key) {
               <app-legend-row
+                layout="warehouse"
                 [name]="slice.name"
                 [color]="slice.color"
                 [caption]="shareLabel(slice.sum) + ' % запасов'"
@@ -63,13 +66,9 @@ import {
             <div class="bar-group">
               <div class="bg-title" [style.--cc]="color(group.category)">{{ group.title }}</div>
               @for (row of group.rows; track row.name) {
-                <div class="bar-row">
-                  <span class="br-name">{{ row.name }}</span>
-                  <span class="br-track">
-                    <i [style.width.%]="barWidth(row.sum)"></i>
-                  </span>
-                  <span class="br-val">{{ row.sum | money }}</span>
-                </div>
+                <app-bar-row [name]="row.name" [widthPct]="barWidth(row.sum)">
+                  {{ row.sum | money }}
+                </app-bar-row>
               }
             </div>
           }

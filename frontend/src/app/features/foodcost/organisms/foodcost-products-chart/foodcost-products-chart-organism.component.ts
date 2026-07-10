@@ -37,7 +37,7 @@ interface TooltipState {
           >
         </div>
         <div class="pc-controls">
-          <app-segment-control class="seg-sm" [options]="groupOptions" [(value)]="group" />
+          <app-segment-control size="sm" tone="foodcost" [options]="groupOptions" [(value)]="group" />
         </div>
       </div>
 

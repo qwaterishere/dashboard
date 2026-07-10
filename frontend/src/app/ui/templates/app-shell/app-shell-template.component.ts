@@ -1,48 +1,43 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, input, model, output } from '@angular/core';
 
-import { DashboardDataStore } from '../../../features/dashboard/data/dashboard-data.store';
-import { PopoverController } from '../../../core/state/popover.controller';
-import { NavActiveService } from '../../../core/routing/nav-active.service';
+import type { PeriodGranularity, PeriodInfo } from '../../../shared/models/common.model';
 import { PageGreetingComponent } from '../../molecules/page-greeting/page-greeting.component';
 import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import { SidebarOrganismComponent } from '../../organisms/sidebar/sidebar-organism.component';
 import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/detail-popover-organism.component';
-import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/dashboard-right-panel/dashboard-right-panel.component';
 
 @Component({
   selector: 'app-shell-template',
   standalone: true,
   imports: [
-    RouterOutlet,
     SidebarOrganismComponent,
     DetailPopoverOrganismComponent,
     PageGreetingComponent,
     PeriodBarComponent,
-    DashboardRightPanelComponent,
   ],
   template: `
-    <button type="button" class="nav-toggle" (click)="toggleSidebar()" aria-label="Меню">
+    <button type="button" class="nav-toggle" (click)="sidebarToggle.emit()" aria-label="Меню">
       ☰
     </button>
     @if (sidebarOpen()) {
-      <button type="button" class="sidebar-backdrop" (click)="closeSidebar()" aria-label="Закрыть меню"></button>
+      <button
+        type="button"
+        class="sidebar-backdrop"
+        (click)="sidebarClose.emit()"
+        aria-label="Закрыть меню"
+      ></button>
     }
-    <div class="app">
+    <div class="app" [class.app--with-right]="showRightPanel()">
       <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
-      <main class="app-main" (scroll)="onMainScroll()">
-        <app-page-greeting />
-        <app-period-bar
-          [period]="store.period()"
-          [granularity]="store.granularity()"
-          (granularityChange)="onGranularityChange($event)"
-        />
+      <main class="app-main" (scroll)="mainScroll.emit()">
+        <app-page-greeting [greeting]="greeting()" />
+        <app-period-bar [period]="period()" [(granularity)]="granularity" />
         <div class="page-body">
-          <router-outlet />
+          <ng-content />
         </div>
       </main>
-      @if (showDashboardPanel()) {
-        <app-dashboard-right-panel />
+      @if (showRightPanel()) {
+        <ng-content select="[shellRight]" />
       }
     </div>
     <app-detail-popover-organism />
@@ -50,26 +45,13 @@ import { DashboardRightPanelComponent } from '../../../features/dashboard/pages/
   styleUrl: './app-shell-template.component.scss',
 })
 export class AppShellTemplateComponent {
-  protected readonly store = inject(DashboardDataStore);
-  private readonly popovers = inject(PopoverController);
-  protected readonly sidebarOpen = signal(false);
+  readonly period = input.required<PeriodInfo>();
+  readonly granularity = model<PeriodGranularity>('month');
+  readonly greeting = input.required<string>();
+  readonly sidebarOpen = input(false);
+  readonly showRightPanel = input(false);
 
-  private readonly navActive = inject(NavActiveService);
-  protected readonly showDashboardPanel = computed(() => this.navActive.segment() === 'dashboard');
-
-  onGranularityChange(value: 'week' | 'month' | 'year'): void {
-    this.store.granularity.set(value);
-  }
-
-  toggleSidebar(): void {
-    this.sidebarOpen.update((open) => !open);
-  }
-
-  closeSidebar(): void {
-    this.sidebarOpen.set(false);
-  }
-
-  onMainScroll(): void {
-    this.popovers.hide();
-  }
+  readonly sidebarToggle = output<void>();
+  readonly sidebarClose = output<void>();
+  readonly mainScroll = output<void>();
 }

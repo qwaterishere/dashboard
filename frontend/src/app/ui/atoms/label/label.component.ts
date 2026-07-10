@@ -23,7 +23,7 @@ import { Component, input } from '@angular/core';
     }
     .label--kpi-rev::before { background: var(--grn); }
     .label--kpi-check::before { background: var(--vio); }
-    .label--kpi-guests::before { background: #46c2b6; }
+    .label--kpi-guests::before { background: var(--kpi-guests); }
   `,
 })
 export class LabelComponent {

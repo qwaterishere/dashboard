@@ -6,26 +6,13 @@ import { AuthService } from '../auth/auth.service';
 import { API_CONFIG } from '../config/api-config.token';
 
 const PUBLIC_AUTH_SUFFIXES = ['/auth/login', '/auth/register', '/auth/refresh'] as const;
-const CREDENTIALS_AUTH_SUFFIXES = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/refresh',
-  '/auth/logout',
-] as const;
 
 function isPublicAuthRequest(url: string, apiBase: string): boolean {
   return PUBLIC_AUTH_SUFFIXES.some((suffix) => url.includes(`${apiBase}${suffix}`));
 }
 
-function needsAuthCredentials(url: string, apiBase: string): boolean {
-  return CREDENTIALS_AUTH_SUFFIXES.some((suffix) => url.includes(`${apiBase}${suffix}`));
-}
-
-function withBearer(url: string, token: string, req: Parameters<HttpInterceptorFn>[0]) {
-  return req.clone({
-    url,
-    setHeaders: { Authorization: `Bearer ${token}` },
-  });
+function isApiRequest(url: string, apiBase: string): boolean {
+  return url.includes(apiBase);
 }
 
 function shouldAttemptRefresh(
@@ -48,17 +35,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const apiBase = inject(API_CONFIG).apiBase;
 
   const isPublic = isPublicAuthRequest(req.url, apiBase);
-  const withCredentials = needsAuthCredentials(req.url, apiBase);
-
-  let outbound = req;
-  if (withCredentials) {
-    outbound = req.clone({ withCredentials: true });
-  }
-
-  const token = auth.getAccessToken();
-  if (token && !isPublic) {
-    outbound = withBearer(outbound.url, token, outbound);
-  }
+  const outbound = isApiRequest(req.url, apiBase)
+    ? req.clone({ withCredentials: true })
+    : req;
 
   return next(outbound).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -67,13 +46,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       return auth.refreshAccessToken().pipe(
-        switchMap(() => {
-          const refreshedToken = auth.getAccessToken();
-          if (!refreshedToken) {
-            return throwError(() => error);
-          }
-          return next(withBearer(req.url, refreshedToken, req));
-        }),
+        switchMap(() => next(outbound)),
         catchError((refreshError) => {
           auth.handleUnauthorizedRedirect();
           return throwError(() => refreshError);

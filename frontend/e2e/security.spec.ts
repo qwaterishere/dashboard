@@ -1,12 +1,9 @@
-import { API_BASE } from './auth.constants';
 import { ensureE2eUserSession, expect, test } from './fixtures';
 
 test.describe('security', () => {
-  test('API responses include security headers', async ({ page, request }) => {
-    const token = await ensureE2eUserSession(page);
-    const response = await request.get(`${API_BASE}/api/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  test('API responses include security headers', async ({ page }) => {
+    await ensureE2eUserSession(page);
+    const response = await page.request.get('/api/dashboard');
     expect(response.ok()).toBeTruthy();
     const headers = response.headers();
     expect(headers['x-content-type-options']).toBe('nosniff');
@@ -14,8 +11,8 @@ test.describe('security', () => {
     expect(headers['content-security-policy']).toContain("default-src 'self'");
   });
 
-  test('health endpoint is reachable', async ({ request }) => {
-    const response = await request.get(`${API_BASE}/health`);
+  test('health endpoint is reachable', async ({ page }) => {
+    const response = await page.request.get('/health');
     expect(response.ok()).toBeTruthy();
     await expect(response.json()).resolves.toEqual({ status: 'ok' });
   });
