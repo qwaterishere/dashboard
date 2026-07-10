@@ -6,11 +6,12 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from src.api.cookies import read_access_cookie
 from src.core.config import get_settings
 from src.core.security import decode_access_token
 from src.db.models.user import User
@@ -19,7 +20,17 @@ from src.db.session import get_db
 _bearer = HTTPBearer(auto_error=False)
 
 
+def _resolve_access_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None,
+) -> str | None:
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        return credentials.credentials
+    return read_access_cookie(request)
+
+
 def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> User:
@@ -29,14 +40,17 @@ def get_current_user(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication is disabled",
         )
-    if credentials is None or credentials.scheme.lower() != "bearer":
+
+    raw_token = _resolve_access_token(request, credentials)
+    if raw_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(raw_token)
         user_id = UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError, KeyError):
         raise HTTPException(
@@ -62,6 +76,7 @@ def get_current_user(
         )
     return user
 
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
-__all__ = ["get_db", "get_current_user", "get_current_user_optional", "CurrentUser"]
+__all__ = ["get_db", "get_current_user", "CurrentUser"]

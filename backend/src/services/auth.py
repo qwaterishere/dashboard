@@ -56,7 +56,7 @@ def _invalidate_access_tokens(user: User) -> None:
     user.token_version += 1
 
 
-def _issue_token_pair(db: Session, user: User) -> tuple[TokenResponse, str]:
+def _issue_token_pair(db: Session, user: User) -> tuple[TokenResponse, str, str]:
     access_token, expires_in = create_access_token(
         user_id=user.id,
         email=user.email,
@@ -73,17 +73,14 @@ def _issue_token_pair(db: Session, user: User) -> tuple[TokenResponse, str]:
         )
     )
     db.commit()
-    return TokenResponse(
-        access_token=access_token,
-        expires_in=expires_in,
-    ), raw_refresh
+    return TokenResponse(expires_in=expires_in), raw_refresh, access_token
 
 
-def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse, str, UserPublic]:
+def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse, str, str, UserPublic]:
     email = normalize_email(payload.email)
     exists = db.scalar(select(User.id).where(User.email == email))
     if exists is not None:
-        raise AuthError(status.HTTP_409_CONFLICT, "Registration failed")
+        raise AuthError(status.HTTP_400_BAD_REQUEST, "Registration failed")
 
     user = User(
         email=email,
@@ -94,11 +91,11 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse,
     )
     db.add(user)
     db.flush()
-    tokens, raw_refresh = _issue_token_pair(db, user)
-    return tokens, raw_refresh, user_to_public(user)
+    tokens, raw_refresh, access_token = _issue_token_pair(db, user)
+    return tokens, raw_refresh, access_token, user_to_public(user)
 
 
-def login_user(db: Session, email: str, password: str) -> tuple[TokenResponse, str, UserPublic]:
+def login_user(db: Session, email: str, password: str) -> tuple[TokenResponse, str, str, UserPublic]:
     normalized = normalize_email(email)
     user = db.scalar(select(User).where(User.email == normalized))
     if user is None or not verify_password(password, user.password_hash):
@@ -106,8 +103,8 @@ def login_user(db: Session, email: str, password: str) -> tuple[TokenResponse, s
     if not user.is_active:
         raise AuthError(status.HTTP_403_FORBIDDEN, "Account is disabled")
 
-    tokens, raw_refresh = _issue_token_pair(db, user)
-    return tokens, raw_refresh, user_to_public(user)
+    tokens, raw_refresh, access_token = _issue_token_pair(db, user)
+    return tokens, raw_refresh, access_token, user_to_public(user)
 
 
 def _revoke_family(db: Session, family_id: uuid.UUID) -> None:
@@ -122,7 +119,7 @@ def _revoke_family(db: Session, family_id: uuid.UUID) -> None:
         token.revoked_at = now
 
 
-def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str]:
+def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str, str]:
     token_hash = hash_refresh_token(raw_refresh)
     stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     now = _utc_now()
@@ -166,7 +163,7 @@ def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str]:
         token_version=user.token_version,
     )
     db.commit()
-    return TokenResponse(access_token=access_token, expires_in=expires_in), new_raw
+    return TokenResponse(expires_in=expires_in), new_raw, access_token
 
 
 def logout_user(db: Session, raw_refresh: str | None) -> None:

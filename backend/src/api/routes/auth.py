@@ -7,6 +7,14 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from sqlalchemy.orm import Session
 
+from src.api.cookies import (
+    clear_access_cookie,
+    clear_refresh_cookie,
+    read_refresh_cookie,
+    set_access_cookie,
+    set_refresh_cookie,
+)
+from src.api.csrf import assert_trusted_origin
 from src.api.deps import CurrentUser, get_db
 from src.core.config import get_settings
 from src.schemas.auth import (
@@ -24,47 +32,30 @@ from src.services.auth import (
     user_to_public,
 )
 
-REFRESH_COOKIE = "refresh_token"
-REFRESH_COOKIE_PATH = "/api/auth"
-
 
 def create_auth_router(limiter: Limiter) -> APIRouter:
     router = APIRouter(prefix="/api/auth", tags=["Авторизация"])
-
-    def _set_refresh_cookie(response: Response, raw_refresh: str) -> None:
-        settings = get_settings()
-        max_age = settings.jwt_refresh_token_expire_days * 24 * 60 * 60
-        response.set_cookie(
-            key=REFRESH_COOKIE,
-            value=raw_refresh,
-            httponly=True,
-            secure=settings.jwt_cookie_secure,
-            samesite="lax",
-            path=REFRESH_COOKIE_PATH,
-            max_age=max_age,
-        )
-
-    def _clear_refresh_cookie(response: Response) -> None:
-        settings = get_settings()
-        response.delete_cookie(
-            key=REFRESH_COOKIE,
-            path=REFRESH_COOKIE_PATH,
-            httponly=True,
-            secure=settings.jwt_cookie_secure,
-            samesite="lax",
-        )
-
-    def _read_refresh_cookie(request: Request) -> str | None:
-        return request.cookies.get(REFRESH_COOKIE)
+    settings = get_settings()
 
     def _unauthorized_refresh_response() -> JSONResponse:
-        """401 + удаление битой cookie (raise HTTPException теряет Set-Cookie)."""
+        """401 + удаление битых cookies (raise HTTPException теряет Set-Cookie)."""
         payload = JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"detail": "Invalid refresh token"},
         )
-        _clear_refresh_cookie(payload)
+        clear_refresh_cookie(payload)
+        clear_access_cookie(payload)
         return payload
+
+    def _apply_session_cookies(
+        response: Response,
+        *,
+        access_token: str,
+        expires_in: int,
+        raw_refresh: str,
+    ) -> None:
+        set_access_cookie(response, access_token, expires_in=expires_in)
+        set_refresh_cookie(response, raw_refresh)
 
     @router.post(
         "/register",
@@ -79,8 +70,14 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse:
-        tokens, raw_refresh, _user = register_user(db, payload)
-        _set_refresh_cookie(response, raw_refresh)
+        assert_trusted_origin(request)
+        tokens, raw_refresh, access_token, _user = register_user(db, payload)
+        _apply_session_cookies(
+            response,
+            access_token=access_token,
+            expires_in=tokens.expires_in,
+            raw_refresh=raw_refresh,
+        )
         return tokens
 
     @router.post(
@@ -95,8 +92,14 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse:
-        tokens, raw_refresh, _user = login_user(db, payload.email, payload.password)
-        _set_refresh_cookie(response, raw_refresh)
+        assert_trusted_origin(request)
+        tokens, raw_refresh, access_token, _user = login_user(db, payload.email, payload.password)
+        _apply_session_cookies(
+            response,
+            access_token=access_token,
+            expires_in=tokens.expires_in,
+            raw_refresh=raw_refresh,
+        )
         return tokens
 
     @router.post(
@@ -110,14 +113,20 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse | JSONResponse:
-        raw = _read_refresh_cookie(request)
+        assert_trusted_origin(request)
+        raw = read_refresh_cookie(request)
         if not raw:
             return _unauthorized_refresh_response()
         try:
-            tokens, new_raw = refresh_session(db, raw)
+            tokens, new_raw, access_token = refresh_session(db, raw)
         except AuthError:
             return _unauthorized_refresh_response()
-        _set_refresh_cookie(response, new_raw)
+        _apply_session_cookies(
+            response,
+            access_token=access_token,
+            expires_in=tokens.expires_in,
+            raw_refresh=new_raw,
+        )
         return tokens
 
     @router.post(
@@ -125,21 +134,25 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         status_code=status.HTTP_204_NO_CONTENT,
         summary="Выход (revoke refresh token)",
     )
+    @limiter.limit("30/minute")
     def logout(
         request: Request,
         response: Response,
         db: Session = Depends(get_db),
     ) -> None:
-        raw = _read_refresh_cookie(request)
+        assert_trusted_origin(request)
+        raw = read_refresh_cookie(request)
         logout_user(db, raw)
-        _clear_refresh_cookie(response)
+        clear_refresh_cookie(response)
+        clear_access_cookie(response)
 
     @router.get(
         "/me",
         response_model=UserPublic,
         summary="Текущий пользователь",
     )
-    def me(user: CurrentUser) -> UserPublic:
+    @limiter.limit(settings.rate_limit)
+    def me(request: Request, user: CurrentUser) -> UserPublic:
         return user_to_public(user)
 
     return router

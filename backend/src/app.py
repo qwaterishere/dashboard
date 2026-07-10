@@ -11,9 +11,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from src.api.routes.auth import create_auth_router
-from src.api.routes.dashboard import router as dashboard_router
-from src.api.routes.health import router as health_router
-from src.api.routes.sales import router as sales_router
+from src.api.routes.dashboard import create_dashboard_router
+from src.api.routes.health import create_health_router
+from src.api.routes.sales import create_sales_router
 from src.api.routes.stubs import create_stub_router
 from src.core.config import get_settings
 from src.core.logging import configure_logging
@@ -58,6 +58,7 @@ def create_app() -> FastAPI:
 
     limiter = Limiter(
         key_func=get_remote_address,
+        default_limits=[settings.rate_limit],
         enabled=settings.rate_limit_enabled,
     )
     app.state.limiter = limiter
@@ -72,10 +73,10 @@ def create_app() -> FastAPI:
         allow_credentials=True,
     )
 
-    app.include_router(health_router)
+    app.include_router(create_health_router(limiter))
     app.include_router(create_auth_router(limiter))
-    app.include_router(sales_router)
-    app.include_router(dashboard_router)
+    app.include_router(create_sales_router(limiter))
+    app.include_router(create_dashboard_router(limiter))
     app.include_router(create_stub_router(limiter))
 
     @app.exception_handler(Exception)

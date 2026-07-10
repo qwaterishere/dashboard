@@ -47,7 +47,6 @@ class LoginRequest(StrictModel):
 
 
 class TokenResponse(StrictModel):
-    access_token: str
     token_type: str = "bearer"
     expires_in: int
 

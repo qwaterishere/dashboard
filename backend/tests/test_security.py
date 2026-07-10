@@ -62,13 +62,11 @@ def test_hsts_header_when_enabled(client, monkeypatch):
 
 
 def test_rate_limit_blocks_excessive_requests(client):
-    # /api/dashboard обслуживается доменным роутером (без лимитера) —
-    # лимитер висит на catch-all страницах-заглушках, проверяем на них
     app.state.limiter.enabled = True
     try:
         for _ in range(70):
-            client.get("/api/foodcost")
-        response = client.get("/api/foodcost")
+            client.get("/api/dashboard")
+        response = client.get("/api/dashboard")
         assert response.status_code == 429
     finally:
         app.state.limiter.enabled = False

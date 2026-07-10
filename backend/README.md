@@ -46,6 +46,8 @@ uvicorn src.main:app --reload --port 8000
 
 При `APP_ENV=production` приложение не стартует с dev-секретом, SQLite или небезопасными cookies. Пароли: ≥12 символов, верхний/нижний регистр, цифра, спецсимвол.
 
+**Сессия:** access и refresh токены — только **HttpOnly cookies** (`/api`, `/api/auth`). JSON body не содержит токенов. SPA шлёт `withCredentials`; Bearer в заголовке поддерживается для API-клиентов и тестов.
+
 Если `pip` не находится после `source .venv/bin/activate` — venv создан в другом месте; удалите `.venv` и создайте заново в `backend/`.
 
 ## CLI

@@ -23,6 +23,8 @@ TEST_USER = {
     "position": "Управляющий",
 }
 
+DEV_ORIGIN = "http://localhost:4200"
+
 
 @pytest.fixture(scope="session")
 def client():
@@ -33,27 +35,33 @@ def client():
 
 
 @pytest.fixture(scope="session")
-def access_token(client):
-    """Access token для защищённых эндпоинтов в тестах."""
-    response = client.post("/api/auth/register", json=TEST_USER)
-    if response.status_code == 409:
+def auth_cookies(client):
+    """HttpOnly session cookies для защищённых эндпоинтов в тестах."""
+    response = client.post(
+        "/api/auth/register",
+        json=TEST_USER,
+        headers={"Origin": DEV_ORIGIN},
+    )
+    if response.status_code == 400:
         response = client.post(
             "/api/auth/login",
             json={"email": TEST_USER["email"], "password": TEST_USER["password"]},
+            headers={"Origin": DEV_ORIGIN},
         )
     assert response.status_code in (200, 201), response.text
-    return response.json()["access_token"]
+    assert client.cookies.get("access_token")
+    return dict(client.cookies)
 
 
 @pytest.fixture(autouse=True)
-def authenticate_api_requests(request, client, access_token):
-    """Все тесты, кроме no_auth, ходят в API с Bearer-токеном."""
+def authenticate_api_requests(request, client, auth_cookies):
+    """Все тесты, кроме no_auth, ходят в API с session cookies."""
     if "no_auth" in request.keywords:
+        client.cookies.clear()
         yield
         return
-    client.headers["Authorization"] = f"Bearer {access_token}"
+    client.cookies.update(auth_cookies)
     yield
-    client.headers.pop("Authorization", None)
 
 
 @pytest.fixture(autouse=True)
