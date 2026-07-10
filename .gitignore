@@ -23,3 +23,6 @@ Thumbs.db
 *.db
 .env
 /raw_june.json
+
+# Песочница iiko-экспериментов — локальная, в репозиторий не идёт
+backend/scripts/
