@@ -54,20 +54,6 @@ def get_current_user(
         )
     return user
 
-
-def get_current_user_optional(
-    db: Session = Depends(get_db),
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-) -> User | None:
-    settings = get_settings()
-    if not settings.auth_enabled or credentials is None:
-        return None
-    try:
-        return get_current_user(db=db, credentials=credentials)
-    except HTTPException:
-        return None
-
-
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 __all__ = ["get_db", "get_current_user", "get_current_user_optional", "CurrentUser"]
