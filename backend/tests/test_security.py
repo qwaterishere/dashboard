@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.core.config import get_settings
 from src.main import PAGES, app
 
 
@@ -46,6 +47,18 @@ def test_security_headers_present(client):
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert "Content-Security-Policy" in response.headers
+    assert "Strict-Transport-Security" not in response.headers
+
+
+def test_hsts_header_when_enabled(client, monkeypatch):
+    monkeypatch.setenv("HSTS_ENABLED", "true")
+    get_settings.cache_clear()
+    response = client.get("/api/dashboard")
+    hsts = response.headers.get("Strict-Transport-Security")
+    assert hsts is not None
+    assert "max-age=" in hsts
+    assert "includeSubDomains" in hsts
+    get_settings.cache_clear()
 
 
 def test_rate_limit_blocks_excessive_requests(client):

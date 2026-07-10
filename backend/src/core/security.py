@@ -48,7 +48,7 @@ def generate_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
 
-def create_access_token(*, user_id: UUID, email: str) -> tuple[str, int]:
+def create_access_token(*, user_id: UUID, email: str, token_version: int) -> tuple[str, int]:
     settings = get_settings()
     expires_delta = timedelta(minutes=settings.jwt_access_token_expire_minutes)
     expire = datetime.now(UTC) + expires_delta
@@ -56,6 +56,7 @@ def create_access_token(*, user_id: UUID, email: str) -> tuple[str, int]:
         "sub": str(user_id),
         "email": email,
         "type": "access",
+        "tv": token_version,
         "exp": expire,
         "iat": datetime.now(UTC),
     }

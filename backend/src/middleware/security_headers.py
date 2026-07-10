@@ -4,6 +4,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from src.core.config import get_settings
+
 SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -48,4 +50,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers.setdefault(header, value)
         if request.url.path in DOCS_PATHS:
             response.headers["Content-Security-Policy"] = DOCS_CSP
+
+        settings = get_settings()
+        if settings.hsts_enabled:
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                f"max-age={settings.hsts_max_age}; includeSubDomains",
+            )
         return response

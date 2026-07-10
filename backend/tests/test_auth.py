@@ -15,6 +15,7 @@ def test_register_login_and_me(client):
     assert register.status_code == 201
     body = register.json()
     assert "access_token" in body
+    assert "refresh_token" not in body
     assert body["token_type"] == "bearer"
     assert body["expires_in"] > 0
     assert "refresh_token" in register.cookies
@@ -71,26 +72,50 @@ def test_refresh_rotates_token(client):
 
     reuse = client.post(
         "/api/auth/refresh",
-        json={"refresh_token": old_cookie},
+        cookies={"refresh_token": old_cookie},
     )
     assert reuse.status_code == 401
 
 
 @pytest.mark.no_auth
-def test_logout_revokes_refresh(client):
+def test_refresh_ignores_json_body(client):
+    creds = {**TEST_USER, "email": "cookie-only@example.com"}
+    register = client.post("/api/auth/register", json=creds)
+    assert register.status_code == 201
+    cookie = register.cookies.get("refresh_token")
+    assert cookie
+
+    response = client.post(
+        "/api/auth/refresh",
+        json={"refresh_token": "0" * 48},
+        cookies={"refresh_token": cookie},
+    )
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+@pytest.mark.no_auth
+def test_logout_revokes_refresh_and_access(client):
     creds = {**TEST_USER, "email": "logout@example.com"}
     register = client.post("/api/auth/register", json=creds)
+    access_token = register.json()["access_token"]
     refresh_cookie = register.cookies.get("refresh_token")
 
-    logout = client.post("/api/auth/logout")
+    logout = client.post("/api/auth/logout", cookies={"refresh_token": refresh_cookie})
     assert logout.status_code == 204
     set_cookie = logout.headers.get("set-cookie", "")
     assert "refresh_token=" in set_cookie
     assert "Max-Age=0" in set_cookie or "expires=" in set_cookie.lower()
 
+    me = client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    assert me.status_code == 401
+
     refresh = client.post(
         "/api/auth/refresh",
-        json={"refresh_token": refresh_cookie},
+        cookies={"refresh_token": refresh_cookie},
     )
     assert refresh.status_code == 401
 
@@ -108,7 +133,7 @@ def test_refresh_without_cookie_clears_cookie(client):
 def test_refresh_invalid_token_clears_cookie(client):
     response = client.post(
         "/api/auth/refresh",
-        json={"refresh_token": "0" * 48},
+        cookies={"refresh_token": "0" * 48},
     )
     assert response.status_code == 401
     set_cookie = response.headers.get("set-cookie", "")

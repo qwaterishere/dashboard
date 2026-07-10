@@ -52,6 +52,14 @@ def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    token_version = payload.get("tv")
+    if token_version is None or token_version != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

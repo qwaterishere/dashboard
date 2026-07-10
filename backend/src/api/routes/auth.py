@@ -5,14 +5,12 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.orm import Session
 
 from src.api.deps import CurrentUser, get_db
 from src.core.config import get_settings
 from src.schemas.auth import (
     LoginRequest,
-    RefreshRequest,
     RegisterRequest,
     TokenResponse,
     UserPublic,
@@ -56,9 +54,7 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
             samesite="lax",
         )
 
-    def _read_refresh_token(request: Request, body: RefreshRequest | None) -> str | None:
-        if body and body.refresh_token:
-            return body.refresh_token
+    def _read_refresh_cookie(request: Request) -> str | None:
         return request.cookies.get(REFRESH_COOKIE)
 
     def _unauthorized_refresh_response() -> JSONResponse:
@@ -113,9 +109,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         request: Request,
         response: Response,
         db: Session = Depends(get_db),
-        body: RefreshRequest | None = None,
     ) -> TokenResponse | JSONResponse:
-        raw = _read_refresh_token(request, body)
+        raw = _read_refresh_cookie(request)
         if not raw:
             return _unauthorized_refresh_response()
         try:
@@ -134,9 +129,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         request: Request,
         response: Response,
         db: Session = Depends(get_db),
-        body: RefreshRequest | None = None,
     ) -> None:
-        raw = _read_refresh_token(request, body)
+        raw = _read_refresh_cookie(request)
         logout_user(db, raw)
         _clear_refresh_cookie(response)
 

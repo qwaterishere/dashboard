@@ -52,8 +52,16 @@ def user_to_public(user: User) -> UserPublic:
     )
 
 
+def _invalidate_access_tokens(user: User) -> None:
+    user.token_version += 1
+
+
 def _issue_token_pair(db: Session, user: User) -> tuple[TokenResponse, str]:
-    access_token, expires_in = create_access_token(user_id=user.id, email=user.email)
+    access_token, expires_in = create_access_token(
+        user_id=user.id,
+        email=user.email,
+        token_version=user.token_version,
+    )
     raw_refresh = generate_refresh_token()
     family_id = uuid.uuid4()
     db.add(
@@ -124,6 +132,9 @@ def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str]:
 
     if stored.revoked_at is not None:
         _revoke_family(db, stored.family_id)
+        user = db.get(User, stored.user_id)
+        if user is not None:
+            _invalidate_access_tokens(user)
         db.commit()
         logger.warning("Refresh token reuse detected for family %s", stored.family_id)
         raise AuthError(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
@@ -149,7 +160,11 @@ def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str]:
             expires_at=refresh_token_expires_at(),
         )
     )
-    access_token, expires_in = create_access_token(user_id=user.id, email=user.email)
+    access_token, expires_in = create_access_token(
+        user_id=user.id,
+        email=user.email,
+        token_version=user.token_version,
+    )
     db.commit()
     return TokenResponse(access_token=access_token, expires_in=expires_in), new_raw
 
@@ -161,6 +176,9 @@ def logout_user(db: Session, raw_refresh: str | None) -> None:
     stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     if stored is None:
         return
+    user = db.get(User, stored.user_id)
     if stored.revoked_at is None:
         stored.revoked_at = _utc_now()
+    if user is not None:
+        _invalidate_access_tokens(user)
         db.commit()

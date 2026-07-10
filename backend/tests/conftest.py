@@ -3,6 +3,7 @@
 import os
 
 os.environ["DB_URL"] = "sqlite:///:memory:"
+os.environ.setdefault("APP_ENV", "development")
 
 from src.core.config import get_settings
 

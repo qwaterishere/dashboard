@@ -22,11 +22,29 @@ backend/
 
 ```bash
 cd backend
+cp .env.example .env          # один раз
 python3 -m venv .venv          # один раз
 source .venv/bin/activate      # в каждом новом терминале
 pip install -r requirements/dev.txt
 uvicorn src.main:app --reload --port 8000
 ```
+
+Локально по умолчанию `APP_ENV=development`: SQLite (`dashboard.db`), мягкая политика паролей (≥8 символов), без HSTS, `JWT_COOKIE_SECURE=false`.
+
+### Production profile
+
+В production задайте в окружении (см. комментарии в `.env.example`):
+
+| Переменная | Значение |
+|------------|----------|
+| `APP_ENV` | `production` |
+| `DB_URL` | PostgreSQL (`postgresql+psycopg://...`) — SQLite запрещён |
+| `JWT_SECRET_KEY` | уникальный секрет (`openssl rand -hex 32`) |
+| `JWT_COOKIE_SECURE` | `true` |
+| `HSTS_ENABLED` | `true` (или опустить — включится автоматически) |
+| `CORS_ORIGINS` | whitelist вашего фронтенда |
+
+При `APP_ENV=production` приложение не стартует с dev-секретом, SQLite или небезопасными cookies. Пароли: ≥12 символов, верхний/нижний регистр, цифра, спецсимвол.
 
 Если `pip` не находится после `source .venv/bin/activate` — venv создан в другом месте; удалите `.venv` и создайте заново в `backend/`.
 
