@@ -18,17 +18,21 @@ from src.api.csrf import assert_trusted_origin
 from src.api.deps import CurrentUser, get_db
 from src.core.config import get_settings
 from src.schemas.auth import (
+    ChangePasswordRequest,
     LoginRequest,
     RegisterRequest,
     TokenResponse,
+    UpdateProfileRequest,
     UserPublic,
 )
 from src.services.auth import (
     AuthError,
+    change_user_password,
     login_user,
     logout_user,
     refresh_session,
     register_user,
+    update_user_profile,
     user_to_public,
 )
 
@@ -154,5 +158,48 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
     @limiter.limit(settings.rate_limit)
     def me(request: Request, user: CurrentUser) -> UserPublic:
         return user_to_public(user)
+
+    @router.patch(
+        "/me",
+        response_model=UserPublic,
+        summary="Обновление профиля",
+    )
+    @limiter.limit("10/minute")
+    def update_me(
+        request: Request,
+        payload: UpdateProfileRequest,
+        user: CurrentUser,
+        db: Session = Depends(get_db),
+    ) -> UserPublic:
+        assert_trusted_origin(request)
+        return update_user_profile(db, user, payload)
+
+    @router.post(
+        "/change-password",
+        response_model=TokenResponse,
+        summary="Смена пароля (новая сессия)",
+    )
+    @limiter.limit("5/minute")
+    def change_password(
+        request: Request,
+        payload: ChangePasswordRequest,
+        response: Response,
+        user: CurrentUser,
+        db: Session = Depends(get_db),
+    ) -> TokenResponse:
+        assert_trusted_origin(request)
+        tokens, raw_refresh, access_token = change_user_password(
+            db,
+            user,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+        _apply_session_cookies(
+            response,
+            access_token=access_token,
+            expires_in=tokens.expires_in,
+            raw_refresh=raw_refresh,
+        )
+        return tokens
 
     return router

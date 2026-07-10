@@ -42,4 +42,18 @@ test.describe('smoke', () => {
     await page.goto('/purchases');
     await expect(page.getByText('Модуль закупок появится')).toBeVisible();
   });
+
+  test('settings page loads profile sections', async ({ page }) => {
+    await page.goto('/settings');
+    await expect(page.locator('app-page-greeting')).toContainText('Настройки');
+    await expect(page.getByText('Профиль')).toBeVisible();
+    await expect(page.getByText('Смена пароля')).toBeVisible();
+    await expect(page.locator('app-period-bar')).toHaveCount(0);
+  });
+
+  test('sales page shows title and period bar', async ({ page }) => {
+    await page.goto('/sales');
+    await expect(page.locator('app-page-greeting')).toContainText('Продажи');
+    await expect(page.locator('app-period-bar')).toHaveCount(1);
+  });
 });

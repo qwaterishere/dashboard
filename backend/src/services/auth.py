@@ -21,7 +21,7 @@ from src.core.security import (
     verify_password,
 )
 from src.db.models.user import RefreshToken, User
-from src.schemas.auth import RegisterRequest, TokenResponse, UserPublic
+from src.schemas.auth import RegisterRequest, TokenResponse, UserPublic, UpdateProfileRequest, ChangePasswordRequest
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +164,47 @@ def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str, 
     )
     db.commit()
     return TokenResponse(expires_in=expires_in), new_raw, access_token
+
+
+INVALID_CURRENT_PASSWORD = "Invalid current password"
+
+
+def update_user_profile(db: Session, user: User, payload: UpdateProfileRequest) -> UserPublic:
+    user.first_name = payload.first_name
+    user.last_name = payload.last_name
+    user.position = payload.position
+    db.commit()
+    db.refresh(user)
+    return user_to_public(user)
+
+
+def _revoke_all_refresh_tokens(db: Session, user_id: uuid.UUID) -> None:
+    now = _utc_now()
+    tokens = db.scalars(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+        )
+    ).all()
+    for token in tokens:
+        token.revoked_at = now
+
+
+def change_user_password(
+    db: Session,
+    user: User,
+    *,
+    current_password: str,
+    new_password: str,
+) -> tuple[TokenResponse, str, str]:
+    if not verify_password(current_password, user.password_hash):
+        raise AuthError(status.HTTP_401_UNAUTHORIZED, INVALID_CURRENT_PASSWORD)
+
+    user.password_hash = hash_password(new_password)
+    _invalidate_access_tokens(user)
+    _revoke_all_refresh_tokens(db, user.id)
+    db.flush()
+    return _issue_token_pair(db, user)
 
 
 def logout_user(db: Session, raw_refresh: str | None) -> None:

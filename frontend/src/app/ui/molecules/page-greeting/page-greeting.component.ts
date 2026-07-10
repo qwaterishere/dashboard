@@ -1,11 +1,18 @@
 import { Component, input } from '@angular/core';
 
+export type PageHeadlineVariant = 'greeting' | 'title';
+
 @Component({
   selector: 'app-page-greeting',
   standalone: true,
   template: `
     <div class="head">
-      <h1>{{ greeting() }}<em>!</em></h1>
+      <h1>
+        {{ headline() }}
+        @if (variant() === 'greeting') {
+          <em>!</em>
+        }
+      </h1>
     </div>
   `,
   styles: `
@@ -13,12 +20,13 @@ import { Component, input } from '@angular/core';
       display: flex;
       align-items: center;
       gap: 16px;
-      margin-bottom: 22px;
+      margin-bottom: var(--page-greeting-margin-bottom);
     }
 
     h1 {
-      font-size: 1.35rem;
+      font-size: var(--page-greeting-font-size);
       font-weight: 700;
+      line-height: var(--page-greeting-line-height);
     }
 
     em {
@@ -28,5 +36,6 @@ import { Component, input } from '@angular/core';
   `,
 })
 export class PageGreetingComponent {
-  readonly greeting = input.required<string>();
+  readonly headline = input.required<string>();
+  readonly variant = input<PageHeadlineVariant>('greeting');
 }

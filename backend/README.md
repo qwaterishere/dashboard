@@ -48,6 +48,8 @@ uvicorn src.main:app --reload --port 8000
 
 **Сессия:** access и refresh токены — только **HttpOnly cookies** (`/api`, `/api/auth`). JSON body не содержит токенов. SPA шлёт `withCredentials`; Bearer в заголовке поддерживается для API-клиентов и тестов.
 
+**Настройки:** `PATCH /api/auth/me` (профиль), `POST /api/auth/change-password` (смена пароля + новая сессия).
+
 Если `pip` не находится после `source .venv/bin/activate` — venv создан в другом месте; удалите `.venv` и создайте заново в `backend/`.
 
 ## CLI

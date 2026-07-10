@@ -24,3 +24,14 @@ export interface RegisterRequest extends LoginRequest {
   last_name: string;
   position: string;
 }
+
+export interface UpdateProfileRequest {
+  first_name: string;
+  last_name: string;
+  position: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}

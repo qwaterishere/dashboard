@@ -51,7 +51,7 @@ cd frontend && npm run storybook   # http://localhost:6006
 
 ## Реализовано
 
-- **4 страницы** + purchases/settings/support placeholders
+- **4 страницы** + purchases/support placeholders; **настройки** — профиль и смена пароля
 - **PeriodService** — granularity, sales query из dashboard period
 - **WarehouseDataStore** — единый fetch `/api/warehouse` для dashboard + warehouse
 - **api-fallback.interceptor** — `/data/{page}.json` при недоступности API

@@ -5,10 +5,14 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PopoverController } from '../../../core/state/popover.controller';
 import { NavActiveService } from '../../../core/routing/nav-active.service';
 import { PeriodService } from '../../../core/services/period.service';
+import { pageTitleForSegment } from '../../../shared/constants/nav.constants';
 import { buildGreeting } from '../../../shared/utils/greeting.utils';
 import { DashboardDataStore } from '../../../features/dashboard/data/dashboard-data.store';
 import { DashboardRightPanelComponent } from '../../../features/dashboard/containers/dashboard-right-panel/dashboard-right-panel.component';
+import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { AppShellTemplateComponent } from './app-shell-template.component';
+
+const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcost']);
 
 @Component({
   selector: 'app-shell-host',
@@ -18,7 +22,10 @@ import { AppShellTemplateComponent } from './app-shell-template.component';
     <app-shell-template
       [period]="store.period()"
       [(granularity)]="granularity"
-      [greeting]="greeting()"
+      [pageHeadline]="pageHeadline()"
+      [pageHeadlineVariant]="pageHeadlineVariant()"
+      [showPageHeadline]="showPageHeadline()"
+      [showPeriodBar]="showPeriodBar()"
       [sidebarOpen]="sidebarOpen()"
       [showRightPanel]="showRightPanel()"
       (sidebarToggle)="toggleSidebar()"
@@ -42,13 +49,31 @@ export class AppShellHostComponent {
   protected readonly sidebarOpen = signal(false);
   protected readonly granularity = this.periodService.granularity;
 
-  protected readonly greeting = computed(() => {
-    const user = this.auth.user();
-    const name = user?.first_name ?? 'коллега';
-    return buildGreeting(name);
+  protected readonly pageHeadline = computed(() => {
+    const segment = this.navActive.segment() ?? '';
+    if (segment === 'dashboard') {
+      const user = this.auth.user();
+      const name = user?.first_name ?? 'коллега';
+      return buildGreeting(name);
+    }
+    return pageTitleForSegment(segment) ?? '';
+  });
+
+  protected readonly pageHeadlineVariant = computed<PageHeadlineVariant>(() =>
+    this.navActive.segment() === 'dashboard' ? 'greeting' : 'title',
+  );
+
+  protected readonly showPageHeadline = computed(() => {
+    const segment = this.navActive.segment() ?? '';
+    if (segment === 'dashboard') return true;
+    return pageTitleForSegment(segment) !== null;
   });
 
   protected readonly showRightPanel = computed(() => this.navActive.segment() === 'dashboard');
+
+  protected readonly showPeriodBar = computed(() =>
+    PERIOD_BAR_SEGMENTS.has(this.navActive.segment() ?? ''),
+  );
 
   toggleSidebar(): void {
     this.sidebarOpen.update((open) => !open);

@@ -1,7 +1,10 @@
 import { Component, input, model, output } from '@angular/core';
 
 import type { PeriodGranularity, PeriodInfo } from '../../../shared/models/common.model';
-import { PageGreetingComponent } from '../../molecules/page-greeting/page-greeting.component';
+import {
+  PageGreetingComponent,
+  type PageHeadlineVariant,
+} from '../../molecules/page-greeting/page-greeting.component';
 import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import { SidebarOrganismComponent } from '../../organisms/sidebar/sidebar-organism.component';
 import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/detail-popover-organism.component';
@@ -30,8 +33,12 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
     <div class="app" [class.app--with-right]="showRightPanel()">
       <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
       <main class="app-main" (scroll)="mainScroll.emit()">
-        <app-page-greeting [greeting]="greeting()" />
-        <app-period-bar [period]="period()" [(granularity)]="granularity" />
+        @if (showPageHeadline()) {
+          <app-page-greeting [headline]="pageHeadline()" [variant]="pageHeadlineVariant()" />
+        }
+        @if (showPeriodBar()) {
+          <app-period-bar [period]="period()" [(granularity)]="granularity" />
+        }
         <div class="page-body">
           <ng-content />
         </div>
@@ -47,7 +54,10 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
 export class AppShellTemplateComponent {
   readonly period = input.required<PeriodInfo>();
   readonly granularity = model<PeriodGranularity>('month');
-  readonly greeting = input.required<string>();
+  readonly pageHeadline = input.required<string>();
+  readonly pageHeadlineVariant = input<PageHeadlineVariant>('greeting');
+  readonly showPageHeadline = input(true);
+  readonly showPeriodBar = input(true);
   readonly sidebarOpen = input(false);
   readonly showRightPanel = input(false);
 

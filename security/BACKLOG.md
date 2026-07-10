@@ -25,7 +25,7 @@
 | 11 | Нет account lockout | Помимо rate limit — блокировка после N неудачных login |
 | 12 | Нет лимита размера тела запроса | Защита register/login от больших payload |
 | 13 | iiko credentials в `.env` | Secret manager в prod |
-| 14 | **Нет сброса/смены пароля** | Self-service recovery (отложено) |
+| 14 | **Нет сброса пароля по email** | Self-service recovery без верификации email (отложено) |
 | 15 | **Нет верификации email** | Подтверждение адреса при регистрации (отложено) |
 
 ## P3 — инфраструктура / cutover
@@ -48,3 +48,4 @@
 - Rate limit на все API-эндпоинты
 - CSRF: Origin/Referer check на auth POST + SameSite strict (prod)
 - Anti-enumeration: register duplicate → 400 «Registration failed»
+- Settings: PATCH `/api/auth/me`, POST `/api/auth/change-password`, страница настроек (профиль, пароль)

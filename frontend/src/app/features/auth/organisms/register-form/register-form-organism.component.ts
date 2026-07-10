@@ -2,9 +2,11 @@ import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
+import { PASSWORD_HINT } from '../../../../shared/constants/password.constants';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
+import { FormBannerComponent } from '../../../../ui/molecules/form-banner/form-banner.component';
 import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-field.component';
 
 export interface RegisterFormValue {
@@ -24,6 +26,7 @@ export interface RegisterFormValue {
     ButtonComponent,
     HeadingComponent,
     TextComponent,
+    FormBannerComponent,
     FormFieldComponent,
   ],
   template: `
@@ -31,7 +34,7 @@ export interface RegisterFormValue {
     <app-text tone="muted" class="lead">Имя, должность и рабочий email</app-text>
 
     @if (error()) {
-      <app-text tone="danger" class="banner">{{ error() }}</app-text>
+      <app-form-banner variant="error" [message]="error()!" />
     }
 
     <form class="form" (ngSubmit)="onSubmit()">
@@ -79,7 +82,7 @@ export interface RegisterFormValue {
         [required]="true"
         [(value)]="password"
       />
-      <app-text tone="caption">Минимум 8 символов</app-text>
+      <app-text tone="caption">{{ passwordHint }}</app-text>
       <app-button variant="primary" type="submit" [disabled]="loading()">
         {{ loading() ? 'Создание…' : 'Создать аккаунт' }}
       </app-button>
@@ -98,13 +101,6 @@ export interface RegisterFormValue {
 
     .lead {
       margin-top: -6px;
-    }
-
-    .banner {
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: rgba(255, 107, 107, 0.08);
-      border: 1px solid rgba(255, 107, 107, 0.25);
     }
 
     .form {
@@ -149,6 +145,7 @@ export class RegisterFormOrganismComponent {
   protected position = '';
   protected email = '';
   protected password = '';
+  protected readonly passwordHint = PASSWORD_HINT;
 
   onSubmit(): void {
     this.submitted.emit({

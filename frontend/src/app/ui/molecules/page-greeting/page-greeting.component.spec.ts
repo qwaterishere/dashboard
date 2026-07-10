@@ -13,11 +13,21 @@ describe('PageGreetingComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(PageGreetingComponent);
-    fixture.componentRef.setInput('greeting', 'Добрый день, Артём');
-    fixture.detectChanges();
   });
 
-  it('renders greeting text', () => {
+  it('renders greeting with accent', () => {
+    fixture.componentRef.setInput('headline', 'Добрый день, Артём');
+    fixture.componentRef.setInput('variant', 'greeting');
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Добрый день, Артём');
+    expect(fixture.nativeElement.querySelector('em')).not.toBeNull();
+  });
+
+  it('renders page title without accent', () => {
+    fixture.componentRef.setInput('headline', 'Продажи');
+    fixture.componentRef.setInput('variant', 'title');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Продажи');
+    expect(fixture.nativeElement.querySelector('em')).toBeNull();
   });
 });

@@ -17,7 +17,7 @@ const meta: Meta<GoalTrackStoryArgs> = {
   argTypes: {
     label: { control: 'text' },
     headline: { control: 'text' },
-    trackPct: { control: { type: 'range', min: 0, max: 150, step: 1 } },
+    trackPct: { control: { type: 'range', min: 0, max: 100, step: 1 } },
     risk: { control: 'boolean', description: 'Красный headline + fill variant risk' },
   },
 };

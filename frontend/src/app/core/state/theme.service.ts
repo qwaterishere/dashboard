@@ -19,6 +19,10 @@ export class ThemeService {
     this.theme.update((current) => (current === 'dark' ? 'light' : 'dark'));
   }
 
+  setTheme(theme: AppTheme): void {
+    this.theme.set(theme);
+  }
+
   private apply(theme: AppTheme): void {
     this.document.documentElement.setAttribute('data-theme', theme);
     try {

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
+import { FormBannerComponent } from '../../../../ui/molecules/form-banner/form-banner.component';
 import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-field.component';
 
 export interface LoginFormValue {
@@ -21,6 +22,7 @@ export interface LoginFormValue {
     ButtonComponent,
     HeadingComponent,
     TextComponent,
+    FormBannerComponent,
     FormFieldComponent,
   ],
   template: `
@@ -28,10 +30,10 @@ export interface LoginFormValue {
     <app-text tone="muted" class="lead">Email и пароль от вашей учётной записи</app-text>
 
     @if (sessionExpired()) {
-      <app-text tone="danger" class="banner">Сессия истекла. Войдите снова.</app-text>
+      <app-form-banner variant="error" message="Сессия истекла. Войдите снова." />
     }
     @if (error()) {
-      <app-text tone="danger" class="banner">{{ error() }}</app-text>
+      <app-form-banner variant="error" [message]="error()!" />
     }
 
     <form class="form" (ngSubmit)="submitted.emit({ email: email.trim(), password })">
@@ -71,13 +73,6 @@ export interface LoginFormValue {
 
     .lead {
       margin-top: -6px;
-    }
-
-    .banner {
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: rgba(255, 107, 107, 0.08);
-      border: 1px solid rgba(255, 107, 107, 0.25);
     }
 
     .form {
