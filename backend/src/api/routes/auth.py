@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from sqlalchemy.orm import Session
@@ -25,6 +25,11 @@ from src.schemas.auth import (
     UpdateProfileRequest,
     UserPublic,
 )
+from src.schemas.restaurant import (
+    IikoSettingsPublic,
+    IikoSyncStartResponse,
+    UpdateIikoSettingsRequest,
+)
 from src.services.auth import (
     AuthError,
     change_user_password,
@@ -34,6 +39,13 @@ from src.services.auth import (
     register_user,
     update_user_profile,
     user_to_public,
+)
+from src.services.restaurant import (
+    get_or_create_restaurant,
+    restaurant_to_iiko_public,
+    schedule_iiko_sync,
+    start_iiko_sync,
+    update_iiko_settings,
 )
 
 
@@ -201,5 +213,53 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
             raw_refresh=raw_refresh,
         )
         return tokens
+
+    @router.get(
+        "/me/iiko",
+        response_model=IikoSettingsPublic,
+        summary="Настройки подключения iiko",
+    )
+    @limiter.limit(settings.rate_limit)
+    def get_iiko_settings(
+        request: Request,
+        user: CurrentUser,
+        db: Session = Depends(get_db),
+    ) -> IikoSettingsPublic:
+        restaurant = get_or_create_restaurant(db, user)
+        return restaurant_to_iiko_public(restaurant)
+
+    @router.put(
+        "/me/iiko",
+        response_model=IikoSettingsPublic,
+        summary="Сохранить подключение iiko",
+    )
+    @limiter.limit("5/minute")
+    def save_iiko_settings(
+        request: Request,
+        payload: UpdateIikoSettingsRequest,
+        user: CurrentUser,
+        db: Session = Depends(get_db),
+    ) -> IikoSettingsPublic:
+        assert_trusted_origin(request)
+        return update_iiko_settings(db, user, payload)
+
+    @router.post(
+        "/me/iiko/sync",
+        response_model=IikoSyncStartResponse,
+        status_code=status.HTTP_202_ACCEPTED,
+        summary="Загрузить продажи из iiko (фоновая задача)",
+    )
+    @limiter.limit("3/minute")
+    def sync_iiko_sales(
+        request: Request,
+        background_tasks: BackgroundTasks,
+        user: CurrentUser,
+        db: Session = Depends(get_db),
+    ) -> IikoSyncStartResponse:
+        assert_trusted_origin(request)
+        restaurant = get_or_create_restaurant(db, user)
+        response = start_iiko_sync(db, user)
+        background_tasks.add_task(schedule_iiko_sync, restaurant.id)
+        return response
 
     return router

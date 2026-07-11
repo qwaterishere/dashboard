@@ -26,11 +26,13 @@ describe('SalesDataStore', () => {
   });
 
   it('reacts to week granularity via PeriodService', () => {
+    period.markGranularitySynced();
     period.dashboardPeriod.set({ year: 2026, month: 6, dayFrom: 1, dayTo: 11 });
     period.granularity.set('week');
+    TestBed.flushEffects();
     expect(period.salesQuery()).toEqual({
-      dateFrom: '2026-06-05',
-      dateTo: '2026-06-11',
+      dateFrom: '2026-06-08',
+      dateTo: '2026-06-14',
     });
   });
 

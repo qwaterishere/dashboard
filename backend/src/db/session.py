@@ -20,9 +20,10 @@ class DataBaseManager:
         self.Session = sessionmaker(bind=self.engine, autoflush=False)
 
     def create_all(self) -> None:
-        from src.db.models import sales, user  # noqa: F401
+        from src.db import migrate
+        from src.db.models import restaurant, sales, user  # noqa: F401
 
-        Base.metadata.create_all(self.engine)
+        migrate.upgrade_schema(self.engine)
 
     def get_session(self):
         return self.Session()

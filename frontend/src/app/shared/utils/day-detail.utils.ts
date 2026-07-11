@@ -18,6 +18,21 @@ const MONTHS_GENITIVE = [
   'декабря',
 ] as const;
 
+const MONTHS_NOMINATIVE = [
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
+] as const;
+
 function formatMoney(value: number): string {
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
 }
@@ -68,5 +83,60 @@ export function buildDayDetailPopover(day: RevenueDay, period: PeriodV2): Detail
     footnote: 'Подробнее о дне →',
     footnoteLink: '/sales',
     footnoteQueryParams: { date_from: iso, date_to: iso },
+  };
+}
+
+function monthIsoRange(year: number, month: number): { date_from: string; date_to: string } {
+  const lastDay = new Date(year, month, 0).getDate();
+  const mm = String(month).padStart(2, '0');
+  return {
+    date_from: `${year}-${mm}-01`,
+    date_to: `${year}-${mm}-${String(lastDay).padStart(2, '0')}`,
+  };
+}
+
+/** Контент popover для агрегированных столбцов (неделя, квартал). */
+export function buildAggregatedBarDetailPopover(
+  day: RevenueDay,
+  label: string,
+  year: number,
+): DetailPopover {
+  const rows: DetailPopover['rows'] = [
+    ['Выручка', formatMoney(day.revenue)],
+    [
+      'Чеки · средний чек',
+      `${day.checks.toLocaleString('ru-RU')} · ${formatMoney(day.avg)}`,
+    ],
+    ['Гости', day.guests.toLocaleString('ru-RU')],
+  ];
+
+  return {
+    title: `${label} ${year}`,
+    rows,
+    footnote: 'Подробнее →',
+    footnoteLink: '/sales',
+  };
+}
+
+/** Контент popover при клике на столбик «Выручка по месяцам». */
+export function buildMonthDetailPopover(day: RevenueDay, year: number): DetailPopover {
+  const month = day.day;
+  const rows: DetailPopover['rows'] = [
+    ['Выручка', formatMoney(day.revenue)],
+    ['К плану месяца', '—'],
+    [
+      'Чеки · средний чек',
+      `${day.checks.toLocaleString('ru-RU')} · ${formatMoney(day.avg)}`,
+    ],
+    ['Гости', day.guests.toLocaleString('ru-RU')],
+  ];
+  const range = monthIsoRange(year, month);
+
+  return {
+    title: `${MONTHS_NOMINATIVE[month - 1] ?? month} ${year}`,
+    rows,
+    footnote: 'Подробнее о месяце →',
+    footnoteLink: '/sales',
+    footnoteQueryParams: range,
   };
 }

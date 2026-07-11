@@ -1,5 +1,7 @@
 import { Component, HostListener, inject } from '@angular/core';
 
+import { PeriodService } from '../../../../core/services/period.service';
+import type { ChartDisplayMode } from '../../../../shared/models/common.model';
 import { DashboardDataStore } from '../../data/dashboard-data.store';
 import { PopoverController } from '../../../../core/state/popover.controller';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
@@ -23,12 +25,15 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
   template: `
     <app-dashboard-layout-template>
       @if (viewModel(); as d) {
-        <app-kpi-grid-organism [kpis]="d.kpis" [details]="d.details" />
+        <app-kpi-grid-organism [kpis]="d.kpis" [details]="d.details" [loading]="kpiLoading()" />
         <app-revenue-days-chart-organism
           [days]="d.revenueByDay"
           [max]="d.revenueByDayMax"
           [period]="d.chartPeriod"
-          [periodLabel]="d.period.label"
+          [timeframe]="granularity()"
+          [displayMode]="d.chartDisplayMode"
+          [loading]="chartLoading()"
+          (displayModeChange)="onChartDisplayModeChange($event)"
         />
         <div class="row2">
           @if (d.reviews) {
@@ -56,10 +61,18 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
 })
 export class DashboardPageComponent {
   private readonly store = inject(DashboardDataStore);
+  private readonly periodService = inject(PeriodService);
   private readonly popovers = inject(PopoverController);
 
   protected readonly dashboard = this.store.dashboard;
-  protected readonly viewModel = this.store.viewModel;
+  protected readonly viewModel = this.store.displayedViewModel;
+  protected readonly chartLoading = this.store.chartLoadingState;
+  protected readonly kpiLoading = this.store.kpiLoadingState;
+  protected readonly granularity = this.store.granularity;
+
+  onChartDisplayModeChange(mode: ChartDisplayMode): void {
+    this.periodService.setChartDisplayMode(mode);
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {

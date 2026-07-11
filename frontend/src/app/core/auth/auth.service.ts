@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, catchError, finalize, map, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
 import { API_CONFIG } from '../config/api-config.token';
+import { DashboardCache } from '../data/dashboard-cache.service';
 import type { LoginRequest, RegisterRequest, TokenResponse, UserPublic } from '../../shared/models/auth.model';
 
 const AUTH_PREFIX = '/auth';
@@ -13,6 +14,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly api = inject(API_CONFIG);
   private readonly router = inject(Router);
+  private readonly dashboardCache = inject(DashboardCache);
 
   readonly user = signal<UserPublic | null>(null);
 
@@ -128,6 +130,7 @@ export class AuthService {
   }
 
   clearSession(): void {
+    this.dashboardCache.clearAll();
     this.user.set(null);
     this.allowSilentRefresh.set(false);
   }

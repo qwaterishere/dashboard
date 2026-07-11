@@ -4,6 +4,7 @@ import pytest
 
 from src.db.session import DataBaseManager, Base
 from src.services.sales import build_sales, ingest_records, parse_records
+from tests.factories import create_restaurant
 from tests.sales.test_ingest import RAW, make_raw
 
 
@@ -16,12 +17,17 @@ def session():
     session.close()
 
 
-def test_empty_db_gives_empty_page(session):
-    page = build_sales(session)
+@pytest.fixture()
+def restaurant(session):
+    return create_restaurant(session)
+
+
+def test_empty_db_gives_empty_page(session, restaurant):
+    page = build_sales(session, restaurant.id)
     assert page.positions == []
 
 
-def test_positions_aggregate_and_map(session):
+def test_positions_aggregate_and_map(session, restaurant):
     ingest_records(session, parse_records([
         RAW,                                                     # Контейнер, папка Кухня -> k
         make_raw(**{'ItemSaleEvent.Id': '11111111-2222-3333-4444-555555555555',
@@ -41,10 +47,10 @@ def test_positions_aggregate_and_map(session):
         make_raw(**{'ItemSaleEvent.Id': '33333333-4444-5555-6666-777777777777',
                     'DishName': 'Проработка супа', 'DishSumInt': 0,
                     'DishDiscountSumInt': 0}),                   # нулевая -> отфильтрована
-    ]))
+    ]), restaurant_id=restaurant.id)
     session.commit()
 
-    page = build_sales(session)
+    page = build_sales(session, restaurant.id)
     by_name = {p.name: p for p in page.positions}
 
     assert set(by_name) == {'Контейнер', 'Негрони', 'Кальян', 'Мохито'}  # проработка не попала

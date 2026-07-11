@@ -10,7 +10,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
   standalone: true,
   imports: [KpiCardOrganismComponent, PopoverTriggerDirective, FmtPipe, MoneyPipe],
   template: `
-    <div class="kpis">
+    <div class="kpis" [class.kpis--loading]="loading()">
       <app-kpi-card-organism
         title="Выручка"
         tone="kpi-rev"
@@ -82,6 +82,12 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
           {{ kpis().guests.guests | fmt }} гостя
         </span>
       </app-kpi-card-organism>
+      @if (loading()) {
+        <div class="kpis__overlay" aria-live="polite" aria-busy="true">
+          <span class="kpis__spinner" aria-hidden="true"></span>
+          <span class="kpis__loading-text">Загрузка…</span>
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -91,6 +97,43 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
       align-items: stretch;
       gap: 16px;
       margin-bottom: 16px;
+      position: relative;
+    }
+
+    .kpis--loading > app-kpi-card-organism {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .kpis__overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 1;
+    }
+
+    .kpis__spinner {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--mut2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: kpis-spin 0.8s linear infinite;
+    }
+
+    .kpis__loading-text {
+      color: var(--mut2);
+      font-size: 0.85rem;
+    }
+
+    @keyframes kpis-spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .kpis > app-kpi-card-organism {
@@ -129,4 +172,5 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 export class KpiGridOrganismComponent {
   readonly kpis = input.required<DashboardData['kpis']>();
   readonly details = input<Record<string, DashboardData['details'][string]>>({});
+  readonly loading = input(false);
 }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, Integer, String, DECIMAL, ForeignKey, Uuid, UniqueConstraint
+from sqlalchemy import Column, Date, Integer, String, DECIMAL, ForeignKey, Uuid, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 
 from src.db.session import Base
@@ -9,10 +9,18 @@ class Order(Base):
 
     __tablename__ = "orders"
     __table_args__ = (
-        UniqueConstraint("order_number", "session_number", "day", name="uq_order"),
-    ) # Заказ уникален в связке номер+смена+день: один OrderNum
+        UniqueConstraint(
+            "restaurant_id",
+            "order_number",
+            "session_number",
+            "day",
+            name="uq_order_restaurant",
+        ),
+        Index("ix_orders_restaurant_id", "restaurant_id"),
+    )
 
     id = Column(Integer, index=True, primary_key=True, autoincrement=True)
+    restaurant_id = Column(Uuid, ForeignKey("restaurants.id", ondelete="CASCADE"), nullable=True)
     order_number = Column(Integer, nullable=False)
     session_number = Column(Integer, nullable=False)
     day = Column(Date, nullable=False)

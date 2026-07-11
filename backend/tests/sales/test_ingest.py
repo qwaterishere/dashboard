@@ -8,6 +8,7 @@ from src.db.session import DataBaseManager, Base
 from src.db.models.sales import Order, DishSale
 from src.schemas.sales import SaleRecord
 from src.services.sales import ingest_records, parse_records
+from tests.factories import create_restaurant
 
 RAW = {
     'DiscountSum': 0,
@@ -40,6 +41,11 @@ def session():
     session.close()
 
 
+@pytest.fixture()
+def restaurant(session):
+    return create_restaurant(session)
+
+
 def make_raw(**overrides) -> dict:
     return {**RAW, **overrides}
 
@@ -57,7 +63,7 @@ def test_parse_rejects_bad_record():
         parse_records([make_raw(**{'OpenDate.Typed': 'не дата'})])
 
 
-def test_dishes_of_same_order_share_one_order(session):
+def test_dishes_of_same_order_share_one_order(session, restaurant):
     records = parse_records([
         RAW,
         make_raw(**{
@@ -67,7 +73,7 @@ def test_dishes_of_same_order_share_one_order(session):
             'DishDiscountSumInt': 720,
         }),
     ])
-    ingest_records(session, records)
+    ingest_records(session, records, restaurant_id=restaurant.id)
     session.commit()
 
     assert session.query(Order).count() == 1
@@ -78,7 +84,7 @@ def test_dishes_of_same_order_share_one_order(session):
     assert order.order_type == 'Обычный заказ'
 
 
-def test_split_payment_rows_merge_into_one_dish(session):
+def test_split_payment_rows_merge_into_one_dish(session, restaurant):
     # Сплит: одно блюдо за 5760, оплачено 1265.27 наличными + 4494.73 картой —
     # iiko отдаёт две строки с одним ItemSaleEvent.Id.
     records = parse_records([
@@ -89,7 +95,7 @@ def test_split_payment_rows_merge_into_one_dish(session):
                     'DishAmountInt': 0.78,
                     'PayTypes.Group': 'CARD', 'PayTypes': 'Optima POS'}),
     ])
-    ingest_records(session, records)
+    ingest_records(session, records, restaurant_id=restaurant.id)
     session.commit()
 
     dish = session.query(DishSale).one()          # блюдо одно, не два
@@ -100,14 +106,14 @@ def test_split_payment_rows_merge_into_one_dish(session):
     assert order.pay_type_name == 'MIXED'
 
 
-def test_existing_order_reused_on_second_batch(session):
-    ingest_records(session, parse_records([RAW]))
+def test_existing_order_reused_on_second_batch(session, restaurant):
+    ingest_records(session, parse_records([RAW]), restaurant_id=restaurant.id)
     session.commit()
 
     ingest_records(session, parse_records([make_raw(**{
         'ItemSaleEvent.Id': '99999999-8888-7777-6666-555555555555',
         'DishName': 'Стейк',
-    })]))
+    })]), restaurant_id=restaurant.id)
     session.commit()
 
     assert session.query(Order).count() == 1   # заказ не задвоился

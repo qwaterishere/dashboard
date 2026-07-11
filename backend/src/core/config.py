@@ -82,10 +82,21 @@ class Settings(BaseSettings):
     jwt_cookie_secure: bool = Field(default=False, validation_alias="JWT_COOKIE_SECURE")
     auth_enabled: bool = Field(default=True, validation_alias="AUTH_ENABLED")
 
-    # --- iiko REST API (CLI / admin processes, 12-factor XII) ---
+    # Ключ шифрования tenant-секретов (iiko password). В prod — отдельный секрет.
+    credentials_encryption_key: str | None = Field(
+        default=None,
+        validation_alias="CREDENTIALS_ENCRYPTION_KEY",
+        min_length=32,
+    )
+
+    # --- iiko REST API: fallback для CLI/dev (12-factor XII admin process) ---
     iiko_url: str | None = Field(default=None, validation_alias="IIKO_URL")
     iiko_login: str | None = Field(default=None, validation_alias="IIKO_LOGIN")
     iiko_password: str | None = Field(default=None, validation_alias="IIKO_PASSWORD")
+    iiko_url_allowed_suffixes: str = Field(
+        default=".iiko.it",
+        validation_alias="IIKO_URL_ALLOWED_SUFFIXES",
+    )
 
     @field_validator("db_url", mode="before")
     @classmethod
@@ -141,6 +152,8 @@ class Settings(BaseSettings):
 
     def require_iiko(self) -> tuple[str, str, str]:
         """Credentials для CLI; явная ошибка, если не заданы в окружении."""
+        from src.core.iiko_url import validate_iiko_url
+
         missing = [
             name
             for name, val in (
@@ -152,7 +165,8 @@ class Settings(BaseSettings):
         ]
         if missing:
             raise RuntimeError(f"Missing env: {', '.join(missing)}")
-        return self.iiko_url, self.iiko_login, self.iiko_password  # type: ignore[return-value]
+        url = validate_iiko_url(self.iiko_url)  # type: ignore[arg-type]
+        return url, self.iiko_login, self.iiko_password  # type: ignore[return-value]
 
     @property
     def allowed_origins(self) -> list[str]:

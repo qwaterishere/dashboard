@@ -1,25 +1,41 @@
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 
 import { PopoverController } from '../../../../core/state/popover.controller';
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
+import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
+import type { ChartDisplayMode, PeriodGranularity } from '../../../../shared/models/common.model';
 import type { PeriodV2 } from '../../../../shared/models/dashboard-v2.model';
 import type { RevenueDay } from '../../../../shared/models';
-import { buildDayDetailPopover } from '../../../../shared/utils/day-detail.utils';
+import { chartDisplayOptionsForTimeframe } from '../../../../shared/constants/chart-display.constants';
+import {
+  chartDisplayLegend,
+  chartDisplayTitle,
+} from '../../../../shared/utils/chart-display.utils';
+import {
+  buildAggregatedBarDetailPopover,
+  buildDayDetailPopover,
+  buildMonthDetailPopover,
+} from '../../../../shared/utils/day-detail.utils';
 import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-days-chart.utils';
 
 @Component({
   selector: 'app-revenue-days-chart-organism',
   standalone: true,
-  imports: [PanelHeaderComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [PanelHeaderComponent, SegmentControlComponent],
   template: `
     <div class="panel">
-      <app-panel-header title="Выручка по дням">
-        <button type="button" class="pill">{{ periodLabel() }}</button>
+      <app-panel-header [title]="chartTitle()">
+        <app-segment-control
+          [options]="displayOptions()"
+          [value]="displayMode()"
+          (valueChange)="displayModeChange.emit($event)"
+        />
       </app-panel-header>
       <div class="legend">
-        <span class="legend-hint">клик по дню — детали</span>
+        <span class="legend-hint">{{ legendHint() }}</span>
       </div>
-      <div class="chart-wrap">
+      <div class="chart-wrap" [class.chart-wrap--loading]="loading()">
         <svg
           [attr.viewBox]="'0 0 ' + layout().width + ' ' + layout().height"
           preserveAspectRatio="xMidYMid meet"
@@ -104,6 +120,12 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
             />
           }
         </svg>
+        @if (loading()) {
+          <div class="chart-wrap__overlay" aria-live="polite" aria-busy="true">
+            <span class="chart-wrap__spinner" aria-hidden="true"></span>
+            <span class="chart-wrap__loading-text">Загрузка…</span>
+          </div>
+        }
       </div>
     </div>
   `,
@@ -124,6 +146,49 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
       filter: drop-shadow(0 0 6px rgba(110, 107, 255, 0.7));
     }
 
+    .chart-wrap {
+      position: relative;
+    }
+
+    .chart-wrap--loading svg {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .chart-wrap__overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 12px;
+      background: rgba(12, 14, 24, 0.08);
+      backdrop-filter: blur(1px);
+    }
+
+    .chart-wrap__spinner {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(110, 107, 255, 0.25);
+      border-top-color: rgba(110, 107, 255, 0.85);
+      animation: chart-spin 0.75s linear infinite;
+    }
+
+    .chart-wrap__loading-text {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--mut);
+    }
+
+    @keyframes chart-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     svg {
       width: 100%;
       height: auto;
@@ -137,9 +202,23 @@ export class RevenueDaysChartOrganismComponent {
   readonly days = input.required<RevenueDay[]>();
   readonly max = input.required<number>();
   readonly period = input.required<PeriodV2>();
-  readonly periodLabel = input('Июнь 2026');
+  readonly loading = input(false);
+  readonly timeframe = input.required<PeriodGranularity>();
+  readonly displayMode = input.required<ChartDisplayMode>();
 
+  readonly displayModeChange = output<ChartDisplayMode>();
+
+  protected readonly displayOptions = computed(() =>
+    chartDisplayOptionsForTimeframe(this.timeframe()),
+  );
+
+  protected readonly chartTitle = computed(() => chartDisplayTitle(this.displayMode()));
+  protected readonly legendHint = computed(() => chartDisplayLegend(this.displayMode()));
   protected readonly selectedIndex = signal<number | null>(null);
+
+  protected readonly layout = computed(() =>
+    buildRevenueDaysChartLayout(this.days(), this.max(), this.displayMode()),
+  );
 
   constructor() {
     effect(() => {
@@ -150,14 +229,11 @@ export class RevenueDaysChartOrganismComponent {
     });
   }
 
-  protected layout() {
-    return buildRevenueDaysChartLayout(this.days(), this.max());
-  }
-
   onBarClick(event: MouseEvent, index: number): void {
     event.stopPropagation();
     event.preventDefault();
     const bar = this.layout().bars[index];
+    const mode = this.displayMode();
 
     if (this.selectedIndex() === index && this.popovers.active()?.key === `day-${index}`) {
       this.selectedIndex.set(null);
@@ -171,7 +247,7 @@ export class RevenueDaysChartOrganismComponent {
       placement: 'above',
       variant: 'day',
       anchor: (event.currentTarget as SVGRectElement).getBoundingClientRect(),
-      detail: buildDayDetailPopover(bar.day, this.period()),
+      detail: this.buildBarDetail(bar.day, mode, bar.label),
     });
   }
 
@@ -179,5 +255,15 @@ export class RevenueDaysChartOrganismComponent {
     if ((event.target as Element).classList?.contains('dbar')) return;
     this.selectedIndex.set(null);
     this.popovers.hide();
+  }
+
+  private buildBarDetail(day: RevenueDay, mode: ChartDisplayMode, label: string) {
+    if (mode === 'day') {
+      return buildDayDetailPopover(day, this.period());
+    }
+    if (mode === 'month') {
+      return buildMonthDetailPopover(day, this.period().year);
+    }
+    return buildAggregatedBarDetailPopover(day, label, this.period().year);
   }
 }

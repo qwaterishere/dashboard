@@ -1,3 +1,4 @@
+import type { ChartDisplayMode } from '../models/common.model';
 import type { RevenueDay } from '../models';
 
 export interface RevenueDayBarLayout {
@@ -34,9 +35,19 @@ export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+function formatBarLabel(day: RevenueDay, displayMode: ChartDisplayMode): string {
+  if (day.barLabel) return day.barLabel;
+  if (displayMode === 'month' || displayMode === 'quarter') {
+    return String(day.day);
+  }
+  const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
+  return `${day.day} ${weekdays[day.weekday]}`;
+}
+
 export function buildRevenueDaysChartLayout(
   days: RevenueDay[],
   max: number,
+  displayMode: ChartDisplayMode = 'day',
 ): RevenueDaysChartLayout {
   const iw = CHART_WIDTH - PADDING.left - PADDING.right;
   const ih = CHART_HEIGHT - PADDING.top - PADDING.bottom;
@@ -56,8 +67,7 @@ export function buildRevenueDaysChartLayout(
     const hasPlan = day.plan !== null && day.plan > 0;
     const planY = hasPlan ? PADDING.top + ih - ((day.plan as number) / max) * ih : 0;
     const labelX = PADDING.left + slot * index + slot / 2;
-    const weekend = day.weekday === 0 || day.weekday === 6;
-    const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
+    const weekend = displayMode === 'day' && (day.weekday === 0 || day.weekday === 6);
 
     return {
       index,
@@ -68,7 +78,7 @@ export function buildRevenueDaysChartLayout(
       planY: round1(planY),
       hasPlan,
       labelX: round1(labelX),
-      label: `${day.day} ${weekdays[day.weekday]}`,
+      label: formatBarLabel(day, displayMode),
       weekend,
       day,
     };

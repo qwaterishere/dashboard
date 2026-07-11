@@ -1,5 +1,6 @@
 """Контракт страницы «Дашборд» — docs/frontend-handoff.md §1."""
 
+from datetime import date
 from typing import Literal
 
 from pydantic import Field
@@ -13,11 +14,11 @@ class KpiMetric(StrictModel):
 
     value: float = Field(description="Значение за текущий период")
     prevValue: float | None = Field(
-        description="Значение за период compare (тот же прошлого года); "
+        description="Значение за период compare (тот же прошлого года);"
         "null — сравнивать не с чем (нет прошлого года)"
     )
     forecast: float | None = Field(
-        description="Run-rate-прогноз на конец месяца по средним дням недели; "
+        description="Run-rate-прогноз на конец месяца по средним дням недели;"
         "null — прогноз не готов (< 7 закрытых дней)"
     )
 
@@ -35,6 +36,18 @@ class RevenueDay(StrictModel):
     guests: int = Field(description="Гостей за день (как ввёл персонал)")
     plan: float | None = Field(
         description="План дня; null — планы не внесены (до модуля targets)"
+    )
+
+
+class RevenueMonth(StrictModel):
+    """Один месяц годового графика (YTD до последнего закрытого дня)."""
+
+    month: int = Field(ge=1, le=12, description="Номер месяца 1..12")
+    revenue: float = Field(description="Выручка за закрытые дни месяца")
+    checks: int = Field(description="Чеки с выручкой за месяц")
+    guests: int = Field(description="Гости за месяц")
+    plan: float | None = Field(
+        description="План месяца; null — планы не внесены (до модуля targets)"
     )
 
 
@@ -63,6 +76,15 @@ class Kpis(StrictModel):
     )
 
 
+class DataBounds(StrictModel):
+    earliest: date | None = Field(
+        description="Первый день с данными в БД; null — база пустая",
+    )
+    latest: date | None = Field(
+        description="Последний закрытый день с данными; null — база пустая",
+    )
+
+
 class Dashboard(StrictModel):
     period: Period = Field(
         description="Показываемый период: месяц последнего закрытого дня"
@@ -70,9 +92,15 @@ class Dashboard(StrictModel):
     compare: Period = Field(
         description="Период сравнения: те же числа прошлого года (29.02 -> 28.02)"
     )
+    dataBounds: DataBounds = Field(
+        description="Диапазон доступных данных для выбора периода на графике",
+    )
     kpis: Kpis
     revenueByDay: list[RevenueDay] = Field(
         description="Полный календарь периода, закрытые дни — нулями"
+    )
+    revenueByMonth: list[RevenueMonth] = Field(
+        description="Помесячная выручка с начала года до последнего закрытого дня"
     )
     units: list[UnitSums] = Field(
         description="Всегда четыре элемента: k, b, w, o (нулевые включены)"

@@ -5,6 +5,7 @@ import { buildDashboardViewModel, buildStockFromWarehouse } from './dashboard-v2
 const sample: DashboardV2 = {
   period: { year: 2026, month: 6, dayFrom: 1, dayTo: 11 },
   compare: { year: 2025, month: 6, dayFrom: 1, dayTo: 11 },
+  dataBounds: { earliest: '2026-01-01', latest: '2026-06-11' },
   kpis: {
     revenue: { value: 1000, prevValue: 800, forecast: 5000 },
     checks: { value: 10, prevValue: 8, forecast: 50 },
@@ -14,6 +15,7 @@ const sample: DashboardV2 = {
   revenueByDay: [
     { day: 1, weekday: 1, revenue: 500, checks: 5, guests: 10, plan: null },
   ],
+  revenueByMonth: [{ month: 6, revenue: 500, checks: 5, guests: 10, plan: null }],
   units: [
     { key: 'k', revenue: 600, cost: 200, prevRevenue: 500, prevCost: 180 },
     { key: 'b', revenue: 400, cost: 100, prevRevenue: 300, prevCost: 90 },
@@ -78,6 +80,58 @@ describe('dashboard-v2.utils', () => {
     };
     const vm = buildDashboardViewModel(extended, { granularity: 'week' });
     expect(vm.revenueByDay).toHaveLength(7);
+    expect(vm.revenueByDay[0].day).toBe(8);
+    expect(vm.revenueByDay[6].day).toBe(14);
+  });
+
+  it('filters chart days for selected week range', () => {
+    const extended: DashboardV2 = {
+      ...sample,
+      revenueByDay: Array.from({ length: 11 }, (_, i) => ({
+        day: i + 1,
+        weekday: 1,
+        revenue: 100,
+        checks: 1,
+        guests: 1,
+        plan: null,
+      })),
+    };
+    const vm = buildDashboardViewModel(extended, {
+      granularity: 'week',
+      weekRange: { startDate: '2026-06-01', endDate: '2026-06-07' },
+    });
+    expect(vm.revenueByDay).toHaveLength(7);
+    expect(vm.revenueByDay[0].day).toBe(1);
+    expect(vm.revenueByDay[6].day).toBe(7);
+  });
+
+  it('uses monthly series for year granularity with month display', () => {
+    const extended: DashboardV2 = {
+      ...sample,
+      revenueByMonth: [
+        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
+        { month: 2, revenue: 200, checks: 2, guests: 4, plan: null },
+      ],
+    };
+    const vm = buildDashboardViewModel(extended, { granularity: 'year', chartDisplayMode: 'month' });
+    expect(vm.chartDisplayMode).toBe('month');
+    expect(vm.revenueByDay).toHaveLength(2);
+    expect(vm.revenueByDay[1].day).toBe(2);
+    expect(vm.revenueByDay[1].revenue).toBe(200);
+  });
+
+  it('aggregates year data into quarters', () => {
+    const extended: DashboardV2 = {
+      ...sample,
+      revenueByMonth: [
+        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
+        { month: 4, revenue: 200, checks: 2, guests: 4, plan: null },
+      ],
+    };
+    const vm = buildDashboardViewModel(extended, { granularity: 'year', chartDisplayMode: 'quarter' });
+    expect(vm.revenueByDay).toHaveLength(4);
+    expect(vm.revenueByDay[0].revenue).toBe(100);
+    expect(vm.revenueByDay[1].revenue).toBe(200);
   });
 
   it('builds stock panel from warehouse stub', () => {

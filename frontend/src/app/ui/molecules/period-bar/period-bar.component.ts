@@ -13,7 +13,9 @@ import { ComparePillComponent } from '../compare-pill/compare-pill.component';
   template: `
     <div class="period-bar">
       <app-segment-control [options]="granularityOptions" [(value)]="granularity" />
-      <app-date-pill [label]="period().label" [note]="period().note" />
+      <ng-content select="[periodDate]">
+        <app-date-pill class="period-bar__date" [label]="period().label" [note]="period().note" />
+      </ng-content>
       @if (period().compareWith) {
         <app-compare-pill [compareWith]="period().compareWith!" />
       }

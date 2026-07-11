@@ -1,4 +1,3 @@
-export interface SegmentOption<T extends string = string> {
-  value: T;
-  label: string;
-}
+import type { SegmentOption } from '../../../shared/models/segment-option.model';
+
+export type { SegmentOption };

@@ -38,6 +38,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    restaurant: Mapped["Restaurant | None"] = relationship(  # noqa: F821
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
 
 class RefreshToken(Base):

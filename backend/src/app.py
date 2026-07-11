@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
         ),
         openapi_tags=[
             {"name": "Health", "description": "Liveness / load balancer probes"},
-            {"name": "Авторизация", "description": "JWT: register, login, refresh, logout"},
+            {"name": "Авторизация", "description": "JWT, профиль, настройки iiko"},
             {"name": "Дашборд", "description": "Главная (v2, БД)"},
             {"name": "Продажи", "description": "Продажи (БД)"},
             {"name": "Заглушки", "description": "warehouse/foodcost из data/*.json"},

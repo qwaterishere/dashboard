@@ -1,5 +1,5 @@
-import type { CategoryKey, DetailPopover, LflMetric, PeriodInfo } from './common.model';
-import type { PeriodV2 } from './dashboard-v2.model';
+import type { CategoryKey, DetailPopover, LflMetric, ChartDisplayMode, PeriodInfo } from './common.model';
+import type { PeriodV2, DataBoundsV2 } from './dashboard-v2.model';
 
 export interface KpiBlock {
   value: number;
@@ -38,12 +38,16 @@ export interface RevenueDay {
   checks: number;
   guests: number;
   avg: number;
+  /** Подпись столбца, если отличается от стандартной day/weekday. */
+  barLabel?: string;
 }
 
 export interface DashboardData {
   greeting: string;
   period: PeriodInfo;
   chartPeriod: PeriodV2;
+  chartDisplayMode: ChartDisplayMode;
+  dataBounds: DataBoundsV2;
   kpis: {
     revenue: RevenueKpi;
     avgCheck: AvgCheckKpi;

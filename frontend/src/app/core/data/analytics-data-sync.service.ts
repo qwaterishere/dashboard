@@ -1,6 +1,5 @@
 import { DestroyRef, effect, inject, Injectable, Injector, runInInjectionContext, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { HttpResourceRef } from '@angular/common/http';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, startWith } from 'rxjs';
 
@@ -15,7 +14,10 @@ import {
 
 type RegisteredResource = {
   page: PageName;
-  resource: HttpResourceRef<unknown>;
+  resource: {
+    hasValue(): boolean;
+    reload(): unknown;
+  };
 };
 
 /**
@@ -34,7 +36,7 @@ export class AnalyticsDataSyncService {
   private readonly lastFetchedAt = new Map<PageName, number>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  register(page: PageName, resource: HttpResourceRef<unknown>): void {
+  register(page: PageName, resource: RegisteredResource['resource']): void {
     if (this.registered.has(page)) return;
 
     this.registered.set(page, { page, resource });

@@ -31,6 +31,31 @@ describe('resolveSettingsError', () => {
     expect(resolveSettingsError(err)).toBe('Слишком много попыток. Подождите минуту и повторите');
   });
 
+  it('maps invalid iiko credentials on 400', () => {
+    const err = new HttpErrorResponse({
+      status: 400,
+      error: { detail: 'Invalid iiko credentials' },
+    });
+    expect(resolveSettingsError(err)).toBe(
+      'Не удалось авторизоваться в iiko — проверьте URL, логин и пароль',
+    );
+  });
+
+  it('maps invalid iiko credentials on 422', () => {
+    const err = new HttpErrorResponse({
+      status: 422,
+      error: { detail: 'Invalid iiko credentials' },
+    });
+    expect(resolveSettingsError(err)).toBe(
+      'Не удалось авторизоваться в iiko — проверьте URL, логин и пароль',
+    );
+  });
+
+  it('maps iiko unavailable', () => {
+    const err = new HttpErrorResponse({ status: 502 });
+    expect(resolveSettingsError(err)).toBe('Сервер iiko недоступен. Попробуйте позже');
+  });
+
   it('falls back to generic message', () => {
     const err = new HttpErrorResponse({ status: 500 });
     expect(resolveSettingsError(err)).toBe('Не удалось сохранить изменения. Попробуйте позже.');

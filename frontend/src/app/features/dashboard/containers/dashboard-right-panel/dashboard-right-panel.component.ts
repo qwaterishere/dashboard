@@ -83,7 +83,7 @@ export class DashboardRightPanelComponent {
   private readonly store = inject(DashboardDataStore);
   protected readonly auth = inject(AuthService);
   protected readonly dashboard = this.store.dashboard;
-  protected readonly viewModel = this.store.viewModel;
+  protected readonly viewModel = this.store.displayedViewModel;
 
   protected onLogout(): void {
     this.auth.logoutAndRedirect();

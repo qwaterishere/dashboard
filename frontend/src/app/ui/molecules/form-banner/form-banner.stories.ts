@@ -35,3 +35,18 @@ export const Default: Story = {
     `,
   }),
 };
+
+export const Success: Story = {
+  args: {
+    variant: 'success',
+    message: 'Профиль сохранён',
+  },
+  render: (args) => ({
+    props: args,
+    template: `
+      <div style="${ATOM_DEMO_PANEL}">
+        <app-form-banner [variant]="variant" [message]="message" />
+      </div>
+    `,
+  }),
+};

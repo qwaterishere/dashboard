@@ -1,0 +1,183 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.picker {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.picker__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: auto;
+  z-index: 40;
+  width: min(300px, calc(100vw - 32px));
+  padding: 14px 16px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 107, 255, 0.45);
+  background: var(--popover-bg);
+  box-shadow: var(--popover-shadow);
+  display: grid;
+  gap: 12px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    right: auto;
+    width: 10px;
+    height: 10px;
+    background: var(--popover-bg);
+    border-left: 1px solid rgba(110, 107, 255, 0.45);
+    border-top: 1px solid rgba(110, 107, 255, 0.45);
+    transform: rotate(45deg);
+  }
+}
+
+.picker__year-nav {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker__year-label {
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--txt);
+}
+
+.picker__nav-btn ::ng-deep button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.picker__nav-btn ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.45);
+}
+
+.picker__months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.picker__month ::ng-deep button,
+.picker__year ::ng-deep button {
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 8px 4px;
+}
+
+.picker__month ::ng-deep button:hover:not(:disabled),
+.picker__year ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.35);
+}
+
+.picker__month--active ::ng-deep button,
+.picker__year--active ::ng-deep button {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(90deg, rgba(110, 107, 255, 0.35), rgba(61, 220, 151, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.4);
+}
+
+.picker__years {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.picker--week .picker__panel {
+  width: min(340px, calc(100vw - 32px));
+}
+
+.picker__week-section {
+  display: grid;
+  gap: 8px;
+}
+
+.picker__weeks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.picker__week ::ng-deep button {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--txt);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.picker__week-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.picker__week-suffix {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--mut2);
+  text-transform: lowercase;
+}
+
+.picker__week ::ng-deep button:hover:not(:disabled) {
+  border-color: rgba(110, 107, 255, 0.35);
+}
+
+.picker__week--active ::ng-deep button {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(90deg, rgba(110, 107, 255, 0.35), rgba(61, 220, 151, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.4);
+}
+
+.picker__week--active .picker__week-suffix {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.picker__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.picker__apply ::ng-deep button {
+  width: auto;
+  min-width: 132px;
+  padding: 10px 16px;
+}

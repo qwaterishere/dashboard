@@ -1,25 +1,31 @@
 import { CAT_NAME } from '../../../shared/constants/category.constants';
-import type { CategoryKey, DetailPopover, LflDirection, LflMetric, PeriodGranularity } from '../../../shared/models/common.model';
-import type { DashboardData, RevenueDay } from '../../../shared/models/dashboard.model';
+import type { ChartWeekRange } from '../../../shared/models/chart-period.model';
+import type { CategoryKey, ChartDisplayMode, DetailPopover, LflDirection, LflMetric, PeriodGranularity } from '../../../shared/models/common.model';
+import type { DashboardData } from '../../../shared/models/dashboard.model';
 import type {
   DashboardV2,
   KpiMetricV2,
-  RevenueDayV2,
   UnitSumsV2,
 } from '../../../shared/models/dashboard-v2.model';
 import type { WarehouseData } from '../../../shared/models/warehouse.model';
+import { defaultChartDisplayMode } from '../../../shared/constants/chart-display.constants';
+import { buildChartDisplaySeries } from '../../../shared/utils/chart-display.utils';
 import {
   buildPeriodInfo,
   filterRevenueDays,
   formatChartPeriodLabel,
   formatCompareWith,
   formatPeriodRange,
+  monthRangeFromSeries,
 } from '../../../shared/utils/period-format.utils';
 
 export interface DashboardViewModelOptions {
   granularity?: PeriodGranularity;
+  chartDisplayMode?: ChartDisplayMode;
   stock?: DashboardData['stock'];
   chartPeriodLabel?: string;
+  weekRange?: ChartWeekRange;
+  weekDayLookup?: (year: number, month: number, day: number) => import('../../../shared/models/dashboard-v2.model').RevenueDayV2 | undefined;
 }
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
@@ -116,18 +122,6 @@ function buildCategories(units: UnitSumsV2[]): DashboardData['categories'] {
   }));
 }
 
-function toRevenueDays(days: RevenueDayV2[]): RevenueDay[] {
-  return days.map((d) => ({
-    day: d.day,
-    weekday: d.weekday,
-    revenue: d.revenue,
-    plan: d.plan,
-    checks: d.checks,
-    guests: d.guests,
-    avg: d.checks ? d.revenue / d.checks : 0,
-  }));
-}
-
 /** Собирает stock panel из stub GET /api/warehouse. */
 export function buildStockFromWarehouse(data: WarehouseData): NonNullable<DashboardData['stock']> {
   return {
@@ -188,18 +182,39 @@ export function buildDashboardViewModel(
     ),
   };
 
-  const filteredDays = filterRevenueDays(data.revenueByDay, period, granularity);
-  const revenueDays = toRevenueDays(filteredDays);
+  const filteredDays = filterRevenueDays(
+    data.revenueByDay,
+    period,
+    granularity,
+    options.weekRange,
+    options.weekDayLookup,
+  );
+  const chartDisplayMode = options.chartDisplayMode ?? defaultChartDisplayMode(granularity);
+  const revenueDays = buildChartDisplaySeries(
+    {
+      daily: filteredDays,
+      monthly: data.revenueByMonth ?? [],
+      period,
+      timeframe: granularity,
+      weekRange: options.weekRange,
+      weekDayLookup: options.weekDayLookup,
+    },
+    chartDisplayMode,
+  );
   const maxRevenue = revenueDays.reduce(
     (max, d) => Math.max(max, d.revenue, d.plan ?? 0),
     1,
   );
+  const monthRange = monthRangeFromSeries(data.revenueByMonth ?? []);
   const chartLabel =
-    options.chartPeriodLabel ?? formatChartPeriodLabel(period, granularity);
+    options.chartPeriodLabel ??
+    formatChartPeriodLabel(period, granularity, monthRange ?? undefined, options.weekRange);
 
   return {
     greeting: '',
     chartPeriod: period,
+    chartDisplayMode,
+    dataBounds: data.dataBounds,
     period: {
       ...periodInfo,
       label: chartLabel,

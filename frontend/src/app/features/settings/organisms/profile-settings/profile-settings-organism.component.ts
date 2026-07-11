@@ -79,14 +79,14 @@ export class ProfileSettingsOrganismComponent {
 
   private readonly localError = signal<string | null>(null);
 
-  protected readonly isDirty = computed(() => {
+  protected isDirty(): boolean {
     const user = this.user();
     return (
       this.firstName.trim() !== user.first_name ||
       this.lastName.trim() !== user.last_name ||
       this.position.trim() !== user.position
     );
-  });
+  }
 
   protected readonly bannerVariant = computed<'error' | 'success' | null>(() => {
     if (this.localError() || this.error()) return 'error';

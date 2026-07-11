@@ -8,7 +8,9 @@ import { PeriodService } from '../../../core/services/period.service';
 import { pageTitleForSegment } from '../../../shared/constants/nav.constants';
 import { buildGreeting } from '../../../shared/utils/greeting.utils';
 import { DashboardDataStore } from '../../../features/dashboard/data/dashboard-data.store';
+import { DashboardPeriodBarComponent } from '../../../features/dashboard/containers/dashboard-period-bar/dashboard-period-bar.component';
 import { DashboardRightPanelComponent } from '../../../features/dashboard/containers/dashboard-right-panel/dashboard-right-panel.component';
+import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { AppShellTemplateComponent } from './app-shell-template.component';
 
@@ -17,11 +19,15 @@ const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcos
 @Component({
   selector: 'app-shell-host',
   standalone: true,
-  imports: [AppShellTemplateComponent, RouterOutlet, DashboardRightPanelComponent],
+  imports: [
+    AppShellTemplateComponent,
+    RouterOutlet,
+    PeriodBarComponent,
+    DashboardPeriodBarComponent,
+    DashboardRightPanelComponent,
+  ],
   template: `
     <app-shell-template
-      [period]="store.period()"
-      [(granularity)]="granularity"
       [pageHeadline]="pageHeadline()"
       [pageHeadlineVariant]="pageHeadlineVariant()"
       [showPageHeadline]="showPageHeadline()"
@@ -32,6 +38,17 @@ const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcos
       (sidebarClose)="closeSidebar()"
       (mainScroll)="onMainScroll()"
     >
+      @if (showPeriodBar()) {
+        @if (onDashboard()) {
+          <app-dashboard-period-bar appPeriodBar />
+        } @else {
+          <app-period-bar
+            appPeriodBar
+            [period]="store.period()"
+            [(granularity)]="granularity"
+          />
+        }
+      }
       <router-outlet />
       @if (showRightPanel()) {
         <app-dashboard-right-panel shellRight />
@@ -48,6 +65,8 @@ export class AppShellHostComponent {
 
   protected readonly sidebarOpen = signal(false);
   protected readonly granularity = this.periodService.granularity;
+
+  protected readonly onDashboard = computed(() => this.navActive.segment() === 'dashboard');
 
   protected readonly pageHeadline = computed(() => {
     const segment = this.navActive.segment() ?? '';

@@ -16,6 +16,9 @@ export interface PeriodInfo {
 
 export type PeriodGranularity = 'week' | 'month' | 'year';
 
+/** Режим отображения столбцов на графике выручки. */
+export type ChartDisplayMode = 'quarter' | 'month' | 'week' | 'day';
+
 export interface ForecastBlock {
   value: number;
   planPct: number;

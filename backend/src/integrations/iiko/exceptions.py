@@ -15,3 +15,7 @@ class IikoAuthError(IikoError):
 
 class IikoRequestError(IikoError):
     """Запрос к API не удался: сеть, таймаут, 5xx или неожиданный ответ."""
+
+
+class IikoBlockedHostError(IikoError):
+    """Исходящее подключение заблокировано политикой безопасности (SSRF)."""

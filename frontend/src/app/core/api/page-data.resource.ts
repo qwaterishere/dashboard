@@ -7,6 +7,8 @@ import type { PageName } from '../../shared/models';
 
 export interface PageResourceOptions {
   query?: Record<string, string>;
+  /** Не выполнять запрос (httpResource idle). */
+  skip?: boolean;
 }
 
 /**
@@ -17,12 +19,17 @@ export function createPageResource<T>(page: () => PageName, options?: () => Page
   const config = inject(API_CONFIG);
 
   return httpResource<T>(() => {
+    const opts = options?.();
+    if (opts?.skip) {
+      return undefined;
+    }
+
     const name = page();
     if (!isAllowedPage(name)) {
       throw new Error('Неизвестная страница');
     }
     const base = `${config.apiBase}/${name}`;
-    const query = options?.().query;
+    const query = opts?.query;
     if (!query || Object.keys(query).length === 0) {
       return { url: base };
     }

@@ -11,8 +11,10 @@
     flex-shrink: 0;
   }
 
-  app-date-pill {
+  .period-bar__date {
     flex: 1 1 auto;
     min-width: 0;
+    position: relative;
+    z-index: 20;
   }
 }

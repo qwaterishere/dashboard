@@ -5,19 +5,13 @@ import {
   PageGreetingComponent,
   type PageHeadlineVariant,
 } from '../../molecules/page-greeting/page-greeting.component';
-import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import { SidebarOrganismComponent } from '../../organisms/sidebar/sidebar-organism.component';
 import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/detail-popover-organism.component';
 
 @Component({
   selector: 'app-shell-template',
   standalone: true,
-  imports: [
-    SidebarOrganismComponent,
-    DetailPopoverOrganismComponent,
-    PageGreetingComponent,
-    PeriodBarComponent,
-  ],
+  imports: [SidebarOrganismComponent, DetailPopoverOrganismComponent, PageGreetingComponent],
   template: `
     <button type="button" class="nav-toggle" (click)="sidebarToggle.emit()" aria-label="Меню">
       ☰
@@ -37,7 +31,7 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
           <app-page-greeting [headline]="pageHeadline()" [variant]="pageHeadlineVariant()" />
         }
         @if (showPeriodBar()) {
-          <app-period-bar [period]="period()" [(granularity)]="granularity" />
+          <ng-content select="[appPeriodBar]" />
         }
         <div class="page-body">
           <ng-content />
@@ -52,7 +46,7 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
   styleUrl: './app-shell-template.component.scss',
 })
 export class AppShellTemplateComponent {
-  readonly period = input.required<PeriodInfo>();
+  readonly period = input<PeriodInfo>({ label: '…', note: '' });
   readonly granularity = model<PeriodGranularity>('month');
   readonly pageHeadline = input.required<string>();
   readonly pageHeadlineVariant = input<PageHeadlineVariant>('greeting');

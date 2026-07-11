@@ -24,7 +24,6 @@ from src.domain.constants import CAT_OTHER, resolve_unit
 from src.db.models.sales import Order, DishSale
 from src.schemas.sales import SaleRecord, SalesPage, SalesPosition, Period
 
-
 def parse_records(raw_records: list[dict]) -> list[SaleRecord]:
     """Валидирует сырые записи выгрузки. Кривая запись -> ValidationError."""
     return [SaleRecord.model_validate(raw) for raw in raw_records]
@@ -65,7 +64,12 @@ def _resolve_pay_field(values: set[str | None]) -> str | None:
     return real.pop() if real else None
 
 
-def ingest_records(session: Session, records: list[SaleRecord]) -> None:
+def ingest_records(
+    session: Session,
+    records: list[SaleRecord],
+    *,
+    restaurant_id: UUID,
+) -> None:
     """Загружает провалидированные записи в переданную сессию.
 
     Коммит/роллбэк оставлены вызывающему коду — так функцию можно
@@ -96,12 +100,14 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
         order = orders_cache.get(key)
         if order is None:
             order = session.query(Order).filter_by(
+                restaurant_id=restaurant_id,
                 order_number=rec.order_number,
                 session_number=rec.session_number,
                 day=rec.day,
             ).first()
             if order is None:
                 order = Order(
+                    restaurant_id=restaurant_id,
                     order_number=rec.order_number,
                     session_number=rec.session_number,
                     day=rec.day,
@@ -136,7 +142,13 @@ def ingest_records(session: Session, records: list[SaleRecord]) -> None:
     session.flush()
 
 
-def replace_day(session: Session, day: date, records: list[SaleRecord]) -> None:
+def replace_day(
+    session: Session,
+    day: date,
+    records: list[SaleRecord],
+    *,
+    restaurant_id: UUID,
+) -> None:
     """Идемпотентная загрузка дня: данные дня удаляются и вставляются заново.
 
     Повторный запуск не создаёт дублей и подхватывает изменения задним
@@ -144,19 +156,39 @@ def replace_day(session: Session, day: date, records: list[SaleRecord]) -> None:
     """
     day_records = [r for r in records if r.day == day]
 
-    order_ids = [oid for (oid,) in session.query(Order.id).filter(Order.day == day)]
+    # ItemSaleEvent.Id глобально уникален в iiko. После миграции на multi-tenant
+    # в БД могли остаться блюда без restaurant_id на заказе — их replace_day
+    # раньше не трогал, и INSERT падал с UNIQUE constraint failed: dish_sales.id.
+    incoming_ids = {r.id for r in _merge_split_payments(day_records)}
+    if incoming_ids:
+        session.query(DishSale).filter(DishSale.id.in_(incoming_ids)).delete(
+            synchronize_session=False,
+        )
+
+    order_ids = [
+        oid
+        for (oid,) in session.query(Order.id).filter(
+            Order.day == day,
+            (Order.restaurant_id == restaurant_id) | (Order.restaurant_id.is_(None)),
+        )
+    ]
     if order_ids:
-        session.query(DishSale).filter(DishSale.order_id.in_(order_ids)) \
-            .delete(synchronize_session=False)
-        session.query(Order).filter(Order.id.in_(order_ids)) \
-            .delete(synchronize_session=False)
+        session.query(DishSale).filter(DishSale.order_id.in_(order_ids)).delete(
+            synchronize_session=False,
+        )
+        session.query(Order).filter(Order.id.in_(order_ids)).delete(
+            synchronize_session=False,
+        )
 
-    ingest_records(session, day_records)
+    ingest_records(session, day_records, restaurant_id=restaurant_id)
 
 
-def build_sales(session: Session,
-                date_from: date | None = None,
-                date_to: date | None = None) -> SalesPage:
+def build_sales(
+    session: Session,
+    restaurant_id: UUID,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> SalesPage:
     """Страница «Продажи»: агрегат по позициям в структуре data/sales.json.
 
     Без параметров берётся весь период, что есть в БД.
@@ -165,9 +197,13 @@ def build_sales(session: Session,
     rev = qty*price = фактическая выручка.
     """
     if date_from is None:
-        date_from = session.query(func.min(Order.day)).scalar()
+        date_from = session.query(func.min(Order.day)).filter(
+            Order.restaurant_id == restaurant_id,
+        ).scalar()
     if date_to is None:
-        date_to = session.query(func.max(Order.day)).scalar()
+        date_to = session.query(func.max(Order.day)).filter(
+            Order.restaurant_id == restaurant_id,
+        ).scalar()
     if date_from is None:   # пустая база
         return SalesPage(period=Period(label='Нет данных', note=''), positions=[])
 
@@ -181,7 +217,11 @@ def build_sales(session: Session,
             func.sum(func.coalesce(DishSale.cost, 0)),
         )
         .join(Order)
-        .filter(Order.day >= date_from, Order.day <= date_to)
+        .filter(
+            Order.restaurant_id == restaurant_id,
+            Order.day >= date_from,
+            Order.day <= date_to,
+        )
         # Бесплатные строки (комплименты, проработки, включённые в банкет)
         # не входят в продажные qty и средние цены — они не продажи.
         # Построчный фильтр строже прежнего HAVING: у блюда, проданного

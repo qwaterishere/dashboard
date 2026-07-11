@@ -14,8 +14,10 @@ from sqlalchemy.orm import Session
 from src.api.cookies import read_access_cookie
 from src.core.config import get_settings
 from src.core.security import decode_access_token
+from src.db.models.restaurant import Restaurant
 from src.db.models.user import User
 from src.db.session import get_db
+from src.services.restaurant import get_or_create_restaurant
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -77,6 +79,14 @@ def get_current_user(
     return user
 
 
-CurrentUser = Annotated[User, Depends(get_current_user)]
+def get_current_restaurant(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> Restaurant:
+    return get_or_create_restaurant(db, user)
 
-__all__ = ["get_db", "get_current_user", "CurrentUser"]
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentRestaurant = Annotated[Restaurant, Depends(get_current_restaurant)]
+
+__all__ = ["get_db", "get_current_user", "get_current_restaurant", "CurrentUser", "CurrentRestaurant"]

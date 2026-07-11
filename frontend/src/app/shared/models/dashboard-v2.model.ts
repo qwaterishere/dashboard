@@ -30,9 +30,23 @@ export interface UnitSumsV2 {
   prevCost: number;
 }
 
+export interface RevenueMonthV2 {
+  month: number;
+  revenue: number;
+  checks: number;
+  guests: number;
+  plan: number | null;
+}
+
+export interface DataBoundsV2 {
+  earliest: string | null;
+  latest: string | null;
+}
+
 export interface DashboardV2 {
   period: PeriodV2;
   compare: PeriodV2;
+  dataBounds: DataBoundsV2;
   kpis: {
     revenue: KpiMetricV2;
     checks: KpiMetricV2;
@@ -40,6 +54,7 @@ export interface DashboardV2 {
     avgCheck: KpiMetricV2;
   };
   revenueByDay: RevenueDayV2[];
+  revenueByMonth: RevenueMonthV2[];
   units: UnitSumsV2[];
   reviews: null;
   stock: null;
