@@ -511,7 +511,7 @@ export function chartPeriodSelectionForMonthDay(
   year: number,
   month: number,
   day: number,
-  bounds: DataBoundsV2 | null = null,
+  _bounds: DataBoundsV2 | null = null,
 ): ChartPeriodSelection {
   const week = resolveFullIsoWeekRange(year, month, day);
   return chartPeriodSelectionFromWeek(year, month, week);
