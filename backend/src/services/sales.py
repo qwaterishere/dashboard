@@ -159,7 +159,7 @@ def replace_day(
     # ItemSaleEvent.Id глобально уникален в iiko. После миграции на multi-tenant
     # в БД могли остаться блюда без restaurant_id на заказе — их replace_day
     # раньше не трогал, и INSERT падал с UNIQUE constraint failed: dish_sales.id.
-    incoming_ids = {r.id for r in _merge_split_payments(day_records)}
+    incoming_ids = {r.id for r in day_records}
     if incoming_ids:
         session.query(DishSale).filter(DishSale.id.in_(incoming_ids)).delete(
             synchronize_session=False,
