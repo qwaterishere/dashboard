@@ -112,7 +112,7 @@ class IikoClient:
                 },
                 "DeletedWithWriteoff": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]},
                 "OrderDeleted": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]},
-                "Storned": {"filterType": "IncludeValues", "values": ["NOT_DELETED"]},
+                "Storned": {"filterType": "IncludeValues", "values": ["FALSE"]},
             }
         }
         last_error: Exception | None = None

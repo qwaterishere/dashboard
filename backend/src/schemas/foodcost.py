@@ -4,22 +4,27 @@ from .base import StrictModel
 from .base import Period
 
 
-class CostTotals(StrictModel):
+class BaseCost(StrictModel):
     """Слагаемые фудкоста. База страницы — переиспользуется
-       тоталами, юнитами и группами (наследованием)."""
-    revenue: float  # вся продажная выручка (paid > 0, не staff)
+          тоталами, юнитами и группами (наследованием)."""
+    revenue: float  # вся выручка разреза (paid > 0, не staff)
     cost: float  # себестоимость всех продажных строк
     revenueWithCost: float  # выручка строк с cost > 0 — знаменатель фудкоста
     prevRevenue: float | None  # те же три числа за compare-период;
     prevCost: float | None  # null — сравнивать не с чем
     prevRevenueWithCost: float | None
+
+
+class CostTotals(BaseCost):
+    """Общие факты + цели"""
     goal: float | None  # ЦЕЛЬ: null до модуля targets
 
-class UnitCost(StrictModel):
+
+class UnitCost(BaseCost):
     key: Literal['k', 'b', 'w', 'o']
 
 
-class GroupCost(StrictModel):
+class GroupCost(BaseCost):
     unit: Literal['k', 'b', 'w', 'o']
     group: str  # группа iiko (живой разрез, как выяснили)
 
@@ -27,8 +32,9 @@ class GroupCost(StrictModel):
 class Discounts(StrictModel):
     discountSum: float  # недополученная выручка (sum(discount))
     discountedRevenue: float  # общая выручка по скидочным позициям
-    discountedCost: float # фудкост по скидочным позициям
-    discountedCostedRevenue: float # выручка позиций с себестоимостью (исключаем с 0себестоимостью)
+    discountedRevenueWithCost: float  # выручка скидочных строк с cost > 0 — знаменатель их фудкоста
+    discountSumWithCost: float  # скидки строк с cost > 0 — влияние скидок на ОБЩИЙ фудкост
+    discountedCost: float  # себестоимость скидочных позиций
 
 
 class Compliments(StrictModel):
