@@ -12,6 +12,7 @@ from slowapi.util import get_remote_address
 
 from src.api.routes.auth import create_auth_router
 from src.api.routes.dashboard import create_dashboard_router
+from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.stubs import create_stub_router
@@ -77,6 +78,8 @@ def create_app() -> FastAPI:
     app.include_router(create_auth_router(limiter))
     app.include_router(create_sales_router(limiter))
     app.include_router(create_dashboard_router(limiter))
+    # до стабов: /api/{page} — катч-олл, маршруты матчятся в порядке регистрации
+    app.include_router(create_foodcost_router(limiter))
     app.include_router(create_stub_router(limiter))
 
     @app.exception_handler(Exception)

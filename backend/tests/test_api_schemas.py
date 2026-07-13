@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from src.main import PAGES
+from src.schemas.foodcost import Foodcost
 from src.schemas.stubs.registry import SCHEMA_REGISTRY, validate_page
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,11 +22,18 @@ def test_fixture_json_matches_strict_schema(page: str):
     assert model.__class__ is SCHEMA_REGISTRY[page]
 
 
-@pytest.mark.parametrize("page", sorted(PAGES))
+# foodcost переехал со стаба на контракт v2 — валидируется своей схемой ниже
+@pytest.mark.parametrize("page", sorted(PAGES - {"foodcost"}))
 def test_api_response_matches_strict_schema(client, page: str):
     response = client.get(f"/api/{page}")
     assert response.status_code == 200
     validate_page(page, response.json())
+
+
+def test_api_foodcost_matches_v2_contract(client):
+    response = client.get("/api/foodcost")
+    assert response.status_code == 200
+    Foodcost.model_validate(response.json())
 
 
 def test_schema_rejects_unknown_fields():
