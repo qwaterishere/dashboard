@@ -7,7 +7,6 @@ import {
   chartFetchNeeded,
   chartSliceMatchesSelection,
   dashboardChartCacheKey,
-  isChartSliceReady,
   mergeDashboardChartData,
   mergeCompareOverlay,
   pickDashboardCompareSlice,

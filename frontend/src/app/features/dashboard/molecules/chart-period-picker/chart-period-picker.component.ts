@@ -3,7 +3,6 @@ import {
   Component,
   computed,
   HostListener,
-  inject,
   input,
   output,
   signal,

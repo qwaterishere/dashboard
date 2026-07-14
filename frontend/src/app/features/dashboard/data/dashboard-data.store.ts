@@ -842,7 +842,12 @@ export class DashboardDataStore {
 
     try {
       const query = parseDashboardCacheKey(key);
-      const { compareStart: _cs, compareEnd: _ce, ...periodQuery } = query;
+      const periodQuery: DashboardQueryKey = {
+        year: query.year,
+        month: query.month,
+        weekStart: query.weekStart,
+        weekEnd: query.weekEnd,
+      };
       await this.compareCache.getOrLoad(
         key,
         (etag) => firstValueFrom(this.repository.fetchKpi(periodQuery, { etag })),
