@@ -4,14 +4,10 @@ import { RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PopoverController } from '../../../core/state/popover.controller';
 import { NavActiveService } from '../../../core/routing/nav-active.service';
-import { PeriodService } from '../../../core/services/period.service';
 import { pageTitleForSegment } from '../../../shared/constants/nav.constants';
 import { buildGreeting } from '../../../shared/utils/greeting.utils';
-import { DashboardDataStore } from '../../../features/dashboard/data/dashboard-data.store';
-import { FoodcostDataStore } from '../../../features/foodcost/data/foodcost-data.store';
 import { DashboardPeriodBarComponent } from '../../../features/dashboard/containers/dashboard-period-bar/dashboard-period-bar.component';
 import { DashboardRightPanelComponent } from '../../../features/dashboard/containers/dashboard-right-panel/dashboard-right-panel.component';
-import { PeriodBarComponent } from '../../molecules/period-bar/period-bar.component';
 import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { AppShellTemplateComponent } from './app-shell-template.component';
 
@@ -23,7 +19,6 @@ const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcos
   imports: [
     AppShellTemplateComponent,
     RouterOutlet,
-    PeriodBarComponent,
     DashboardPeriodBarComponent,
     DashboardRightPanelComponent,
   ],
@@ -40,15 +35,7 @@ const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcos
       (mainScroll)="onMainScroll()"
     >
       @if (showPeriodBar()) {
-        @if (onDashboard()) {
-          <app-dashboard-period-bar appPeriodBar />
-        } @else {
-          <app-period-bar
-            appPeriodBar
-            [period]="periodBarInfo()"
-            [(granularity)]="granularity"
-          />
-        }
+        <app-dashboard-period-bar appPeriodBar />
       }
       <router-outlet />
       @if (showRightPanel()) {
@@ -59,24 +46,10 @@ const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcos
 })
 export class AppShellHostComponent {
   private readonly auth = inject(AuthService);
-  protected readonly store = inject(DashboardDataStore);
-  private readonly foodcostStore = inject(FoodcostDataStore);
-  private readonly periodService = inject(PeriodService);
   private readonly popovers = inject(PopoverController);
   private readonly navActive = inject(NavActiveService);
 
   protected readonly sidebarOpen = signal(false);
-  protected readonly granularity = this.periodService.granularity;
-
-  protected readonly onDashboard = computed(() => this.navActive.segment() === 'dashboard');
-
-  protected readonly periodBarInfo = computed(() => {
-    const segment = this.navActive.segment();
-    if (segment === 'foodcost') {
-      return this.foodcostStore.period();
-    }
-    return this.store.period();
-  });
 
   protected readonly pageHeadline = computed(() => {
     const segment = this.navActive.segment() ?? '';
