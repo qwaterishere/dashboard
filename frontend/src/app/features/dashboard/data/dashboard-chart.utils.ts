@@ -12,6 +12,7 @@ import type {
   RevenueMonthFact,
   DashboardCompareSlice,
 } from '../../../shared/models/dashboard-api.model';
+import type { DashboardChartApi } from '../../../shared/models/dashboard-chart-api.model';
 import {
   inferComparePeriod,
   inferPendingChartPeriod,
@@ -282,6 +283,22 @@ export function aggregateKpisFromRevenueDays(days: RevenueDayFact[]): DashboardA
       value: checks ? Math.round(revenue / checks) : 0,
       ...emptyComparison,
     },
+  };
+}
+
+/** Map GET /api/dashboard/chart into DashboardApi with placeholder KPI. */
+export function chartApiToDashboardApi(chart: DashboardChartApi): DashboardApi {
+  return {
+    period: chart.period,
+    compare: chart.compare,
+    dataBounds: chart.dataBounds,
+    kpis: emptyChartKpis(),
+    revenueByDay: chart.revenueByDay,
+    revenueByMonth: chart.revenueByMonth,
+    units: chart.units,
+    weekKpi: chart.weekKpi ?? null,
+    reviews: null,
+    stock: null,
   };
 }
 

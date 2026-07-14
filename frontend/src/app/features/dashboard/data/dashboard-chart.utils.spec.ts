@@ -3,6 +3,7 @@ import {
   aggregateKpisFromRevenueDays,
   aggregateKpisFromRevenueMonths,
   applyYearTimeframeKpis,
+  chartApiToDashboardApi,
   chartFetchNeeded,
   chartSliceMatchesSelection,
   dashboardChartCacheKey,
@@ -37,8 +38,8 @@ const basePayload = {
 describe('dashboard-chart.utils', () => {
   it('dashboardChartCacheKey encodes year and month modes with tenant scope', () => {
     const selection: ChartPeriodSelection = { year: 2026, month: 5 };
-    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v3:m:2026-5');
-    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v3:y:2026');
+    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v4:m:2026-5');
+    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v4:y:2026');
   });
 
   it('chartFetchNeeded is false when selection matches base period in month mode', () => {
@@ -184,7 +185,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       null,
-      'user-1:v3:m:2026-5',
+      'user-1:v4:m:2026-5',
     );
     expect(loading.revenueByDay).toEqual([]);
     expect(loading.kpis.revenue.value).toBe(0);
@@ -211,7 +212,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       maySlice,
-      'user-1:v3:m:2026-5',
+      'user-1:v4:m:2026-5',
     );
     expect(ready.revenueByDay[0].revenue).toBe(5);
     expect(ready.kpis.revenue.value).toBe(50);
@@ -287,7 +288,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 1 },
       'year',
       null,
-      'user-1:v3:y:2026',
+      'user-1:v4:y:2026',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual(basePayload.revenueByMonth);
@@ -299,11 +300,28 @@ describe('dashboard-chart.utils', () => {
       { year: 2025, month: 1 },
       'year',
       null,
-      'user-1:v3:y:2025',
+      'user-1:v4:y:2025',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual([]);
     expect(result.kpis.revenue.value).toBe(0);
+  });
+
+  it('chartApiToDashboardApi fills placeholder KPI', () => {
+    const chart = {
+      period: basePeriod,
+      compare: basePeriod,
+      dataBounds: basePayload.dataBounds,
+      revenueByDay: basePayload.revenueByDay,
+      revenueByMonth: basePayload.revenueByMonth,
+      units: basePayload.units,
+      weekKpi: null,
+    };
+    const mapped = chartApiToDashboardApi(chart);
+    expect(mapped.kpis.revenue.value).toBe(0);
+    expect(mapped.kpis.revenue.prevValue).toBeNull();
+    expect(mapped.revenueByDay).toEqual(basePayload.revenueByDay);
+    expect(mapped.reviews).toBeNull();
   });
 
   it('mergeCompareOverlay updates KPI and compare without touching chart series', () => {

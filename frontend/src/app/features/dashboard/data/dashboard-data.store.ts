@@ -39,7 +39,6 @@ import {
 import {
   buildDashboardChartCore,
   buildDashboardKpiLayer,
-  patchDashboardKpiLayer,
   buildStockFromWarehouse,
 } from './dashboard.mapper';
 import type { DashboardData } from '../../../shared/models/dashboard.model';
@@ -102,8 +101,10 @@ export class DashboardDataStore {
   private readonly foodcostCacheRevision = signal(0);
   /** Key currently awaiting first load (no cached body yet). */
   private readonly chartLoadingKey = signal<string | null>(null);
-  /** Key awaiting first compare overlay load (KPI LfL only). */
+  /** Key awaiting first compare overlay load (custom LfL). */
   private readonly compareLoadingKey = signal<string | null>(null);
+  /** Key awaiting first period KPI load (default LfL, no custom compare). */
+  private readonly periodKpiLoadingKey = signal<string | null>(null);
 
   private readonly stableViewModel = signal<DashboardData | null>(null);
   private latestRequestId = 0;
@@ -170,20 +171,17 @@ export class DashboardDataStore {
     return this.chartLoadingKey() === key;
   });
 
-  /** KPI cards overlay — только пока chart slice для picker ещё не готов. */
+  /** KPI cards overlay — только пока грузится KPI-слой (не ждём chart). */
   readonly kpiChartLoadingState = computed(() => {
-    this.chartCacheRevision();
+    this.compareCacheRevision();
 
     const base = this.baseData();
     if (!base) return false;
 
-    const granularity = this.granularity();
-    const effectiveSelection = this.effectiveChartSelection();
-    const chartKey = this.currentChartCacheKey();
-    const chartCached = chartKey ? this.cache.peek(chartKey)?.data : undefined;
-    const chartSlice = chartCached ? pickDashboardChartSlice(chartCached) : null;
+    // Custom compare — спиннер только в LfL badge.
+    if (this.periodService.comparePeriod()) return false;
 
-    return !isChartSliceReady(base, effectiveSelection, granularity, chartSlice, chartKey);
+    return this.isDefaultPeriodKpiPending();
   });
 
   /** LfL badge spinner — пока грузится compare overlay (без dim всей карточки). */
@@ -309,33 +307,9 @@ export class DashboardDataStore {
       if (stable) {
         return this.applyStableKpiLayer(chartVm, stable);
       }
-      return chartVm;
     }
 
-    if (!overlay) {
-      return chartVm;
-    }
-
-    const api = this.mergedChartApi();
-    if (!api) {
-      return chartVm;
-    }
-
-    const merged = mergeCompareOverlay(api, overlay);
-    const granularity = this.granularity();
-    const effectiveSelection = this.effectiveChartSelection();
-    const weekRange =
-      granularity === 'week'
-        ? resolveChartWeekRange(effectiveSelection, merged.period)
-        : undefined;
-    const weekDayLookup =
-      granularity === 'week' && weekRange ? this.createWeekDayLookup(merged) : undefined;
-
-    return patchDashboardKpiLayer(
-      chartVm,
-      merged,
-      this.viewModelOptions(merged, weekRange, weekDayLookup),
-    );
+    return chartVm;
   });
 
   constructor() {
@@ -402,6 +376,9 @@ export class DashboardDataStore {
 
       untracked(() => {
         void this.ensureChartLoaded(key);
+        if (!this.periodService.comparePeriod()) {
+          void this.ensurePeriodKpiLoaded(key);
+        }
         if (granularity === 'week') {
           for (const { year, month } of monthKeysInIsoRange(
             effectiveSelection.weekStartDate!,
@@ -475,8 +452,28 @@ export class DashboardDataStore {
 
   private isCompareOverlayStable(): boolean {
     const compareKey = this.currentCompareCacheKey();
-    if (!compareKey) return true;
-    return isCompareOverlayReady(compareKey, Boolean(this.compareCache.peek(compareKey)));
+    if (compareKey) {
+      return isCompareOverlayReady(compareKey, Boolean(this.compareCache.peek(compareKey)));
+    }
+    return !this.isDefaultPeriodKpiPending();
+  }
+
+  private isDefaultPeriodKpiPending(): boolean {
+    if (this.periodService.comparePeriod()) return false;
+
+    const base = this.baseData();
+    if (!base) return false;
+
+    const granularity = this.granularity();
+    const effectiveSelection = this.effectiveChartSelection();
+    if (!chartFetchNeeded(effectiveSelection, granularity, base.period)) {
+      return false;
+    }
+
+    const chartKey = this.currentChartCacheKey();
+    if (!chartKey) return false;
+
+    return !this.compareCache.peek(chartKey);
   }
 
   private mergedChartApi(): DashboardApi | null {
@@ -506,6 +503,20 @@ export class DashboardDataStore {
       }
     }
 
+    const compareKey = this.currentCompareCacheKey();
+    if (compareKey) {
+      const overlay = this.compareOverlaySlice();
+      if (overlay) {
+        data = mergeCompareOverlay(data, overlay);
+      }
+    } else if (cacheKey) {
+      this.compareCacheRevision();
+      const periodKpi = this.compareCache.peek(cacheKey)?.data;
+      if (periodKpi) {
+        data = mergeCompareOverlay(data, periodKpi);
+      }
+    }
+
     return data;
   }
 
@@ -517,11 +528,7 @@ export class DashboardDataStore {
   }
 
   private mergedDashboardApi(): DashboardApi | null {
-    const data = this.mergedChartApi();
-    if (!data) return null;
-    const overlay = this.compareOverlaySlice();
-    if (!overlay) return data;
-    return mergeCompareOverlay(data, overlay);
+    return this.mergedChartApi();
   }
 
   private needsChartDataFetch(
@@ -770,6 +777,9 @@ export class DashboardDataStore {
     const chartKey = this.currentChartCacheKey();
     if (chartKey) {
       await this.ensureChartLoaded(chartKey, force);
+      if (!this.currentCompareCacheKey()) {
+        await this.ensurePeriodKpiLoaded(chartKey, force);
+      }
     }
 
     const compareKey = this.currentCompareCacheKey();
@@ -797,7 +807,7 @@ export class DashboardDataStore {
       const query = parseDashboardCacheKey(key);
       await this.cache.getOrLoad(
         key,
-        (etag) => firstValueFrom(this.repository.fetch(query, { etag })),
+        (etag) => firstValueFrom(this.repository.fetchChart(query, { etag })),
         force ? 0 : this.cacheConfig.staleAfterMs,
       );
       if (stillSelected()) {
@@ -808,6 +818,44 @@ export class DashboardDataStore {
     } finally {
       if (this.chartLoadingKey() === key) {
         this.chartLoadingKey.set(null);
+      }
+    }
+  }
+
+  private async ensurePeriodKpiLoaded(key: string, force = false): Promise<void> {
+    if (this.periodService.comparePeriod()) return;
+
+    const stillSelected = () =>
+      !this.periodService.comparePeriod() && this.currentChartCacheKey() === key;
+
+    if (!force && this.compareCache.isFresh(key, this.cacheConfig.staleAfterMs)) {
+      if (stillSelected()) {
+        this.compareCacheRevision.update((v) => v + 1);
+      }
+      return;
+    }
+
+    const awaitingFirstLoad = !this.compareCache.peek(key);
+    if (awaitingFirstLoad && stillSelected()) {
+      this.periodKpiLoadingKey.set(key);
+    }
+
+    try {
+      const query = parseDashboardCacheKey(key);
+      const { compareStart: _cs, compareEnd: _ce, ...periodQuery } = query;
+      await this.compareCache.getOrLoad(
+        key,
+        (etag) => firstValueFrom(this.repository.fetchKpi(periodQuery, { etag })),
+        force ? 0 : this.cacheConfig.staleAfterMs,
+      );
+      if (stillSelected()) {
+        this.compareCacheRevision.update((v) => v + 1);
+      }
+    } catch {
+      // Keep stale period KPI if present.
+    } finally {
+      if (this.periodKpiLoadingKey() === key) {
+        this.periodKpiLoadingKey.set(null);
       }
     }
   }
@@ -866,6 +914,7 @@ export class DashboardDataStore {
     this.baseLoading.set(false);
     this.chartLoadingKey.set(null);
     this.compareLoadingKey.set(null);
+    this.periodKpiLoadingKey.set(null);
     this.chartCacheRevision.update((v) => v + 1);
     this.compareCacheRevision.update((v) => v + 1);
     this.foodcostCacheRevision.update((v) => v + 1);

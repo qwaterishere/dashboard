@@ -131,6 +131,33 @@ class DashboardKpi(StrictModel):
     )
 
 
+class DashboardChart(StrictModel):
+    """Лёгкий контракт GET /api/dashboard/chart — график и юниты без KPI/прогноза."""
+
+    period: Period = Field(
+        description="Показываемый период: месяц последнего закрытого дня",
+    )
+    compare: Period = Field(
+        description="Период сравнения по умолчанию (LfL prev period) для метаданных",
+    )
+    dataBounds: DataBounds = Field(
+        description="Диапазон доступных данных для выбора периода на графике",
+    )
+    revenueByDay: list[RevenueDay] = Field(
+        description="Полный календарь периода, закрытые дни — нулями",
+    )
+    revenueByMonth: list[RevenueMonth] = Field(
+        description="Помесячная выручка с начала года до последнего закрытого дня",
+    )
+    units: list[UnitSums] = Field(
+        description="Всегда четыре элемента: k, b, w, o (нулевые включены)",
+    )
+    weekKpi: WeekKpiContext | None = Field(
+        default=None,
+        description="Контекст недельного датафрейма; null — month/year mode",
+    )
+
+
 class Dashboard(StrictModel):
     period: Period = Field(
         description="Показываемый период: месяц последнего закрытого дня"

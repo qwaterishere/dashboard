@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from src.domain.constants import resolve_unit, CAT_OTHER
 from src.db.models.sales import Order, DishSale
-from src.schemas.dashboard import Dashboard, DashboardKpi
+from src.schemas.dashboard import Dashboard, DashboardChart, DashboardKpi
 from src.services.period_compare import previous_period as _previous_period
 
 # Прогноз считается от 7 закрытых дней: первая неделя месяца покрывает
@@ -296,6 +296,122 @@ def _empty_kpis() -> dict:
         'guests': dict(empty),
         'avgCheck': dict(empty),
     }
+
+
+def _assemble_chart_response(
+    d_from: date,
+    d_to: date,
+    daily: dict,
+    units: dict,
+    prev_units: dict,
+    monthly: list[dict],
+    earliest: date | None,
+    latest: date | None,
+    *,
+    compare_from: date,
+    compare_to: date,
+    week_kpi: dict | None = None,
+) -> DashboardChart:
+    revenue_by_day = []
+    if (d_to - d_from).days <= 31:
+        day = d_from
+        while day <= d_to:
+            m = daily.get(day, {'revenue': 0.0, 'checks': 0, 'guests': 0})
+            revenue_by_day.append({
+                'day': day.day,
+                'weekday': (day.weekday() + 1) % 7,
+                'revenue': round(m['revenue']),
+                'checks': m['checks'],
+                'guests': m['guests'],
+                'plan': None,
+            })
+            day += timedelta(days=1)
+
+    return DashboardChart.model_validate({
+        'period': _period_dict(d_from, d_to),
+        'compare': _period_dict(compare_from, compare_to),
+        'dataBounds': {'earliest': earliest, 'latest': latest},
+        'revenueByDay': revenue_by_day,
+        'revenueByMonth': monthly,
+        'units': [{'key': key,
+                   'revenue': round(units[key]['revenue']),
+                   'cost': round(units[key]['cost']),
+                   'prevRevenue': round(prev_units[key]['revenue']),
+                   'prevCost': round(prev_units[key]['cost'])}
+                  for key in UNIT_KEYS],
+        'weekKpi': week_kpi,
+    })
+
+
+def build_dashboard_chart(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int | None = None,
+    month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+) -> DashboardChart:
+    """Chart-слой без KPI, прогноза и custom compare — для смены датафрейма."""
+    d_from, d_to, earliest, latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    compare_from, compare_to = _previous_period(d_from, d_to)
+
+    if latest is None:
+        return _assemble_chart_response(
+            d_from=d_from,
+            d_to=d_to,
+            daily={},
+            units=_zero_units(),
+            prev_units=_zero_units(),
+            monthly=[],
+            earliest=earliest,
+            latest=latest,
+            compare_from=compare_from,
+            compare_to=compare_to,
+        )
+
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    monthly = _monthly(session, restaurant_id, d_to)
+
+    chart = _assemble_chart_response(
+        d_from,
+        d_to,
+        daily,
+        _unit_sums(session, restaurant_id, d_from, d_to),
+        _unit_sums(session, restaurant_id, compare_from, compare_to),
+        monthly,
+        earliest,
+        latest,
+        compare_from=compare_from,
+        compare_to=compare_to,
+    )
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week chart")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+        )
+        payload = chart.model_dump()
+        payload.update({
+            "compare": overlay["compare"],
+            "weekKpi": overlay["weekKpi"],
+        })
+        return DashboardChart.model_validate(payload)
+
+    return chart
 
 
 def build_dashboard_kpi(
