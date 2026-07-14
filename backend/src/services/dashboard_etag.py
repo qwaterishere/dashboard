@@ -28,6 +28,11 @@ def compute_dashboard_etag(
     *,
     year: int | None,
     month: int | None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+    compare_start: date | None = None,
+    compare_end: date | None = None,
+    scope: str = "full",
 ) -> str:
     """ETag из restaurant_id, query-периода, max(day) и метки sync."""
     restaurant = session.get(Restaurant, restaurant_id)
@@ -52,6 +57,17 @@ def compute_dashboard_etag(
     latest = latest_query.scalar()
     latest_token = latest.isoformat() if latest else ""
 
-    payload = f"{restaurant_id}:{year}:{month}:{latest_token}:{sync_token}"
+    week_token = ""
+    if week_start is not None and week_end is not None:
+        week_token = f"{week_start.isoformat()}:{week_end.isoformat()}"
+
+    compare_token = ""
+    if compare_start is not None and compare_end is not None:
+        compare_token = f"{compare_start.isoformat()}:{compare_end.isoformat()}"
+
+    payload = (
+        f"{scope}:{restaurant_id}:{year}:{month}:{week_token}:"
+        f"{compare_token}:{latest_token}:{sync_token}"
+    )
     digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
     return f'W/"{digest}"'

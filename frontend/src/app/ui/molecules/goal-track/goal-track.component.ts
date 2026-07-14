@@ -36,23 +36,46 @@ import type { DetailPopover } from '../../../shared/models';
   styles: `
     :host {
       display: block;
-      margin-top: auto;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .k-goal {
-      padding-top: 12px;
+      min-width: 0;
+      max-width: 100%;
+      padding-top: var(--kpi-footer-padding-top);
       border-top: 1px solid var(--border-subtle);
       cursor: pointer;
+      box-sizing: border-box;
     }
     .g-row {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      min-height: var(--kpi-footer-row-height);
       font-size: 0.7rem;
       color: var(--mut);
-      margin-bottom: 6px;
+      margin-bottom: var(--kpi-footer-track-gap);
     }
+
+    .g-row > app-text {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .g-row b {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       font-size: 0.74rem;
       font-weight: 800;
       color: var(--txt);

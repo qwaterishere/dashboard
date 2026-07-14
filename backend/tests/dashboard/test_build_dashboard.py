@@ -5,7 +5,7 @@ from datetime import date
 import pytest
 
 from src.schemas.dashboard import Dashboard
-from src.services.dashboard import build_dashboard, _same_period_last_year
+from src.services.dashboard import build_dashboard
 from src.db.session import DataBaseManager, Base
 from src.services.sales import ingest_records, parse_records
 from tests.factories import create_restaurant
@@ -47,23 +47,25 @@ def test_lfl_and_calendar(session, restaurant):
     ingest_records(session, parse_records([
         _sale('2026-06-01', 1, '11111111-0000-0000-0000-000000000001'),
         _sale('2026-06-03', 2, '11111111-0000-0000-0000-000000000002', paid=700),
-        # прошлый год, те же числа
-        _sale('2025-06-02', 3, '22222222-0000-0000-0000-000000000001', paid=400),
+        # предыдущий месяц, те же числа
+        _sale('2026-05-02', 3, '22222222-0000-0000-0000-000000000001', paid=400),
     ]), restaurant_id=restaurant.id)
     session.commit()
 
     page = build_dashboard(session, restaurant.id)
     assert page.period.year == 2026 and page.period.dayTo == 3
-    assert page.compare.year == 2025
+    assert page.compare.year == 2026 and page.compare.month == 5
     assert page.kpis.revenue.value == 1200
     assert page.kpis.revenue.prevValue == 400
     # полный календарь: 2 июня без продаж, но присутствует нулями
     assert [d.day for d in page.revenueByDay] == [1, 2, 3]
     assert page.revenueByDay[1].revenue == 0
     assert page.revenueByDay[0].plan is None
-    assert len(page.revenueByMonth) == 1
-    assert page.revenueByMonth[0].month == 6
-    assert page.revenueByMonth[0].revenue == 1200
+    assert len(page.revenueByMonth) == 2
+    assert page.revenueByMonth[0].month == 5
+    assert page.revenueByMonth[1].month == 6
+    assert page.revenueByMonth[0].revenue == 400
+    assert page.revenueByMonth[1].revenue == 1200
     assert page.kpis.revenue.forecast is None
 
 
@@ -114,5 +116,6 @@ def test_build_dashboard_for_selected_month(session, restaurant):
     page = build_dashboard(session, restaurant.id, year=2026, month=5)
     assert page.period.month == 5
     assert page.period.dayTo == 31
+    assert page.compare.year == 2026 and page.compare.month == 4
     assert page.kpis.revenue.value == 300
     assert page.dataBounds.latest == date(2026, 6, 1)

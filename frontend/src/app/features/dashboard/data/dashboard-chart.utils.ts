@@ -1,17 +1,37 @@
 import type { ChartPeriodSelection } from '../../../shared/models/chart-period.model';
-import type { ChartWeekRange } from '../../../shared/models/chart-period.model';
 import {
   buildDashboardCacheKey,
   chartSelectionToQuery,
 } from '../../../core/data/analytics-cache-key';
 import type { PeriodGranularity } from '../../../shared/models/common.model';
-import type { DashboardV2, PeriodV2, RevenueDayV2, RevenueMonthV2 } from '../../../shared/models/dashboard-v2.model';
-import { resolveDefaultWeekRange } from '../../../shared/utils/chart-period.utils';
-import { buildWeekRevenueDays } from '../../../shared/utils/period-format.utils';
+import type {
+  DashboardApi,
+  ApiPeriod,
+  DataBounds,
+  RevenueDayFact,
+  RevenueMonthFact,
+  DashboardCompareSlice,
+} from '../../../shared/models/dashboard-api.model';
+import {
+  inferComparePeriod,
+  inferPendingChartPeriod,
+} from '../../../shared/utils/period-format.utils';
+import {
+  resolveDefaultWeekForMonth,
+  resolveLatestChartPeriodSelection,
+} from '../../../shared/utils/chart-period.utils';
+
+export type { DashboardCompareSlice } from '../../../shared/models/dashboard-api.model';
 
 export type DashboardChartSlice = Pick<
-  DashboardV2,
-  'period' | 'compare' | 'kpis' | 'revenueByDay' | 'revenueByMonth' | 'dataBounds'
+  DashboardApi,
+  | 'period'
+  | 'compare'
+  | 'kpis'
+  | 'revenueByDay'
+  | 'revenueByMonth'
+  | 'dataBounds'
+  | 'weekKpi'
 >;
 
 const EMPTY_KPI_COMPARISON = {
@@ -20,7 +40,7 @@ const EMPTY_KPI_COMPARISON = {
 };
 
 /** Placeholder KPI while the selected chart slice is loading. */
-export function emptyChartKpis(): DashboardV2['kpis'] {
+export function emptyChartKpis(): DashboardApi['kpis'] {
   const empty = { value: 0, ...EMPTY_KPI_COMPARISON };
   return {
     revenue: { ...empty },
@@ -30,14 +50,33 @@ export function emptyChartKpis(): DashboardV2['kpis'] {
   };
 }
 
-/** Эффективный chartPeriod для cache/API: в year-mode null → текущий год base. */
+/** Эффективный chartPeriod для cache/API; в week-mode всегда с ISO-диапазоном недели. */
 export function resolveEffectiveChartSelection(
   selection: ChartPeriodSelection | null,
   granularity: PeriodGranularity,
-  basePeriod: PeriodV2,
+  basePeriod: ApiPeriod,
+  bounds: DataBounds | null = null,
 ): ChartPeriodSelection {
   if (granularity === 'year') {
     return { year: selection?.year ?? basePeriod.year, month: 1 };
+  }
+  if (granularity === 'week') {
+    if (selection?.weekStartDate && selection?.weekEndDate) {
+      return selection;
+    }
+    const latest = resolveLatestChartPeriodSelection('week', bounds, basePeriod);
+    if (latest?.weekStartDate && latest?.weekEndDate) {
+      return latest;
+    }
+    const year = selection?.year ?? basePeriod.year;
+    const month = selection?.month ?? basePeriod.month;
+    const week = resolveDefaultWeekForMonth(year, month, bounds, basePeriod);
+    return {
+      year,
+      month,
+      weekStartDate: week.startDate,
+      weekEndDate: week.endDate,
+    };
   }
   return selection ?? { year: basePeriod.year, month: basePeriod.month };
 }
@@ -51,14 +90,15 @@ export function dashboardChartCacheKey(
 }
 
 export function chartFetchNeeded(
-  selection: ChartPeriodSelection | null,
+  selection: ChartPeriodSelection,
   granularity: PeriodGranularity,
-  basePeriod: PeriodV2 | null,
+  basePeriod: ApiPeriod | null,
 ): boolean {
   if (!basePeriod) return false;
+  /** Week-mode всегда требует overlay с weekStart/weekEnd, даже для «текущей» недели. */
+  if (granularity === 'week') return true;
   /** /latest — KPI только за текущий месяц; year-mode всегда нужен y:YYYY. */
   if (granularity === 'year') return true;
-  if (!selection) return false;
   return selection.year !== basePeriod.year || selection.month !== basePeriod.month;
 }
 
@@ -72,12 +112,27 @@ export function chartSliceMatchesSelection(
   if (granularity === 'year') {
     return period.year === selection.year;
   }
-  return period.year === selection.year && period.month === selection.month;
+  if (granularity === 'week') {
+    if (!selection.weekStartDate || !selection.weekEndDate) return false;
+    const week = slice.weekKpi;
+    if (!week) return false;
+    return (
+      period.year === selection.year &&
+      period.month === selection.month &&
+      week.weekStart === selection.weekStartDate &&
+      week.weekEnd === selection.weekEndDate
+    );
+  }
+  if (granularity === 'month') {
+    if (slice.weekKpi) return false;
+    return period.year === selection.year && period.month === selection.month;
+  }
+  return false;
 }
 
 /** Slice for the current picker selection is present in cache (or interim YTD is usable). */
 export function isChartSliceReady(
-  base: DashboardV2,
+  base: DashboardApi,
   selection: ChartPeriodSelection,
   granularity: PeriodGranularity,
   slice: DashboardChartSlice | null,
@@ -101,12 +156,12 @@ export function isChartSliceReady(
 
 /** Merge base KPI payload with a chart slice only when it belongs to the current cache key. */
 export function resolveMergedChartData(
-  base: DashboardV2,
+  base: DashboardApi,
   selection: ChartPeriodSelection,
   granularity: PeriodGranularity,
   slice: DashboardChartSlice | null,
   cacheKey: string | null,
-): DashboardV2 {
+): DashboardApi {
   if (!chartFetchNeeded(selection, granularity, base.period)) {
     return base;
   }
@@ -116,8 +171,8 @@ export function resolveMergedChartData(
 
   const interim = {
     ...base,
-    revenueByDay: [] as DashboardV2['revenueByDay'],
-    revenueByMonth: [] as DashboardV2['revenueByMonth'],
+    revenueByDay: [] as DashboardApi['revenueByDay'],
+    revenueByMonth: [] as DashboardApi['revenueByMonth'],
   };
 
   if (granularity === 'year' && selection.year === base.period.year) {
@@ -125,14 +180,22 @@ export function resolveMergedChartData(
     return { ...interim, revenueByMonth: base.revenueByMonth ?? [] };
   }
 
-  /** Не показываем KPI текущего месяца из /latest, пока не пришёл slice выбранного периода. */
-  return { ...interim, kpis: emptyChartKpis() };
+  const pendingPeriod = inferPendingChartPeriod(selection, granularity, base.period);
+
+  /** Не показываем KPI /latest или month-slice, пока не пришёл нужный chart slice. */
+  return {
+    ...interim,
+    period: pendingPeriod,
+    kpis: emptyChartKpis(),
+    weekKpi: null,
+    compare: inferComparePeriod(pendingPeriod),
+  };
 }
 
 export function mergeDashboardChartData(
-  base: DashboardV2,
+  base: DashboardApi,
   chart: DashboardChartSlice,
-): DashboardV2 {
+): DashboardApi {
   return {
     ...base,
     period: chart.period,
@@ -141,13 +204,42 @@ export function mergeDashboardChartData(
     revenueByDay: chart.revenueByDay,
     revenueByMonth: chart.revenueByMonth,
     dataBounds: chart.dataBounds,
+    weekKpi: chart.weekKpi ?? null,
   };
+}
+
+/** KPI + compare из ответа с compareStart/compareEnd (без перезагрузки графика). */
+export function pickDashboardCompareSlice(
+  data: Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi'>,
+): DashboardCompareSlice {
+  return {
+    kpis: data.kpis,
+    compare: data.compare,
+    weekKpi: data.weekKpi ?? null,
+  };
+}
+
+export function mergeCompareOverlay(
+  chart: DashboardApi,
+  overlay: DashboardCompareSlice,
+): DashboardApi {
+  return {
+    ...chart,
+    kpis: overlay.kpis,
+    compare: overlay.compare,
+    weekKpi: overlay.weekKpi ?? null,
+  };
+}
+
+export function isCompareOverlayReady(compareKey: string | null, cached: boolean): boolean {
+  if (!compareKey) return true;
+  return cached;
 }
 
 /** KPI YTD из помесячной серии (interim, пока не загружен y:YYYY). */
 export function aggregateKpisFromRevenueMonths(
-  months: RevenueMonthV2[],
-): DashboardV2['kpis'] {
+  months: RevenueMonthFact[],
+): DashboardApi['kpis'] {
   const revenue = months.reduce((sum, month) => sum + month.revenue, 0);
   const checks = months.reduce((sum, month) => sum + month.checks, 0);
   const guests = months.reduce((sum, month) => sum + month.guests, 0);
@@ -165,7 +257,7 @@ export function aggregateKpisFromRevenueMonths(
 }
 
 /** Пересчитывает KPI карточек для year-timeframe из revenueByMonth. */
-export function applyYearTimeframeKpis(data: DashboardV2): DashboardV2 {
+export function applyYearTimeframeKpis(data: DashboardApi): DashboardApi {
   const months = data.revenueByMonth ?? [];
   if (!months.length) return data;
 
@@ -176,7 +268,7 @@ export function applyYearTimeframeKpis(data: DashboardV2): DashboardV2 {
 }
 
 /** KPI по дням (недельный датафрейм внутри месяца). */
-export function aggregateKpisFromRevenueDays(days: RevenueDayV2[]): DashboardV2['kpis'] {
+export function aggregateKpisFromRevenueDays(days: RevenueDayFact[]): DashboardApi['kpis'] {
   const revenue = days.reduce((sum, day) => sum + day.revenue, 0);
   const checks = days.reduce((sum, day) => sum + day.checks, 0);
   const guests = days.reduce((sum, day) => sum + day.guests, 0);
@@ -193,34 +285,7 @@ export function aggregateKpisFromRevenueDays(days: RevenueDayV2[]): DashboardV2[
   };
 }
 
-/** Пересчитывает KPI карточек для выбранной календарной недели. */
-export function applyWeekTimeframeKpis(
-  data: DashboardV2,
-  weekRange?: ChartWeekRange,
-  lookupDay?: (year: number, month: number, day: number) => RevenueDayV2 | undefined,
-): DashboardV2 {
-  const period = data.period;
-  const effectiveRange =
-    weekRange ?? resolveDefaultWeekRange(period.year, period.month, period.dayFrom, period.dayTo);
-  const weekDays = buildWeekRevenueDays(
-    data.revenueByDay,
-    period,
-    effectiveRange,
-    lookupDay,
-  );
-
-  return {
-    ...data,
-    period: {
-      ...period,
-      dayFrom: weekDays[0]?.day ?? period.dayFrom,
-      dayTo: weekDays[weekDays.length - 1]?.day ?? period.dayTo,
-    },
-    kpis: aggregateKpisFromRevenueDays(weekDays),
-  };
-}
-
-export function pickDashboardChartSlice(data: DashboardV2): DashboardChartSlice {
+export function pickDashboardChartSlice(data: DashboardApi): DashboardChartSlice {
   return {
     period: data.period,
     compare: data.compare,
@@ -228,5 +293,6 @@ export function pickDashboardChartSlice(data: DashboardV2): DashboardChartSlice 
     revenueByDay: data.revenueByDay,
     revenueByMonth: data.revenueByMonth,
     dataBounds: data.dataBounds,
+    weekKpi: data.weekKpi ?? null,
   };
 }

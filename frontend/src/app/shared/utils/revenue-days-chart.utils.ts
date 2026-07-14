@@ -1,4 +1,4 @@
-import type { ChartDisplayMode } from '../models/common.model';
+import type { ChartDisplayMode, PeriodGranularity } from '../models/common.model';
 import type { RevenueDay } from '../models';
 
 export interface RevenueDayBarLayout {
@@ -35,9 +35,16 @@ export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-function formatBarLabel(day: RevenueDay, displayMode: ChartDisplayMode): string {
+function formatBarLabel(
+  day: RevenueDay,
+  displayMode: ChartDisplayMode,
+  timeframe: PeriodGranularity,
+): string {
   if (day.barLabel) return day.barLabel;
   if (displayMode === 'month' || displayMode === 'quarter') {
+    return String(day.day);
+  }
+  if (displayMode === 'day' && timeframe === 'month') {
     return String(day.day);
   }
   const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'] as const;
@@ -48,6 +55,7 @@ export function buildRevenueDaysChartLayout(
   days: RevenueDay[],
   max: number,
   displayMode: ChartDisplayMode = 'day',
+  timeframe: PeriodGranularity = 'week',
 ): RevenueDaysChartLayout {
   const iw = CHART_WIDTH - PADDING.left - PADDING.right;
   const ih = CHART_HEIGHT - PADDING.top - PADDING.bottom;
@@ -78,7 +86,7 @@ export function buildRevenueDaysChartLayout(
       planY: round1(planY),
       hasPlan,
       labelX: round1(labelX),
-      label: formatBarLabel(day, displayMode),
+      label: formatBarLabel(day, displayMode, timeframe),
       weekend,
       day,
     };

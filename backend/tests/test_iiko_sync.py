@@ -52,7 +52,7 @@ def test_sync_starts_background_job(client, monkeypatch):
 
     called: list[str] = []
 
-    def fake_run_sync(restaurant_id):
+    def fake_run_sync(restaurant_id, *, full=False):
         called.append(str(restaurant_id))
 
     monkeypatch.setattr("src.services.iiko_sync.run_sync_job", fake_run_sync)

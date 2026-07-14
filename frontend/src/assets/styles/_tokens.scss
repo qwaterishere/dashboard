@@ -46,6 +46,29 @@
   --chart-axis: #5a6480;
   --chart-weekend: #9d9bff;
   --chart-selection: #6e6bff;
+
+  /* KPI card — фиксированные слоты (month/week/year не меняют высоту карточки) */
+  --kpi-lfl-slot-height: 1.35rem;
+  --kpi-sub-height: 1.35rem;
+  --kpi-footer-padding-top: 12px;
+  --kpi-footer-row-height: 1.1rem;
+  --kpi-footer-track-gap: 6px;
+  --kpi-footer-track-height: 6px;
+  --kpi-footer-height: calc(
+    var(--kpi-footer-padding-top) + var(--kpi-footer-row-height) +
+      var(--kpi-footer-track-gap) + var(--kpi-footer-track-height)
+  );
+
+  /* Period bar — фиксированные слоты date-pill / LfL (month/week/year) */
+  --period-pill-height: 2.125rem;
+  --period-date-slot-width: 18rem;
+  --period-compare-slot-width: 16rem;
+  --lfl-badge-min-width: 5.25rem;
+
+  --scrollbar-size: 10px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2a3552;
+  --scrollbar-thumb-hover: #3d4d6e;
 }
 
 [data-theme='light'] {
@@ -86,4 +109,9 @@
   --chart-axis: #8590a8;
   --chart-weekend: #6e6bff;
   --chart-selection: #5b58e6;
+
+  --scrollbar-size: 10px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c8d0dc;
+  --scrollbar-thumb-hover: #a8b4c8;
 }

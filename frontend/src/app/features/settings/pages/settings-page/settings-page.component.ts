@@ -47,7 +47,8 @@ import { SettingsService } from '../../services/settings.service';
           [syncError]="iikoSyncError()"
           [syncSuccess]="iikoSyncSuccess()"
           (saved)="onIikoSave($event)"
-          (syncRequested)="onIikoSync()"
+          (syncRequested)="onIikoSync(false)"
+          (resyncRequested)="onIikoSync(true)"
         />
         <app-password-settings-organism
           [loading]="passwordLoading()"
@@ -133,12 +134,12 @@ export class SettingsPageComponent {
     });
   }
 
-  onIikoSync(): void {
+  onIikoSync(full: boolean): void {
     this.iikoSyncLoading.set(true);
     this.iikoSyncError.set(null);
     this.iikoSyncSuccess.set(false);
 
-    this.settings.syncIiko().subscribe({
+    this.settings.syncIiko(full).subscribe({
       next: () => {
         this.pollIikoSyncStatus();
       },

@@ -20,7 +20,8 @@ from sqlalchemy.orm import Session
 
 from src.domain.constants import resolve_unit, CAT_OTHER
 from src.db.models.sales import Order, DishSale
-from src.schemas.dashboard import Dashboard
+from src.schemas.dashboard import Dashboard, DashboardKpi
+from src.services.period_compare import previous_period as _previous_period
 
 # Прогноз считается от 7 закрытых дней: первая неделя месяца покрывает
 # каждый день недели ровно один раз — раньше run-rate экстраполирует шум.
@@ -37,16 +38,6 @@ UNIT_KEYS = ('k', 'b', 'w', CAT_OTHER)   # порядок элементов uni
 # --------------------------------------------------------------------------
 # периоды
 # --------------------------------------------------------------------------
-
-def _same_period_last_year(d_from: date, d_to: date) -> tuple[date, date]:
-    """Те же календарные числа прошлого года; 29 февраля -> 28-е."""
-    def shift(d: date) -> date:
-        try:
-            return d.replace(year=d.year - 1)
-        except ValueError:
-            return d.replace(year=d.year - 1, day=28)
-    return shift(d_from), shift(d_to)
-
 
 def _period_dict(d_from: date, d_to: date) -> dict:
     return {'year': d_from.year, 'month': d_from.month,
@@ -260,75 +251,22 @@ def _forecast(daily: dict[date, dict], history: dict[date, dict], metric: str,
 # сборка
 # --------------------------------------------------------------------------
 
-def build_dashboard(
-    session: Session,
-    restaurant_id: UUID,
-    *,
-    year: int | None = None,
-    month: int | None = None,
-) -> Dashboard:
-    d_from, d_to, earliest, latest = _resolve_dashboard_period(
-        session, restaurant_id, year=year, month=month,
-    )
-    if latest is None:
-        return _assemble_response(
-            d_from=d_from,
-            d_to=d_to,
-            cur=_ZERO_TOTALS,
-            prev=None,
-            daily={},
-            units=_zero_units(),
-            prev_units=_zero_units(),
-            forecasts={'revenue': None, 'checks': None, 'guests': None},
-            monthly=[],
-            earliest=earliest,
-            latest=latest,
-        )
-
-    prev_from, prev_to = _same_period_last_year(d_from, d_to)
-    days_in_month = calendar.monthrange(d_from.year, d_from.month)[1]
-
-    cur = _totals(session, restaurant_id, d_from, d_to)
-    prev_raw = _totals(session, restaurant_id, prev_from, prev_to)
-    prev = prev_raw if prev_raw['checks'] > 0 else None
-
-    daily = _daily(session, restaurant_id, d_from, d_to)
-    history = _daily(
-        session,
-        restaurant_id,
-        d_from - timedelta(weeks=HISTORY_WEEKS),
-        d_from - timedelta(days=1),
-    )
-    forecasts = {m: _forecast(daily, history, m, d_from, d_to, days_in_month)
-                 for m in ('revenue', 'checks', 'guests')}
-    monthly = _monthly(session, restaurant_id, d_to)
-
-    return _assemble_response(
-        d_from,
-        d_to,
-        cur,
-        prev,
-        daily,
-        _unit_sums(session, restaurant_id, d_from, d_to),
-        _unit_sums(session, restaurant_id, prev_from, prev_to),
-        forecasts,
-        monthly,
-        earliest,
-        latest,
-    )
+def _resolve_compare_period(
+    d_from: date,
+    d_to: date,
+    compare_start: date | None,
+    compare_end: date | None,
+) -> tuple[date, date]:
+    if compare_start is None and compare_end is None:
+        return _previous_period(d_from, d_to)
+    if compare_start is None or compare_end is None:
+        raise ValueError("compareStart and compareEnd must be provided together")
+    if compare_start > compare_end:
+        raise ValueError("compareStart must be on or before compareEnd")
+    return compare_start, compare_end
 
 
-_ZERO_TOTALS = {'revenue': 0.0, 'cost': 0.0, 'checks': 0, 'guests': 0}
-
-
-def _zero_units() -> dict[str, dict]:
-    return {key: {'revenue': 0.0, 'cost': 0.0} for key in UNIT_KEYS}
-
-
-def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
-              daily: dict, units: dict, prev_units: dict,
-              forecasts: dict, monthly: list[dict],
-              earliest: date | None, latest: date | None) -> Dashboard:
+def _build_kpis(cur: dict, prev: dict | None, forecasts: dict) -> dict:
     def metric(name: str) -> dict:
         return {'value': cur[name],
                 'prevValue': prev[name] if prev else None,
@@ -342,6 +280,210 @@ def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
                      if forecasts['revenue'] and forecasts['checks'] else None),
     }
 
+    return {
+        'revenue': metric('revenue'),
+        'checks': metric('checks'),
+        'guests': metric('guests'),
+        'avgCheck': avg_check,
+    }
+
+
+def _empty_kpis() -> dict:
+    empty = {'value': 0, 'prevValue': None, 'forecast': None}
+    return {
+        'revenue': dict(empty),
+        'checks': dict(empty),
+        'guests': dict(empty),
+        'avgCheck': dict(empty),
+    }
+
+
+def build_dashboard_kpi(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int | None = None,
+    month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+    compare_start: date | None = None,
+    compare_end: date | None = None,
+) -> DashboardKpi:
+    """KPI-слой без графика, юнитов и YTD — для LfL overlay на фронте."""
+    d_from, d_to, _earliest, latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    compare_from, compare_to = _resolve_compare_period(
+        d_from, d_to, compare_start, compare_end,
+    )
+
+    if latest is None:
+        return DashboardKpi.model_validate({
+            'period': _period_dict(d_from, d_to),
+            'compare': _period_dict(compare_from, compare_to),
+            'kpis': _empty_kpis(),
+            'weekKpi': None,
+        })
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week KPI")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+            compare_start=compare_start,
+            compare_end=compare_end,
+        )
+        return DashboardKpi.model_validate({
+            'period': _period_dict(d_from, d_to),
+            'compare': overlay['compare'],
+            'kpis': overlay['kpis'],
+            'weekKpi': overlay['weekKpi'],
+        })
+
+    days_in_month = calendar.monthrange(d_from.year, d_from.month)[1]
+    cur = _totals(session, restaurant_id, d_from, d_to)
+    prev_raw = _totals(session, restaurant_id, compare_from, compare_to)
+    prev = prev_raw if prev_raw['checks'] > 0 else None
+
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    history = _daily(
+        session,
+        restaurant_id,
+        d_from - timedelta(weeks=HISTORY_WEEKS),
+        d_from - timedelta(days=1),
+    )
+    forecasts = {m: _forecast(daily, history, m, d_from, d_to, days_in_month)
+                 for m in ('revenue', 'checks', 'guests')}
+
+    return DashboardKpi.model_validate({
+        'period': _period_dict(d_from, d_to),
+        'compare': _period_dict(compare_from, compare_to),
+        'kpis': _build_kpis(cur, prev, forecasts),
+        'weekKpi': None,
+    })
+
+
+def build_dashboard(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int | None = None,
+    month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+    compare_start: date | None = None,
+    compare_end: date | None = None,
+) -> Dashboard:
+    d_from, d_to, earliest, latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    if latest is None:
+        compare_from, compare_to = _resolve_compare_period(
+            d_from, d_to, compare_start, compare_end,
+        )
+        return _assemble_response(
+            d_from=d_from,
+            d_to=d_to,
+            cur=_ZERO_TOTALS,
+            prev=None,
+            daily={},
+            units=_zero_units(),
+            prev_units=_zero_units(),
+            forecasts={'revenue': None, 'checks': None, 'guests': None},
+            monthly=[],
+            earliest=earliest,
+            latest=latest,
+            compare_from=compare_from,
+            compare_to=compare_to,
+        )
+
+    compare_from, compare_to = _resolve_compare_period(
+        d_from, d_to, compare_start, compare_end,
+    )
+    days_in_month = calendar.monthrange(d_from.year, d_from.month)[1]
+
+    cur = _totals(session, restaurant_id, d_from, d_to)
+    prev_raw = _totals(session, restaurant_id, compare_from, compare_to)
+    prev = prev_raw if prev_raw['checks'] > 0 else None
+
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    history = _daily(
+        session,
+        restaurant_id,
+        d_from - timedelta(weeks=HISTORY_WEEKS),
+        d_from - timedelta(days=1),
+    )
+    forecasts = {m: _forecast(daily, history, m, d_from, d_to, days_in_month)
+                 for m in ('revenue', 'checks', 'guests')}
+    monthly = _monthly(session, restaurant_id, d_to)
+
+    dashboard = _assemble_response(
+        d_from,
+        d_to,
+        cur,
+        prev,
+        daily,
+        _unit_sums(session, restaurant_id, d_from, d_to),
+        _unit_sums(session, restaurant_id, compare_from, compare_to),
+        forecasts,
+        monthly,
+        earliest,
+        latest,
+        compare_from=compare_from,
+        compare_to=compare_to,
+    )
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week KPI")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+            compare_start=compare_start,
+            compare_end=compare_end,
+        )
+        payload = dashboard.model_dump()
+        payload.update({
+            "kpis": overlay["kpis"],
+            "compare": overlay["compare"],
+            "weekKpi": overlay["weekKpi"],
+        })
+        return Dashboard.model_validate(payload)
+
+    return dashboard
+
+
+_ZERO_TOTALS = {'revenue': 0.0, 'cost': 0.0, 'checks': 0, 'guests': 0}
+
+
+def _zero_units() -> dict[str, dict]:
+    return {key: {'revenue': 0.0, 'cost': 0.0} for key in UNIT_KEYS}
+
+
+def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
+              daily: dict, units: dict, prev_units: dict,
+              forecasts: dict, monthly: list[dict],
+              earliest: date | None, latest: date | None,
+              *, compare_from: date, compare_to: date) -> Dashboard:
     revenue_by_day = []
     if (d_to - d_from).days <= 31:
         day = d_from
@@ -357,15 +499,11 @@ def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
             })
             day += timedelta(days=1)
 
-    p_from, p_to = _same_period_last_year(d_from, d_to)
     return Dashboard.model_validate({
         'period': _period_dict(d_from, d_to),
-        'compare': _period_dict(p_from, p_to),
+        'compare': _period_dict(compare_from, compare_to),
         'dataBounds': {'earliest': earliest, 'latest': latest},
-        'kpis': {'revenue': metric('revenue'),
-                 'checks': metric('checks'),
-                 'guests': metric('guests'),
-                 'avgCheck': avg_check},
+        'kpis': _build_kpis(cur, prev, forecasts),
         'revenueByDay': revenue_by_day,
         'revenueByMonth': monthly,
         'units': [{'key': key,

@@ -24,7 +24,9 @@ test.describe('security', () => {
     await page.route('**/api/foodcost', async (route) => {
       const response = await route.fetch();
       const json = await response.json();
-      json.overview.clean.title = payload;
+      if (Array.isArray(json.groups) && json.groups.length > 0) {
+        json.groups[0].group = payload;
+      }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(json) });
     });
 

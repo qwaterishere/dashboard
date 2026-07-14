@@ -3,11 +3,18 @@ import type { ChartWeekRange } from '../../../shared/models/chart-period.model';
 import type { CategoryKey, ChartDisplayMode, DetailPopover, LflDirection, LflMetric, PeriodGranularity } from '../../../shared/models/common.model';
 import type { DashboardData } from '../../../shared/models/dashboard.model';
 import type {
-  DashboardV2,
-  KpiMetricV2,
-  UnitSumsV2,
-} from '../../../shared/models/dashboard-v2.model';
+  DashboardApi,
+  KpiMetric,
+  UnitSums,
+  WeekKpiContext,
+} from '../../../shared/models/dashboard-api.model';
+import { buildWeekKpiFooters } from './dashboard-week.mapper';
 import type { WarehouseData } from '../../../shared/models/warehouse.model';
+import type { FoodcostApi } from '../../../shared/models/foodcost-api.model';
+import {
+  buildDashboardFoodcostMini,
+  buildDashboardRevenueCategories,
+} from '../../foodcost/data/foodcost.mapper';
 import { defaultChartDisplayMode } from '../../../shared/constants/chart-display.constants';
 import { buildChartDisplaySeries } from '../../../shared/utils/chart-display.utils';
 import {
@@ -25,7 +32,10 @@ export interface DashboardViewModelOptions {
   stock?: DashboardData['stock'];
   chartPeriodLabel?: string;
   weekRange?: ChartWeekRange;
-  weekDayLookup?: (year: number, month: number, day: number) => import('../../../shared/models/dashboard-v2.model').RevenueDayV2 | undefined;
+  weekDayLookup?: (year: number, month: number, day: number) => import('../../../shared/models/dashboard-api.model').RevenueDayFact | undefined;
+  /** Факты фудкоста за тот же период — для mini-панели и donut категорий. */
+  foodcost?: FoodcostApi | null;
+  weekKpi?: WeekKpiContext | null;
 }
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
@@ -45,7 +55,7 @@ function formatSignedMoney(delta: number): string {
   return `${sign}${formatMoney(Math.abs(delta))}`;
 }
 
-function forecastBlock(metric: KpiMetricV2, formatValue: (n: number) => string) {
+function forecastBlock(metric: KpiMetric, formatValue: (n: number) => string) {
   const forecast = metric.forecast;
   if (forecast === null) {
     return { value: 0, planPct: 0, trackPct: 0, risk: false, headline: '—' };
@@ -79,7 +89,7 @@ function buildLflPopover(
   return { title, rows, footnote };
 }
 
-function buildGoalPopover(title: string, metric: KpiMetricV2, format: (n: number) => string): DetailPopover {
+function buildGoalPopover(title: string, metric: KpiMetric, format: (n: number) => string): DetailPopover {
   const fc = forecastBlock(metric, format);
   return {
     title,
@@ -91,8 +101,8 @@ function buildGoalPopover(title: string, metric: KpiMetricV2, format: (n: number
   };
 }
 
-function buildFoodcostMini(units: UnitSumsV2[]): DashboardData['foodcostMini'] {
-  const byKey = Object.fromEntries(units.map((u) => [u.key, u])) as Record<string, UnitSumsV2>;
+function buildFoodcostMini(units: UnitSums[]): DashboardData['foodcostMini'] {
+  const byKey = Object.fromEntries(units.map((u) => [u.key, u])) as Record<string, UnitSums>;
   return {
     caption: 'Средняя себестоимость продаж за период',
     items: KBW.map((key) => {
@@ -112,7 +122,7 @@ function buildFoodcostMini(units: UnitSumsV2[]): DashboardData['foodcostMini'] {
   };
 }
 
-function buildCategories(units: UnitSumsV2[]): DashboardData['categories'] {
+function buildCategories(units: UnitSums[]): DashboardData['categories'] {
   const kbw = units.filter((u) => KBW.includes(u.key as CategoryKey) && u.revenue > 0);
   const total = kbw.reduce((sum, u) => sum + u.revenue, 0);
   return kbw.map((u) => ({
@@ -134,54 +144,31 @@ export function buildStockFromWarehouse(data: WarehouseData): NonNullable<Dashbo
   };
 }
 
-/** Преобразует контракт v2 API в view-model для существующих organism-компонентов. */
+/** Преобразует контракт API в view-model для существующих organism-компонентов. */
 export function buildDashboardViewModel(
-  data: DashboardV2,
+  data: DashboardApi,
   options: DashboardViewModelOptions = {},
 ): DashboardData {
-  const { kpis, period, compare } = data;
-  const granularity = options.granularity ?? 'month';
-  const revLfl = lfl(kpis.revenue.value, kpis.revenue.prevValue);
-  const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prevValue);
-  const checksLfl = lfl(kpis.checks.value, kpis.checks.prevValue);
-
-  const periodInfo = buildPeriodInfo(period, compare);
-  const compareLabel = formatCompareWith(compare);
-
-  const details: Record<string, DetailPopover> = {
-    'rev-lfl': buildLflPopover(
-      'LfL — выручка',
-      compareLabel,
-      kpis.revenue.value,
-      kpis.revenue.prevValue,
-      formatMoney,
-      `Сравнение календарное: ${formatPeriodRange(compare)}.`,
-    ),
-    'check-lfl': buildLflPopover(
-      'LfL — средний чек',
-      compareLabel,
-      kpis.avgCheck.value,
-      kpis.avgCheck.prevValue,
-      formatMoney,
-      'Средний чек = выручка / число чеков с выручкой.',
-    ),
-    'guests-lfl': buildLflPopover(
-      'LfL — чеки',
-      compareLabel,
-      kpis.checks.value,
-      kpis.checks.prevValue,
-      (n) => Math.round(n).toLocaleString('ru-RU'),
-      `Сравнение календарное: ${formatPeriodRange(compare)}.`,
-    ),
-    'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney),
-    'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney),
-    'guests-goal': buildGoalPopover(
-      'Прогноз — чеки',
-      kpis.checks,
-      (n) => Math.round(n).toLocaleString('ru-RU'),
-    ),
+  const chartCore = buildDashboardChartCore(data, options);
+  const kpiLayer = buildDashboardKpiLayer(data, options);
+  return {
+    ...chartCore,
+    period: {
+      ...chartCore.period,
+      compareWith: kpiLayer.period.compareWith,
+    },
+    kpis: kpiLayer.kpis,
+    details: kpiLayer.details,
   };
+}
 
+/** Chart/structure слой — не зависит от LfL overlay. */
+export function buildDashboardChartCore(
+  data: DashboardApi,
+  options: DashboardViewModelOptions = {},
+): Omit<DashboardData, 'kpis' | 'details'> & { details: Record<string, DetailPopover> } {
+  const { period } = data;
+  const granularity = options.granularity ?? 'month';
   const filteredDays = filterRevenueDays(
     data.revenueByDay,
     period,
@@ -210,6 +197,8 @@ export function buildDashboardViewModel(
     options.chartPeriodLabel ??
     formatChartPeriodLabel(period, granularity, monthRange ?? undefined, options.weekRange);
 
+  const periodInfo = buildPeriodInfo(period, data.compare);
+
   return {
     greeting: '',
     chartPeriod: period,
@@ -219,37 +208,134 @@ export function buildDashboardViewModel(
       ...periodInfo,
       label: chartLabel,
     },
+    revenueByDay: revenueDays,
+    revenueByDayMax: maxRevenue * 1.1,
+    reviews: data.reviews,
+    foodcostMini: options.foodcost
+      ? buildDashboardFoodcostMini(options.foodcost.units)
+      : buildFoodcostMini(data.units),
+    categories: options.foodcost
+      ? buildDashboardRevenueCategories(options.foodcost.units)
+      : buildCategories(data.units),
+    stock: options.stock ?? data.stock,
+    details: {},
+  };
+}
+
+/** KPI-слой — зависит от compare overlay. */
+export function buildDashboardKpiLayer(
+  data: Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi' | 'period'>,
+  options: DashboardViewModelOptions = {},
+): Pick<DashboardData, 'kpis' | 'details' | 'period'> {
+  const { kpis, compare, period } = data;
+  const granularity = options.granularity ?? 'month';
+  const weekKpi = options.weekKpi ?? data.weekKpi ?? null;
+  const isWeekMode = granularity === 'week' && weekKpi != null;
+  const weekFooters = isWeekMode ? buildWeekKpiFooters(data as DashboardApi, weekKpi) : null;
+  const showLfl = granularity !== 'year';
+
+  const revLfl = lfl(kpis.revenue.value, kpis.revenue.prevValue);
+  const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prevValue);
+  const checksLfl = lfl(kpis.checks.value, kpis.checks.prevValue);
+
+  const periodInfo = buildPeriodInfo(period, compare);
+  const compareLabel = formatCompareWith(compare);
+
+  const details: Record<string, DetailPopover> = {
+    'rev-lfl': buildLflPopover(
+      'LfL — выручка',
+      compareLabel,
+      kpis.revenue.value,
+      kpis.revenue.prevValue,
+      formatMoney,
+      `Сравнение с предыдущим периодом: ${formatPeriodRange(compare)}.`,
+    ),
+    'check-lfl': buildLflPopover(
+      'LfL — средний чек',
+      compareLabel,
+      kpis.avgCheck.value,
+      kpis.avgCheck.prevValue,
+      formatMoney,
+      'Средний чек = выручка / число чеков с выручкой.',
+    ),
+    'guests-lfl': buildLflPopover(
+      'LfL — чеки',
+      compareLabel,
+      kpis.checks.value,
+      kpis.checks.prevValue,
+      (n) => Math.round(n).toLocaleString('ru-RU'),
+      `Сравнение с предыдущим периодом: ${formatPeriodRange(compare)}.`,
+    ),
+    'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney),
+    'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney),
+    'guests-goal': buildGoalPopover(
+      'Прогноз — чеки',
+      kpis.checks,
+      (n) => Math.round(n).toLocaleString('ru-RU'),
+    ),
+  };
+
+  if (weekFooters) {
+    details['rev-week-avg'] = weekFooters.revWeekAvgDetail;
+  }
+
+  return {
+    period: {
+      ...periodInfo,
+      compareWith: formatCompareWith(compare),
+    },
     kpis: {
       revenue: {
         value: kpis.revenue.value,
-        lfl: revLfl ?? undefined,
+        lfl: showLfl ? (revLfl ?? undefined) : undefined,
+        comparisonLabel: showLfl ? 'LfL' : undefined,
         checks: kpis.checks.value,
         guests: kpis.guests.value,
+        weekFooter: weekFooters?.revenueWeekFooter,
         forecast: {
           ...forecastBlock(kpis.revenue, (n) => `${(n / 1e6).toFixed(1).replace('.', ',')} млн`),
         },
       },
       avgCheck: {
         value: kpis.avgCheck.value,
-        lfl: checkLfl ?? undefined,
+        lfl: showLfl ? (checkLfl ?? undefined) : undefined,
+        comparisonLabel: showLfl ? 'LfL' : undefined,
         perGuest: kpis.guests.value ? kpis.revenue.value / kpis.guests.value : 0,
         qualityFlag: false,
+        weekFooter: weekFooters?.avgCheckWeekFooter,
         forecast: forecastBlock(kpis.avgCheck, formatMoney),
       },
       guests: {
         value: kpis.checks.value,
-        lfl: checksLfl ?? undefined,
+        lfl: showLfl ? (checksLfl ?? undefined) : undefined,
+        comparisonLabel: showLfl ? 'LfL' : undefined,
         guests: kpis.guests.value,
         perCheck: kpis.checks.value ? kpis.guests.value / kpis.checks.value : 0,
+        weekFooter: weekFooters?.checksWeekFooter,
         forecast: forecastBlock(kpis.checks, (n) => Math.round(n).toLocaleString('ru-RU')),
       },
     },
-    revenueByDay: revenueDays,
-    revenueByDayMax: maxRevenue * 1.1,
-    reviews: data.reviews,
-    foodcostMini: buildFoodcostMini(data.units),
-    categories: buildCategories(data.units),
-    stock: options.stock ?? data.stock,
     details,
+  };
+}
+
+/** Накладывает KPI overlay на chart view-model без пересборки графика. */
+export function patchDashboardKpiLayer(
+  chartVm: DashboardData,
+  data: Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi' | 'period'>,
+  options: DashboardViewModelOptions = {},
+): DashboardData {
+  const kpiLayer = buildDashboardKpiLayer(data, options);
+  return {
+    ...chartVm,
+    period: {
+      ...chartVm.period,
+      compareWith: kpiLayer.period.compareWith,
+    },
+    kpis: kpiLayer.kpis,
+    details: {
+      ...chartVm.details,
+      ...kpiLayer.details,
+    },
   };
 }

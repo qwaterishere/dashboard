@@ -127,11 +127,11 @@ def start_iiko_sync(db: Session, user: User) -> IikoSyncStartResponse:
     return IikoSyncStartResponse(started_at=started_at)
 
 
-def schedule_iiko_sync(restaurant_id: uuid.UUID) -> None:
+def schedule_iiko_sync(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
     """Вызывается из BackgroundTasks после commit статуса running."""
     from src.services.iiko_sync import run_sync_job
 
-    run_sync_job(restaurant_id)
+    run_sync_job(restaurant_id, full=full)
 
 
 def resolve_restaurant_id_for_user(db: Session, user_id: uuid.UUID) -> uuid.UUID:

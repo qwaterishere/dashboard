@@ -1,17 +1,33 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-compare-pill',
   standalone: true,
   template: `
-    <div class="cmp-pill">
-      LfL: сравнение с <b>{{ compareWith() }}</b>
-      <span class="x" aria-hidden="true">✕</span>
-    </div>
+    @if (interactive()) {
+      <button
+        type="button"
+        class="cmp-pill cmp-pill--interactive"
+        [attr.aria-expanded]="ariaExpanded()"
+        [attr.aria-haspopup]="ariaHasPopup()"
+        (click)="pressed.emit()"
+      >
+        <span class="cmp-pill__prefix">LfL: сравнение с</span>
+        <b class="cmp-pill__value">{{ compareWith() }}</b>
+        <span class="cmp-pill__chevron" aria-hidden="true">▾</span>
+      </button>
+    } @else {
+      <div class="cmp-pill">
+        <span class="cmp-pill__prefix">LfL: сравнение с</span>
+        <b class="cmp-pill__value">{{ compareWith() }}</b>
+      </div>
+    }
   `,
   styles: `
     :host {
-      flex-shrink: 0;
+      display: block;
+      width: 100%;
+      min-width: 0;
     }
 
     .cmp-pill {
@@ -26,11 +42,50 @@ import { Component, input } from '@angular/core';
       font-weight: 600;
       color: #a5a3ff;
       white-space: nowrap;
+      width: 100%;
+      height: var(--period-pill-height);
+      min-height: var(--period-pill-height);
+      box-sizing: border-box;
+      overflow: hidden;
     }
-    b { color: #c9c8ff; }
-    .x { margin-left: 4px; opacity: 0.6; cursor: pointer; }
+
+    .cmp-pill--interactive {
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s ease;
+    }
+
+    .cmp-pill--interactive:hover {
+      border-color: rgba(110, 107, 255, 0.65);
+    }
+
+    .cmp-pill__prefix {
+      flex: none;
+    }
+
+    .cmp-pill__value {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #c9c8ff;
+      font-weight: 700;
+    }
+
+    .cmp-pill__chevron {
+      margin-left: auto;
+      font-size: 0.6rem;
+      opacity: 0.7;
+      flex: none;
+    }
   `,
 })
 export class ComparePillComponent {
   readonly compareWith = input.required<string>();
+  readonly interactive = input(false);
+  readonly ariaExpanded = input<boolean | null>(null);
+  readonly ariaHasPopup = input<string | null>(null);
+
+  readonly pressed = output<void>();
 }

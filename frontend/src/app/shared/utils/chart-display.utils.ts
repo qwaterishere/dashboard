@@ -1,8 +1,9 @@
 import type { ChartDisplayMode, PeriodGranularity } from '../models/common.model';
 import type { ChartWeekRange } from '../models/chart-period.model';
-import type { PeriodV2, RevenueDayV2, RevenueMonthV2 } from '../models/dashboard-v2.model';
+import type { ApiPeriod, RevenueDayFact, RevenueMonthFact } from '../models/dashboard-api.model';
 import type { RevenueDay } from '../models/dashboard.model';
 import {
+  daysInMonth,
   enumerateIsoDateRange,
   listWeekRangesInMonth,
 } from './chart-period.utils';
@@ -10,12 +11,12 @@ import { MONTHS_SHORT } from '../constants/month-labels.constants';
 import { buildWeekRevenueDays, formatIsoWeekRangeLabel } from './period-format.utils';
 
 export interface ChartSeriesInput {
-  daily: RevenueDayV2[];
-  monthly: RevenueMonthV2[];
-  period: PeriodV2;
+  daily: RevenueDayFact[];
+  monthly: RevenueMonthFact[];
+  period: ApiPeriod;
   timeframe: PeriodGranularity;
   weekRange?: ChartWeekRange;
-  weekDayLookup?: (year: number, month: number, day: number) => RevenueDayV2 | undefined;
+  weekDayLookup?: (year: number, month: number, day: number) => RevenueDayFact | undefined;
 }
 
 function parseIsoDate(value: string): { year: number; month: number; day: number } | null {
@@ -45,7 +46,7 @@ function toRevenueDay(
   };
 }
 
-function sumDays(days: RevenueDayV2[]): { revenue: number; checks: number; guests: number } {
+function sumDays(days: RevenueDayFact[]): { revenue: number; checks: number; guests: number } {
   return days.reduce(
     (acc, day) => ({
       revenue: acc.revenue + day.revenue,
@@ -56,22 +57,65 @@ function sumDays(days: RevenueDayV2[]): { revenue: number; checks: number; guest
   );
 }
 
+function calendarWeekday(year: number, month: number, day: number): number {
+  return new Date(year, month - 1, day).getDay();
+}
+
+function emptyMonthFact(month: number): RevenueMonthFact {
+  return { month, revenue: 0, checks: 0, guests: 0, plan: null };
+}
+
+/** Полный календарный год: месяцы без данных — нулевые столбцы. */
+function yearMonthlyFacts(monthly: RevenueMonthFact[]): RevenueMonthFact[] {
+  const byMonth = new Map(monthly.map((m) => [m.month, m]));
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    return byMonth.get(month) ?? emptyMonthFact(month);
+  });
+}
+
 function buildDaySeries(input: ChartSeriesInput): RevenueDay[] {
   const weekRange = input.weekRange;
 
-  const daily =
-    input.timeframe === 'week'
-      ? buildWeekRevenueDays(
-          input.daily,
-          input.period,
-          weekRange,
-          input.weekDayLookup,
-        )
-      : input.daily.filter((d) => d.day >= input.period.dayFrom && d.day <= input.period.dayTo);
+  if (input.timeframe === 'week') {
+    return buildWeekRevenueDays(
+      input.daily,
+      input.period,
+      weekRange,
+      input.weekDayLookup,
+    ).map((d) =>
+      toRevenueDay(d.day, d.revenue, d.checks, d.guests, d.plan, undefined, d.weekday),
+    );
+  }
 
-  return daily.map((d) =>
-    toRevenueDay(d.day, d.revenue, d.checks, d.guests, d.plan, undefined, d.weekday),
-  );
+  if (input.timeframe === 'month') {
+    const { year, month } = input.period;
+    const totalDays = daysInMonth(year, month);
+    const byDay = new Map(input.daily.map((d) => [d.day, d]));
+
+    return Array.from({ length: totalDays }, (_, index) => {
+      const dayNum = index + 1;
+      const entry = byDay.get(dayNum);
+      if (entry) {
+        return toRevenueDay(
+          entry.day,
+          entry.revenue,
+          entry.checks,
+          entry.guests,
+          entry.plan,
+          undefined,
+          entry.weekday,
+        );
+      }
+      return toRevenueDay(dayNum, 0, 0, 0, null, undefined, calendarWeekday(year, month, dayNum));
+    });
+  }
+
+  return input.daily
+    .filter((d) => d.day >= input.period.dayFrom && d.day <= input.period.dayTo)
+    .map((d) =>
+      toRevenueDay(d.day, d.revenue, d.checks, d.guests, d.plan, undefined, d.weekday),
+    );
 }
 
 function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
@@ -93,7 +137,7 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
   const byDay = new Map(input.daily.map((d) => [d.day, d]));
 
   return weeks.map((week, index) => {
-    const slice: RevenueDayV2[] = [];
+    const slice: RevenueDayFact[] = [];
     for (const iso of enumerateIsoDateRange(week.startDate, week.endDate)) {
       const parts = parseIsoDate(iso);
       if (!parts) continue;
@@ -115,6 +159,19 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
 }
 
 function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
+  if (input.timeframe === 'year') {
+    return yearMonthlyFacts(input.monthly).map((m) =>
+      toRevenueDay(
+        m.month,
+        m.revenue,
+        m.checks,
+        m.guests,
+        m.plan,
+        MONTHS_SHORT[m.month - 1] ?? String(m.month),
+      ),
+    );
+  }
+
   if (input.monthly.length > 0) {
     return input.monthly.map((m) =>
       toRevenueDay(
@@ -144,9 +201,20 @@ function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
 }
 
 function buildQuarterSeries(input: ChartSeriesInput): RevenueDay[] {
-  const months = input.monthly.length
-    ? input.monthly
-    : [{ month: input.period.month, revenue: sumDays(input.daily).revenue, checks: 0, guests: 0, plan: null }];
+  const months =
+    input.timeframe === 'year'
+      ? yearMonthlyFacts(input.monthly)
+      : input.monthly.length
+        ? input.monthly
+        : [
+            {
+              month: input.period.month,
+              revenue: sumDays(input.daily).revenue,
+              checks: 0,
+              guests: 0,
+              plan: null,
+            },
+          ];
 
   const quarters = [
     { revenue: 0, checks: 0, guests: 0 },

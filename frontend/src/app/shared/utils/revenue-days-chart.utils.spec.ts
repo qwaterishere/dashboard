@@ -28,13 +28,21 @@ describe('revenue-days-chart.utils', () => {
       expect(layout.bars[0].hasPlan).toBe(false);
     });
 
-    it('marks weekend labels', () => {
+    it('marks weekend labels for week timeframe', () => {
       const days: RevenueDay[] = [
         { day: 7, weekday: 0, revenue: 845000, plan: 800000, checks: 389, guests: 895, avg: 2172 },
       ];
-      const layout = buildRevenueDaysChartLayout(days, 1200000);
+      const layout = buildRevenueDaysChartLayout(days, 1200000, 'day', 'week');
       expect(layout.bars[0].weekend).toBe(true);
       expect(layout.bars[0].label).toContain('вс');
+    });
+
+    it('uses day number only for month timeframe', () => {
+      const days: RevenueDay[] = [
+        { day: 7, weekday: 0, revenue: 845000, plan: 800000, checks: 389, guests: 895, avg: 2172 },
+      ];
+      const layout = buildRevenueDaysChartLayout(days, 1200000, 'day', 'month');
+      expect(layout.bars[0].label).toBe('7');
     });
 
     it('creates five grid lines', () => {

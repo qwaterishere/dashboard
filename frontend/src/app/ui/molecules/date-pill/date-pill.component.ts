@@ -54,6 +54,8 @@ import { Component, input, output } from '@angular/core';
       min-width: 0;
       overflow: hidden;
       width: 100%;
+      height: var(--period-pill-height);
+      min-height: var(--period-pill-height);
       box-sizing: border-box;
     }
 
@@ -70,14 +72,19 @@ import { Component, input, output } from '@angular/core';
     }
 
     .date-pill__label {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
-      flex-shrink: 0;
     }
 
     .date-pill__note {
       color: var(--mut2);
       font-size: 0.68rem;
       font-weight: 600;
+      flex: 0 1 auto;
+      max-width: 42%;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;

@@ -1,10 +1,11 @@
-import type { DashboardV2 } from '../../../shared/models/dashboard-v2.model';
+import type { DashboardApi } from '../../../shared/models/dashboard-api.model';
+import type { FoodcostApi } from '../../../shared/models/foodcost-api.model';
 import type { WarehouseData } from '../../../shared/models/warehouse.model';
-import { buildDashboardViewModel, buildStockFromWarehouse } from './dashboard-v2.utils';
+import { buildDashboardViewModel, buildStockFromWarehouse } from './dashboard.mapper';
 
-const sample: DashboardV2 = {
+const sample: DashboardApi = {
   period: { year: 2026, month: 6, dayFrom: 1, dayTo: 11 },
-  compare: { year: 2025, month: 6, dayFrom: 1, dayTo: 11 },
+  compare: { year: 2026, month: 5, dayFrom: 1, dayTo: 11 },
   dataBounds: { earliest: '2026-01-01', latest: '2026-06-11' },
   kpis: {
     revenue: { value: 1000, prevValue: 800, forecast: 5000 },
@@ -24,6 +25,72 @@ const sample: DashboardV2 = {
   ],
   reviews: null,
   stock: null,
+};
+
+const foodcostSample: FoodcostApi = {
+  period: sample.period,
+  compare: sample.compare,
+  totals: {
+    revenue: 1000,
+    cost: 300,
+    revenueWithCost: 1000,
+    prevRevenue: 800,
+    prevCost: 250,
+    prevRevenueWithCost: 800,
+    goal: null,
+  },
+  dirty: null,
+  units: [
+    {
+      key: 'k',
+      revenue: 600,
+      cost: 200,
+      revenueWithCost: 600,
+      prevRevenue: 500,
+      prevCost: 180,
+      prevRevenueWithCost: 500,
+    },
+    {
+      key: 'b',
+      revenue: 400,
+      cost: 100,
+      revenueWithCost: 400,
+      prevRevenue: 300,
+      prevCost: 90,
+      prevRevenueWithCost: 300,
+    },
+    {
+      key: 'w',
+      revenue: 0,
+      cost: 0,
+      revenueWithCost: 0,
+      prevRevenue: 0,
+      prevCost: 0,
+      prevRevenueWithCost: 0,
+    },
+    {
+      key: 'o',
+      revenue: 0,
+      cost: 0,
+      revenueWithCost: 0,
+      prevRevenue: 0,
+      prevCost: 0,
+      prevRevenueWithCost: 0,
+    },
+  ],
+  groups: [],
+  discounts: {
+    discountSum: 0,
+    discountedRevenue: 0,
+    discountedRevenueWithCost: 0,
+    discountSumWithCost: 0,
+    discountedCost: 0,
+  },
+  losses: {
+    compliments: { cost: 0, priceValue: 0, qty: 0 },
+    staff: { cost: 0, paidSum: 0, qty: 0 },
+    writeoffs: null,
+  },
 };
 
 const warehouseSample: WarehouseData = {
@@ -47,8 +114,8 @@ const warehouseSample: WarehouseData = {
   },
 };
 
-describe('dashboard-v2.utils', () => {
-  it('builds view model with LfL and foodcost from v2 facts', () => {
+describe('dashboard.mapper', () => {
+  it('builds view model with LfL and foodcost from API facts', () => {
     const vm = buildDashboardViewModel(sample);
     expect(vm.kpis.revenue.lfl?.pct).toBe(25);
     expect(vm.foodcostMini.items).toHaveLength(3);
@@ -59,6 +126,15 @@ describe('dashboard-v2.utils', () => {
     expect(vm.chartPeriod).toEqual(sample.period);
   });
 
+  it('prefers foodcost API for mini panel fc%', () => {
+    const vm = buildDashboardViewModel(sample, { foodcost: foodcostSample });
+    expect(vm.foodcostMini.items[0].pct).toBeCloseTo(33.3, 1);
+    expect(vm.categories).toEqual([
+      { key: 'k', name: 'Кухня', pct: 60 },
+      { key: 'b', name: 'Бар', pct: 40 },
+    ]);
+  });
+
   it('maps guests card with checks as headline and guests in subline', () => {
     const vm = buildDashboardViewModel(sample);
     expect(vm.kpis.guests.value).toBe(10);
@@ -67,7 +143,7 @@ describe('dashboard-v2.utils', () => {
   });
 
   it('filters chart days for week granularity', () => {
-    const extended: DashboardV2 = {
+    const extended: DashboardApi = {
       ...sample,
       revenueByDay: Array.from({ length: 11 }, (_, i) => ({
         day: i + 1,
@@ -85,7 +161,7 @@ describe('dashboard-v2.utils', () => {
   });
 
   it('filters chart days for selected week range', () => {
-    const extended: DashboardV2 = {
+    const extended: DashboardApi = {
       ...sample,
       revenueByDay: Array.from({ length: 11 }, (_, i) => ({
         day: i + 1,
@@ -106,7 +182,7 @@ describe('dashboard-v2.utils', () => {
   });
 
   it('uses monthly series for year granularity with month display', () => {
-    const extended: DashboardV2 = {
+    const extended: DashboardApi = {
       ...sample,
       revenueByMonth: [
         { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
@@ -115,13 +191,14 @@ describe('dashboard-v2.utils', () => {
     };
     const vm = buildDashboardViewModel(extended, { granularity: 'year', chartDisplayMode: 'month' });
     expect(vm.chartDisplayMode).toBe('month');
-    expect(vm.revenueByDay).toHaveLength(2);
+    expect(vm.revenueByDay).toHaveLength(12);
     expect(vm.revenueByDay[1].day).toBe(2);
     expect(vm.revenueByDay[1].revenue).toBe(200);
+    expect(vm.revenueByDay[11].revenue).toBe(0);
   });
 
   it('aggregates year data into quarters', () => {
-    const extended: DashboardV2 = {
+    const extended: DashboardApi = {
       ...sample,
       revenueByMonth: [
         { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },

@@ -8,6 +8,16 @@ describe('ChartPeriodPickerComponent', () => {
   const activePeriod = { year: 2026, month: 6, dayFrom: 1, dayTo: 11 };
   const bounds = { earliest: '2025-03-10', latest: '2026-08-22' };
 
+  function bindPanelOpen(): void {
+    let open = false;
+    fixture.componentRef.setInput('panelOpen', open);
+    fixture.componentInstance.panelOpenChange.subscribe((value) => {
+      open = value;
+      fixture.componentRef.setInput('panelOpen', value);
+      fixture.detectChanges();
+    });
+  }
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ChartPeriodPickerComponent],
@@ -21,6 +31,7 @@ describe('ChartPeriodPickerComponent', () => {
     fixture.componentRef.setInput('activePeriod', activePeriod);
     fixture.componentRef.setInput('selection', null);
     fixture.componentRef.setInput('showReset', false);
+    bindPanelOpen();
     fixture.detectChanges();
   });
 
@@ -86,5 +97,42 @@ describe('ChartPeriodPickerComponent', () => {
 
     expect(resets).toEqual([true]);
     expect(fixture.nativeElement.querySelector('.picker__panel')).toBeFalsy();
+  });
+
+  it('emits panelOpenChange(false) on Escape', () => {
+    const changes: boolean[] = [];
+    fixture.componentInstance.panelOpenChange.subscribe((value) => changes.push(value));
+
+    fixture.componentRef.setInput('panelOpen', true);
+    fixture.detectChanges();
+
+    fixture.componentInstance.onEscape();
+    expect(changes).toContain(false);
+  });
+
+  it('marks and blocks dataframe month in compare picker', () => {
+    fixture.componentRef.setInput('triggerKind', 'compare');
+    fixture.componentRef.setInput('compareWith', 'маем 2026');
+    fixture.componentRef.setInput('dataframePeriod', {
+      year: 2026,
+      month: 6,
+      dayFrom: 1,
+      dayTo: 11,
+    });
+    fixture.componentRef.setInput('dataframePeriodLabel', '1–11 июня 2026');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.cmp-pill--interactive').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Текущий период датафрейма');
+    expect(fixture.nativeElement.textContent).toContain('1–11 июня 2026');
+
+    const juneHost = [...fixture.nativeElement.querySelectorAll('.picker__month')].find(
+      (host: Element) => host.textContent?.includes('июн'),
+    ) as HTMLElement;
+    expect(juneHost.classList.contains('picker__month--dataframe')).toBe(true);
+    expect(juneHost.textContent).not.toContain('датафрейм');
+    expect((juneHost.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });

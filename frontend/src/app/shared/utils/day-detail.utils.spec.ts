@@ -1,8 +1,8 @@
-import type { PeriodV2 } from '../models/dashboard-v2.model';
+import type { ApiPeriod } from '../models/dashboard-api.model';
 import type { RevenueDay } from '../models/dashboard.model';
 import { buildDayDetailPopover, formatDayPopoverTitle } from './day-detail.utils';
 
-const period: PeriodV2 = { year: 2026, month: 6, dayFrom: 1, dayTo: 30 };
+const period: ApiPeriod = { year: 2026, month: 6, dayFrom: 1, dayTo: 30 };
 
 describe('day-detail.utils', () => {
   it('formats title with month and weekday', () => {

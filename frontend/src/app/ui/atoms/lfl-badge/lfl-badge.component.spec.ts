@@ -19,4 +19,12 @@ describe('LflBadgeComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('LfL');
     expect(fixture.nativeElement.textContent).toContain('+8,4 %');
   });
+
+  it('shows spinner while loading', () => {
+    fixture.componentRef.setInput('isLoading', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.lfl__spinner')).toBeTruthy();
+    expect(fixture.nativeElement.getAttribute('aria-busy')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.lfl')?.getAttribute('aria-busy')).toBe('true');
+  });
 });

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from sqlalchemy.orm import Session
@@ -255,11 +255,15 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         background_tasks: BackgroundTasks,
         user: CurrentUser,
         db: Session = Depends(get_db),
+        full: bool = Query(
+            default=False,
+            description="true — перезагрузить все доступные дни с начала истории",
+        ),
     ) -> IikoSyncStartResponse:
         assert_trusted_origin(request)
         restaurant = get_or_create_restaurant(db, user)
         response = start_iiko_sync(db, user)
-        background_tasks.add_task(schedule_iiko_sync, restaurant.id)
+        background_tasks.add_task(schedule_iiko_sync, restaurant.id, full=full)
         return response
 
     return router

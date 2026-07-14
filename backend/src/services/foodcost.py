@@ -26,8 +26,8 @@ from src.schemas.foodcost import Foodcost
 from src.services.dashboard import (
     _period_dict,
     _resolve_dashboard_period,
-    _same_period_last_year,
 )
+from src.services.period_compare import previous_period as _previous_period
 
 UNIT_KEYS = ('k', 'b', 'w', CAT_OTHER)
 
@@ -173,7 +173,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
                    year: int | None = None, month: int | None = None) -> Foodcost:
     d_from, d_to, _earliest, _latest = _resolve_dashboard_period(
         session, restaurant_id, year=year, month=month)
-    p_from, p_to = _same_period_last_year(d_from, d_to)
+    p_from, p_to = _previous_period(d_from, d_to)
 
     units = _unit_cost_sums(session, restaurant_id, d_from, d_to)
     groups = _group_cost_sums(session, restaurant_id, d_from, d_to)

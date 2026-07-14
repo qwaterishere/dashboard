@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideMockAuthenticatedAuth } from '../../../core/auth/auth.testing';
 import { AuthService } from '../../../core/auth/auth.service';
 import { filterRevenueDays } from '../../../shared/utils/period-format.utils';
-import type { RevenueDayV2 } from '../../../shared/models/dashboard-v2.model';
+import type { RevenueDayFact } from '../../../shared/models/dashboard-api.model';
 import { PeriodService } from '../../../core/services/period.service';
 import { DashboardDataStore } from './dashboard-data.store';
 
@@ -51,7 +51,7 @@ describe('DashboardDataStore logout reset', () => {
 
 describe('filterRevenueDays', () => {
   const period = { year: 2026, month: 6, dayFrom: 1, dayTo: 11 };
-  const days: RevenueDayV2[] = Array.from({ length: 11 }, (_, i) => ({
+  const days: RevenueDayFact[] = Array.from({ length: 11 }, (_, i) => ({
     day: i + 1,
     weekday: 1,
     revenue: 0,

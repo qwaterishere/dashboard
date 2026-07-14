@@ -1,6 +1,6 @@
 import { WEEKDAYS_FULL } from '../constants/category.constants';
 import type { DetailPopover } from '../models/common.model';
-import type { PeriodV2 } from '../models/dashboard-v2.model';
+import type { ApiPeriod } from '../models/dashboard-api.model';
 import type { RevenueDay } from '../models/dashboard.model';
 
 const MONTHS_GENITIVE = [
@@ -42,18 +42,18 @@ function formatSignedPct(value: number): string {
   return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} %`;
 }
 
-function toIsoDate(period: PeriodV2, day: number): string {
+function toIsoDate(period: ApiPeriod, day: number): string {
   return `${period.year}-${String(period.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /** Заголовок popover дня: «5 июня · пятница». */
-export function formatDayPopoverTitle(day: RevenueDay, period: PeriodV2): string {
+export function formatDayPopoverTitle(day: RevenueDay, period: ApiPeriod): string {
   const month = MONTHS_GENITIVE[period.month - 1] ?? '';
   return `${day.day} ${month} · ${WEEKDAYS_FULL[day.weekday]}`;
 }
 
 /** Контент popover при клике на столбик «Выручка по дням». */
-export function buildDayDetailPopover(day: RevenueDay, period: PeriodV2): DetailPopover {
+export function buildDayDetailPopover(day: RevenueDay, period: ApiPeriod): DetailPopover {
   const rows: DetailPopover['rows'] = [['Выручка', formatMoney(day.revenue)]];
 
   if (day.plan !== null && day.plan > 0) {

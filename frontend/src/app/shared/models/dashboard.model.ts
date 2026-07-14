@@ -1,15 +1,22 @@
 import type { CategoryKey, DetailPopover, LflMetric, ChartDisplayMode, PeriodInfo } from './common.model';
-import type { PeriodV2, DataBoundsV2 } from './dashboard-v2.model';
+import type { ApiPeriod, DataBounds } from './api-period.model';
 
 export interface KpiBlock {
   value: number;
   lfl?: LflMetric | null;
+  comparisonLabel?: 'LfL' | 'WoW';
   forecast: {
     value: number;
     planPct: number;
     trackPct: number;
     risk: boolean;
     headline?: string;
+  };
+  weekFooter?: {
+    label: string;
+    headline: string;
+    subline?: string;
+    popoverKey?: string;
   };
 }
 
@@ -45,9 +52,9 @@ export interface RevenueDay {
 export interface DashboardData {
   greeting: string;
   period: PeriodInfo;
-  chartPeriod: PeriodV2;
+  chartPeriod: ApiPeriod;
   chartDisplayMode: ChartDisplayMode;
-  dataBounds: DataBoundsV2;
+  dataBounds: DataBounds;
   kpis: {
     revenue: RevenueKpi;
     avgCheck: AvgCheckKpi;

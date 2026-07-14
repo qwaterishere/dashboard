@@ -1,7 +1,7 @@
-import type { DashboardV2 } from '../models/dashboard-v2.model';
+import type { DashboardApi } from '../models/dashboard-api.model';
 import { buildChartDisplaySeries } from './chart-display.utils';
 
-const period: DashboardV2['period'] = { year: 2026, month: 6, dayFrom: 1, dayTo: 30 };
+const period: DashboardApi['period'] = { year: 2026, month: 6, dayFrom: 1, dayTo: 30 };
 
 const daily = Array.from({ length: 30 }, (_, i) => ({
   day: i + 1,
@@ -27,14 +27,57 @@ describe('chart-display.utils', () => {
     );
     expect(series).toHaveLength(30);
     expect(series[0].day).toBe(1);
+    expect(series[29].day).toBe(30);
   });
 
-  it('builds week series for month timeframe', () => {
+  it('pads future days in current month with zero revenue', () => {
+    const partialDaily = daily.slice(0, 11);
     const series = buildChartDisplaySeries(
-      { daily, monthly, period, timeframe: 'month' },
+      {
+        daily: partialDaily,
+        monthly,
+        period: { year: 2026, month: 6, dayFrom: 1, dayTo: 11 },
+        timeframe: 'month',
+      },
+      'day',
+    );
+    expect(series).toHaveLength(30);
+    expect(series[10].revenue).toBe(1100);
+    expect(series[11].revenue).toBe(0);
+    expect(series[29].revenue).toBe(0);
+  });
+
+  it('builds full month series for year timeframe', () => {
+    const series = buildChartDisplaySeries(
+      {
+        daily: [],
+        monthly,
+        period: { year: 2026, month: 1, dayFrom: 1, dayTo: 30 },
+        timeframe: 'year',
+      },
+      'month',
+    );
+    expect(series).toHaveLength(12);
+    expect(series[0].barLabel).toBe('янв');
+    expect(series[3].revenue).toBe(4000);
+    expect(series[4].revenue).toBe(0);
+    expect(series[11].barLabel).toBe('дек');
+    expect(series[11].revenue).toBe(0);
+  });
+
+  it('builds week series for month timeframe including future weeks', () => {
+    const partialDaily = daily.slice(0, 11);
+    const series = buildChartDisplaySeries(
+      {
+        daily: partialDaily,
+        monthly,
+        period: { year: 2026, month: 6, dayFrom: 1, dayTo: 11 },
+        timeframe: 'month',
+      },
       'week',
     );
     expect(series.length).toBeGreaterThan(3);
+    expect(series.some((bar) => bar.revenue === 0)).toBe(true);
     expect(series[0].barLabel).toBeTruthy();
   });
 

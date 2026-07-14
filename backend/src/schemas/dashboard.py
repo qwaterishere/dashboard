@@ -14,8 +14,8 @@ class KpiMetric(StrictModel):
 
     value: float = Field(description="Значение за текущий период")
     prevValue: float | None = Field(
-        description="Значение за период compare (тот же прошлого года);"
-        "null — сравнивать не с чем (нет прошлого года)"
+        description="Значение за период compare (предыдущий период);"
+        "null — сравнивать не с чем (нет данных в compare)"
     )
     forecast: float | None = Field(
         description="Run-rate-прогноз на конец месяца по средним дням недели;"
@@ -76,6 +76,40 @@ class Kpis(StrictModel):
     )
 
 
+class WeekDayStat(StrictModel):
+    """Факт одного дня внутри выбранной недели."""
+
+    statDate: date = Field(alias="date", description="Календарная дата ISO")
+    weekday: int = Field(description="0=вс..6=сб")
+    revenue: float = Field(description="Выручка дня")
+    checks: int = Field(description="Чеки с выручкой за день")
+    guests: int = Field(description="Гости за день")
+    avgCheck: float = Field(description="Средний чек дня = revenue / checks")
+
+
+class WeekKpiContext(StrictModel):
+    """Производные метрики недельного датафрейма (WoW + средний день)."""
+
+    weekStart: date = Field(description="Первый день выбранной недели")
+    weekEnd: date = Field(description="Последний день выбранной недели")
+    prevWeekStart: date = Field(description="Первый день предыдущей недели")
+    prevWeekEnd: date = Field(description="Последний день предыдущей недели")
+    comparison: Literal["lfl"] = Field(
+        description="Тип сравнения KPI: like-for-like с предыдущим периодом",
+    )
+    workingDays: int = Field(description="Дней с продажами в выбранной неделе")
+    avgDailyRevenue: float = Field(description="Средняя выручка за календарный день недели")
+    avgDailyChecks: float = Field(description="Среднее число чеков за календарный день недели")
+    avgDailyGuests: float = Field(description="Среднее число гостей за календарный день недели")
+    avgCheckMin: float = Field(description="Минимальный средний чек среди дней с продажами")
+    avgCheckMax: float = Field(description="Максимальный средний чек среди дней с продажами")
+    peakDay: WeekDayStat | None = Field(description="День с максимальной выручкой")
+    weakDay: WeekDayStat | None = Field(description="День с минимальной выручкой среди рабочих")
+    monthRevenueSharePct: float | None = Field(
+        description="Доля выручки недели в выручке anchor-месяца (year+month query); null — месяц пуст"
+    )
+
+
 class DataBounds(StrictModel):
     earliest: date | None = Field(
         description="Первый день с данными в БД; null — база пустая",
@@ -85,12 +119,24 @@ class DataBounds(StrictModel):
     )
 
 
+class DashboardKpi(StrictModel):
+    """Лёгкий контракт GET /api/dashboard/kpi — только KPI-слой (LfL overlay)."""
+
+    period: Period = Field(description="Период датафрейма (month anchor в week-mode)")
+    compare: Period = Field(description="Период сравнения LfL")
+    kpis: Kpis
+    weekKpi: WeekKpiContext | None = Field(
+        default=None,
+        description="Контекст недельного датафрейма; null — month/year mode",
+    )
+
+
 class Dashboard(StrictModel):
     period: Period = Field(
         description="Показываемый период: месяц последнего закрытого дня"
     )
     compare: Period = Field(
-        description="Период сравнения: те же числа прошлого года (29.02 -> 28.02)"
+        description="Период сравнения: непосредственно предшествующий период той же формы"
     )
     dataBounds: DataBounds = Field(
         description="Диапазон доступных данных для выбора периода на графике",
@@ -104,6 +150,10 @@ class Dashboard(StrictModel):
     )
     units: list[UnitSums] = Field(
         description="Всегда четыре элемента: k, b, w, o (нулевые включены)"
+    )
+    weekKpi: WeekKpiContext | None = Field(
+        default=None,
+        description="Контекст недельного датафрейма; null — month/year mode",
     )
     reviews: None = None
     stock: None = None

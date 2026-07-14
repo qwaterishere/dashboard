@@ -26,8 +26,14 @@
   width: 100%;
 }
 
-.sync-feedback {
-  min-height: 0;
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sync-hint {
+  max-width: 42rem;
 }
 
 .sync-feedback:has(app-form-banner) {
