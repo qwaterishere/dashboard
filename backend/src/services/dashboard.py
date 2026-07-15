@@ -12,6 +12,7 @@
 с бесплатными позициями) считаются все — гости настоящие.
 """
 import calendar
+from dataclasses import dataclass
 from datetime import date, timedelta
 from uuid import UUID
 
@@ -20,7 +21,8 @@ from sqlalchemy.orm import Session
 
 from src.domain.constants import resolve_unit, CAT_OTHER
 from src.db.models.sales import Order, DishSale
-from src.schemas.dashboard import Dashboard
+from src.schemas.dashboard import Dashboard, DashboardChart, DashboardKpi
+from src.services.period_compare import previous_period as _previous_period
 
 # Прогноз считается от 7 закрытых дней: первая неделя месяца покрывает
 # каждый день недели ровно один раз — раньше run-rate экстраполирует шум.
@@ -37,16 +39,6 @@ UNIT_KEYS = ('k', 'b', 'w', CAT_OTHER)   # порядок элементов uni
 # --------------------------------------------------------------------------
 # периоды
 # --------------------------------------------------------------------------
-
-def _same_period_last_year(d_from: date, d_to: date) -> tuple[date, date]:
-    """Те же календарные числа прошлого года; 29 февраля -> 28-е."""
-    def shift(d: date) -> date:
-        try:
-            return d.replace(year=d.year - 1)
-        except ValueError:
-            return d.replace(year=d.year - 1, day=28)
-    return shift(d_from), shift(d_to)
-
 
 def _period_dict(d_from: date, d_to: date) -> dict:
     return {'year': d_from.year, 'month': d_from.month,
@@ -123,6 +115,7 @@ def _monthly(session: Session, restaurant_id: UUID, last_day: date) -> list[dict
             'checks': totals['checks'],
             'guests': totals['guests'],
             'plan': None,
+            'forecast': None,
         })
     while len(months) > 1 and months[0]['revenue'] == 0 and months[0]['checks'] == 0:
         months.pop(0)
@@ -219,46 +212,470 @@ def _worked_by_weekday(daily: dict[date, dict], metric: str,
     return by_weekday
 
 
-def _forecast(daily: dict[date, dict], history: dict[date, dict], metric: str,
-              d_from: date, d_to: date, days_in_month: int) -> float | None:
-    """Run-rate: факт + средние по дням недели на оставшиеся дни месяца.
+def _forecast_horizon(d_from: date, *, year_mode: bool) -> date:
+    """Конец горизонта прогноза: конец месяца или 31 декабря года."""
+    if year_mode:
+        return date(d_from.year, 12, 31)
+    last_day = calendar.monthrange(d_from.year, d_from.month)[1]
+    return date(d_from.year, d_from.month, last_day)
 
-    None — прогноз не готов (< FORECAST_MIN_DAYS закрытых дней).
-    Средний день недели — по РАБОЧИМ наблюдениям текущего месяца;
-    если в месяце их ещё нет, берётся история за HISTORY_WEEKS недель:
-      - работал в истории -> разовый простой, прогноз по историческому среднему;
-      - не работал и там  -> регулярный выходной, прогноз 0.
-    Ограничение: уровень исторического среднего может отставать от текущего
-    месяца (сезонность) — цена за устойчивость к разовым закрытиям.
-    """
+
+def _weekday_mean(
+    current: dict[int, list[float]],
+    historic: dict[int, list[float]],
+    weekday: int,
+) -> float:
+    values = current[weekday] or historic[weekday]
+    return sum(values) / len(values) if values else 0.0
+
+
+@dataclass(frozen=True)
+class ForecastContext:
+    """Weekday-модель для KPI и засечек графика."""
+
+    current: dict[int, list[float]]
+    historic: dict[int, list[float]]
+    ready: bool
+
+
+def _load_forecast_context(
+    session: Session,
+    restaurant_id: UUID,
+    d_from: date,
+    d_to: date,
+    metric: str = 'revenue',
+) -> ForecastContext:
     elapsed = (d_to - d_from).days + 1
     if elapsed < FORECAST_MIN_DAYS:
-        return None
+        empty = {i: [] for i in range(7)}
+        return ForecastContext(empty, empty, False)
 
-    current = _worked_by_weekday(daily, metric, d_from, d_to)
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    history = _daily(
+        session,
+        restaurant_id,
+        d_from - timedelta(weeks=HISTORY_WEEKS),
+        d_from - timedelta(days=1),
+    )
     hist_from = d_from - timedelta(weeks=HISTORY_WEEKS)
-    historic = _worked_by_weekday(history, metric, hist_from,
-                                  d_from - timedelta(days=1))
+    return ForecastContext(
+        current=_worked_by_weekday(daily, metric, d_from, d_to),
+        historic=_worked_by_weekday(
+            history, metric, hist_from, d_from - timedelta(days=1),
+        ),
+        ready=True,
+    )
 
-    # факт — все закрытые дни месяца как есть (нули прибавляют ноль)
+
+def _daily_forecast_value(ctx: ForecastContext, calendar_day: date) -> float | None:
+    if not ctx.ready:
+        return None
+    value = _weekday_mean(ctx.current, ctx.historic, calendar_day.weekday())
+    rounded = round(value)
+    return rounded if rounded > 0 else None
+
+
+def _month_forecast_total(
+    ctx: ForecastContext,
+    year: int,
+    month: int,
+    *,
+    last_day: int | None = None,
+) -> float | None:
+    if not ctx.ready:
+        return None
+    month_last = last_day or calendar.monthrange(year, month)[1]
     total = 0.0
+    for day_num in range(1, month_last + 1):
+        total += _weekday_mean(
+            ctx.current,
+            ctx.historic,
+            date(year, month, day_num).weekday(),
+        )
+    return round(total)
+
+
+def _revenue_by_day_chart_end(d_from: date, d_to: date) -> date:
+    """Конец календаря revenueByDay: полный месяц, если период с 1-го числа."""
+    if d_from.day != 1:
+        return d_to
+    month_last = calendar.monthrange(d_from.year, d_from.month)[1]
+    return date(d_from.year, d_from.month, month_last)
+
+
+def _build_revenue_by_day(
+    daily: dict[date, dict],
+    d_from: date,
+    d_to: date,
+    ctx: ForecastContext,
+) -> list[dict]:
+    if (d_to - d_from).days > 31:
+        return []
+
+    chart_end = _revenue_by_day_chart_end(d_from, d_to)
+    rows: list[dict] = []
+    day = d_from
+    while day <= chart_end:
+        m = daily.get(day, {'revenue': 0.0, 'checks': 0, 'guests': 0})
+        rows.append({
+            'day': day.day,
+            'weekday': (day.weekday() + 1) % 7,
+            'revenue': round(m['revenue']),
+            'checks': m['checks'],
+            'guests': m['guests'],
+            'plan': None,
+            'forecast': _daily_forecast_value(ctx, day),
+        })
+        day += timedelta(days=1)
+    return rows
+
+
+def _monthly_with_forecasts(
+    monthly: list[dict],
+    ctx: ForecastContext,
+    year: int,
+) -> list[dict]:
+    return [
+        {
+            **row,
+            'forecast': _month_forecast_total(ctx, year, row['month']),
+        }
+        for row in monthly
+    ]
+
+
+def _load_forecast_context_for_metric(
+    daily: dict[date, dict],
+    history: dict[date, dict],
+    d_from: date,
+    d_to: date,
+    metric: str,
+) -> ForecastContext:
+    elapsed = (d_to - d_from).days + 1
+    if elapsed < FORECAST_MIN_DAYS:
+        empty = {i: [] for i in range(7)}
+        return ForecastContext(empty, empty, False)
+    hist_from = d_from - timedelta(weeks=HISTORY_WEEKS)
+    return ForecastContext(
+        current=_worked_by_weekday(daily, metric, d_from, d_to),
+        historic=_worked_by_weekday(
+            history, metric, hist_from, d_from - timedelta(days=1),
+        ),
+        ready=True,
+    )
+
+
+def _forecast_and_pace_for_metric(
+    daily: dict[date, dict],
+    history: dict[date, dict],
+    metric: str,
+    d_from: date,
+    d_to: date,
+    horizon_end: date,
+) -> tuple[float | None, float | None]:
+    ctx = _load_forecast_context_for_metric(
+        daily, history, d_from, d_to, metric,
+    )
+    if not ctx.ready:
+        return None, None
+
+    fact = 0.0
     day = d_from
     while day <= d_to:
-        total += float(daily.get(day, {}).get(metric, 0))
+        fact += float(daily.get(day, {}).get(metric, 0))
         day += timedelta(days=1)
 
+    projected = 0.0
     day = d_to + timedelta(days=1)
-    month_end = d_from.replace(day=days_in_month)
-    while day <= month_end:
-        values = current[day.weekday()] or historic[day.weekday()]
-        total += sum(values) / len(values) if values else 0.0
+    while day <= horizon_end:
+        projected += _weekday_mean(ctx.current, ctx.historic, day.weekday())
         day += timedelta(days=1)
-    return round(total)
+
+    forecast = round(fact + projected)
+    if d_to >= horizon_end:
+        return forecast, None
+
+    pace = 0.0
+    day = d_from
+    while day <= d_to:
+        pace += _weekday_mean(ctx.current, ctx.historic, day.weekday())
+        day += timedelta(days=1)
+
+    return forecast, round(pace)
+
+
+def _forecasts_for_period(
+    session: Session,
+    restaurant_id: UUID,
+    d_from: date,
+    d_to: date,
+    *,
+    year_mode: bool,
+) -> tuple[dict[str, float | None], dict[str, float | None]]:
+    """Прогноз до конца периода и pace к d_to для revenue/checks/guests."""
+    horizon_end = _forecast_horizon(d_from, year_mode=year_mode)
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    history = _daily(
+        session,
+        restaurant_id,
+        d_from - timedelta(weeks=HISTORY_WEEKS),
+        d_from - timedelta(days=1),
+    )
+    forecasts: dict[str, float | None] = {}
+    paces: dict[str, float | None] = {}
+    for m in ('revenue', 'checks', 'guests'):
+        forecasts[m], paces[m] = _forecast_and_pace_for_metric(
+            daily, history, m, d_from, d_to, horizon_end,
+        )
+    return forecasts, paces
 
 
 # --------------------------------------------------------------------------
 # сборка
 # --------------------------------------------------------------------------
+
+def _resolve_compare_period(
+    d_from: date,
+    d_to: date,
+    compare_start: date | None,
+    compare_end: date | None,
+) -> tuple[date, date]:
+    if compare_start is None and compare_end is None:
+        return _previous_period(d_from, d_to)
+    if compare_start is None or compare_end is None:
+        raise ValueError("compareStart and compareEnd must be provided together")
+    if compare_start > compare_end:
+        raise ValueError("compareStart must be on or before compareEnd")
+    return compare_start, compare_end
+
+
+def _ratio_or_none(num: float | None, den: float | None) -> float | None:
+    if num and den:
+        return round(num / den)
+    return None
+
+
+def _build_kpis(
+    cur: dict,
+    prev: dict | None,
+    forecasts: dict[str, float | None],
+    paces: dict[str, float | None],
+) -> dict:
+    def metric(name: str) -> dict:
+        return {
+            'value': cur[name],
+            'prevValue': prev[name] if prev else None,
+            'forecast': forecasts[name],
+            'forecastToday': paces[name],
+        }
+
+    avg_check = {
+        'value': round(cur['revenue'] / cur['checks']) if cur['checks'] else 0,
+        'prevValue': (round(prev['revenue'] / prev['checks'])
+                 if prev and prev['checks'] else None),
+        'forecast': _ratio_or_none(forecasts['revenue'], forecasts['checks']),
+        'forecastToday': _ratio_or_none(paces['revenue'], paces['checks']),
+    }
+
+    return {
+        'revenue': metric('revenue'),
+        'checks': metric('checks'),
+        'guests': metric('guests'),
+        'avgCheck': avg_check,
+    }
+
+
+def _empty_kpis() -> dict:
+    empty = {
+        'value': 0,
+        'prevValue': None,
+        'forecast': None,
+        'forecastToday': None,
+    }
+    return {
+        'revenue': dict(empty),
+        'checks': dict(empty),
+        'guests': dict(empty),
+        'avgCheck': dict(empty),
+    }
+
+
+def _assemble_chart_response(
+    d_from: date,
+    d_to: date,
+    daily: dict,
+    units: dict,
+    prev_units: dict,
+    monthly: list[dict],
+    earliest: date | None,
+    latest: date | None,
+    *,
+    compare_from: date,
+    compare_to: date,
+    forecast_ctx: ForecastContext,
+    week_kpi: dict | None = None,
+) -> DashboardChart:
+    revenue_by_day = _build_revenue_by_day(daily, d_from, d_to, forecast_ctx)
+    revenue_by_month = _monthly_with_forecasts(monthly, forecast_ctx, d_from.year)
+
+    return DashboardChart.model_validate({
+        'period': _period_dict(d_from, d_to),
+        'compare': _period_dict(compare_from, compare_to),
+        'dataBounds': {'earliest': earliest, 'latest': latest},
+        'revenueByDay': revenue_by_day,
+        'revenueByMonth': revenue_by_month,
+        'units': [{'key': key,
+                   'revenue': round(units[key]['revenue']),
+                   'cost': round(units[key]['cost']),
+                   'prevRevenue': round(prev_units[key]['revenue']),
+                   'prevCost': round(prev_units[key]['cost'])}
+                  for key in UNIT_KEYS],
+        'weekKpi': week_kpi,
+    })
+
+
+def build_dashboard_chart(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int | None = None,
+    month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+) -> DashboardChart:
+    """Chart-слой без KPI, прогноза и custom compare — для смены датафрейма."""
+    d_from, d_to, earliest, latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    compare_from, compare_to = _previous_period(d_from, d_to)
+    empty_ctx = ForecastContext({i: [] for i in range(7)}, {i: [] for i in range(7)}, False)
+
+    if latest is None:
+        return _assemble_chart_response(
+            d_from=d_from,
+            d_to=d_to,
+            daily={},
+            units=_zero_units(),
+            prev_units=_zero_units(),
+            monthly=[],
+            earliest=earliest,
+            latest=latest,
+            compare_from=compare_from,
+            compare_to=compare_to,
+            forecast_ctx=empty_ctx,
+        )
+
+    daily = _daily(session, restaurant_id, d_from, d_to)
+    monthly = _monthly(session, restaurant_id, d_to)
+    forecast_ctx = _load_forecast_context(session, restaurant_id, d_from, d_to)
+
+    chart = _assemble_chart_response(
+        d_from,
+        d_to,
+        daily,
+        _unit_sums(session, restaurant_id, d_from, d_to),
+        _unit_sums(session, restaurant_id, compare_from, compare_to),
+        monthly,
+        earliest,
+        latest,
+        compare_from=compare_from,
+        compare_to=compare_to,
+        forecast_ctx=forecast_ctx,
+    )
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week chart")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+        )
+        payload = chart.model_dump()
+        payload.update({
+            "compare": overlay["compare"],
+            "weekKpi": overlay["weekKpi"],
+        })
+        return DashboardChart.model_validate(payload)
+
+    return chart
+
+
+def build_dashboard_kpi(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int | None = None,
+    month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+    compare_start: date | None = None,
+    compare_end: date | None = None,
+) -> DashboardKpi:
+    """KPI-слой без графика, юнитов и YTD — для LfL overlay на фронте."""
+    d_from, d_to, _earliest, latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    compare_from, compare_to = _resolve_compare_period(
+        d_from, d_to, compare_start, compare_end,
+    )
+
+    if latest is None:
+        return DashboardKpi.model_validate({
+            'period': _period_dict(d_from, d_to),
+            'compare': _period_dict(compare_from, compare_to),
+            'kpis': _empty_kpis(),
+            'weekKpi': None,
+        })
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week KPI")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+            compare_start=compare_start,
+            compare_end=compare_end,
+        )
+        return DashboardKpi.model_validate({
+            'period': _period_dict(d_from, d_to),
+            'compare': overlay['compare'],
+            'kpis': overlay['kpis'],
+            'weekKpi': overlay['weekKpi'],
+        })
+
+    year_mode = year is not None and month is None
+    cur = _totals(session, restaurant_id, d_from, d_to)
+    prev_raw = _totals(session, restaurant_id, compare_from, compare_to)
+    prev = prev_raw if prev_raw['checks'] > 0 else None
+    forecasts, paces = _forecasts_for_period(
+        session, restaurant_id, d_from, d_to, year_mode=year_mode,
+    )
+
+    return DashboardKpi.model_validate({
+        'period': _period_dict(d_from, d_to),
+        'compare': _period_dict(compare_from, compare_to),
+        'kpis': _build_kpis(cur, prev, forecasts, paces),
+        'weekKpi': None,
+    })
+
 
 def build_dashboard(
     session: Session,
@@ -266,11 +683,21 @@ def build_dashboard(
     *,
     year: int | None = None,
     month: int | None = None,
+    week_start: date | None = None,
+    week_end: date | None = None,
+    compare_start: date | None = None,
+    compare_end: date | None = None,
 ) -> Dashboard:
     d_from, d_to, earliest, latest = _resolve_dashboard_period(
         session, restaurant_id, year=year, month=month,
     )
     if latest is None:
+        compare_from, compare_to = _resolve_compare_period(
+            d_from, d_to, compare_start, compare_end,
+        )
+        empty_ctx = ForecastContext(
+            {i: [] for i in range(7)}, {i: [] for i in range(7)}, False,
+        )
         return _assemble_response(
             d_from=d_from,
             d_to=d_to,
@@ -280,42 +707,76 @@ def build_dashboard(
             units=_zero_units(),
             prev_units=_zero_units(),
             forecasts={'revenue': None, 'checks': None, 'guests': None},
+            paces={'revenue': None, 'checks': None, 'guests': None},
             monthly=[],
             earliest=earliest,
             latest=latest,
+            compare_from=compare_from,
+            compare_to=compare_to,
+            forecast_ctx=empty_ctx,
         )
 
-    prev_from, prev_to = _same_period_last_year(d_from, d_to)
-    days_in_month = calendar.monthrange(d_from.year, d_from.month)[1]
+    compare_from, compare_to = _resolve_compare_period(
+        d_from, d_to, compare_start, compare_end,
+    )
+    year_mode = year is not None and month is None
 
     cur = _totals(session, restaurant_id, d_from, d_to)
-    prev_raw = _totals(session, restaurant_id, prev_from, prev_to)
+    prev_raw = _totals(session, restaurant_id, compare_from, compare_to)
     prev = prev_raw if prev_raw['checks'] > 0 else None
 
     daily = _daily(session, restaurant_id, d_from, d_to)
-    history = _daily(
-        session,
-        restaurant_id,
-        d_from - timedelta(weeks=HISTORY_WEEKS),
-        d_from - timedelta(days=1),
+    forecasts, paces = _forecasts_for_period(
+        session, restaurant_id, d_from, d_to, year_mode=year_mode,
     )
-    forecasts = {m: _forecast(daily, history, m, d_from, d_to, days_in_month)
-                 for m in ('revenue', 'checks', 'guests')}
+    forecast_ctx = _load_forecast_context(session, restaurant_id, d_from, d_to)
     monthly = _monthly(session, restaurant_id, d_to)
 
-    return _assemble_response(
+    dashboard = _assemble_response(
         d_from,
         d_to,
         cur,
         prev,
         daily,
         _unit_sums(session, restaurant_id, d_from, d_to),
-        _unit_sums(session, restaurant_id, prev_from, prev_to),
+        _unit_sums(session, restaurant_id, compare_from, compare_to),
         forecasts,
+        paces,
         monthly,
         earliest,
         latest,
+        compare_from=compare_from,
+        compare_to=compare_to,
+        forecast_ctx=forecast_ctx,
     )
+
+    if week_start is not None or week_end is not None:
+        from src.services.dashboard_week import build_week_kpi_overlay
+
+        if week_start is None or week_end is None:
+            raise ValueError("weekStart and weekEnd must be provided together")
+        if year is None or month is None:
+            raise ValueError("year and month are required for week KPI")
+        overlay = build_week_kpi_overlay(
+            session,
+            restaurant_id,
+            week_start=week_start,
+            week_end=week_end,
+            anchor_year=year,
+            anchor_month=month,
+            latest=latest,
+            compare_start=compare_start,
+            compare_end=compare_end,
+        )
+        payload = dashboard.model_dump()
+        payload.update({
+            "kpis": overlay["kpis"],
+            "compare": overlay["compare"],
+            "weekKpi": overlay["weekKpi"],
+        })
+        return Dashboard.model_validate(payload)
+
+    return dashboard
 
 
 _ZERO_TOTALS = {'revenue': 0.0, 'cost': 0.0, 'checks': 0, 'guests': 0}
@@ -327,47 +788,20 @@ def _zero_units() -> dict[str, dict]:
 
 def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
               daily: dict, units: dict, prev_units: dict,
-              forecasts: dict, monthly: list[dict],
-              earliest: date | None, latest: date | None) -> Dashboard:
-    def metric(name: str) -> dict:
-        return {'value': cur[name],
-                'prevValue': prev[name] if prev else None,
-                'forecast': forecasts[name]}
+              forecasts: dict, paces: dict, monthly: list[dict],
+              earliest: date | None, latest: date | None,
+              *, compare_from: date, compare_to: date,
+              forecast_ctx: ForecastContext) -> Dashboard:
+    revenue_by_day = _build_revenue_by_day(daily, d_from, d_to, forecast_ctx)
+    revenue_by_month = _monthly_with_forecasts(monthly, forecast_ctx, d_from.year)
 
-    avg_check = {
-        'value': round(cur['revenue'] / cur['checks']) if cur['checks'] else 0,
-        'prevValue': (round(prev['revenue'] / prev['checks'])
-                 if prev and prev['checks'] else None),
-        'forecast': (round(forecasts['revenue'] / forecasts['checks'])
-                     if forecasts['revenue'] and forecasts['checks'] else None),
-    }
-
-    revenue_by_day = []
-    if (d_to - d_from).days <= 31:
-        day = d_from
-        while day <= d_to:
-            m = daily.get(day, {'revenue': 0.0, 'checks': 0, 'guests': 0})
-            revenue_by_day.append({
-                'day': day.day,
-                'weekday': (day.weekday() + 1) % 7,
-                'revenue': round(m['revenue']),
-                'checks': m['checks'],
-                'guests': m['guests'],
-                'plan': None,
-            })
-            day += timedelta(days=1)
-
-    p_from, p_to = _same_period_last_year(d_from, d_to)
     return Dashboard.model_validate({
         'period': _period_dict(d_from, d_to),
-        'compare': _period_dict(p_from, p_to),
+        'compare': _period_dict(compare_from, compare_to),
         'dataBounds': {'earliest': earliest, 'latest': latest},
-        'kpis': {'revenue': metric('revenue'),
-                 'checks': metric('checks'),
-                 'guests': metric('guests'),
-                 'avgCheck': avg_check},
+        'kpis': _build_kpis(cur, prev, forecasts, paces),
         'revenueByDay': revenue_by_day,
-        'revenueByMonth': monthly,
+        'revenueByMonth': revenue_by_month,
         'units': [{'key': key,
                    'revenue': round(units[key]['revenue']),
                    'cost': round(units[key]['cost']),

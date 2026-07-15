@@ -29,30 +29,55 @@ import type { DetailPopover } from '../../../shared/models';
       </div>
       <app-progress-track variant="goal">
         <app-progress-fill [width]="trackPct()" [variant]="risk() ? 'risk' : 'default'" />
-        <app-mark-line [position]="100" />
+        @if (planPct() > 0 && planPct() < 100) {
+          <app-mark-line [position]="planPct()" />
+        }
       </app-progress-track>
     </div>
   `,
   styles: `
     :host {
       display: block;
-      margin-top: auto;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .k-goal {
-      padding-top: 12px;
+      min-width: 0;
+      max-width: 100%;
+      padding-top: var(--kpi-footer-padding-top);
       border-top: 1px solid var(--border-subtle);
       cursor: pointer;
+      box-sizing: border-box;
     }
     .g-row {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      min-height: var(--kpi-footer-row-height);
       font-size: 0.7rem;
       color: var(--mut);
-      margin-bottom: 6px;
+      margin-bottom: var(--kpi-footer-track-gap);
     }
+
+    .g-row > app-text {
+      display: block;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .g-row b {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
       font-size: 0.74rem;
       font-weight: 800;
       color: var(--txt);
@@ -64,6 +89,8 @@ export class GoalTrackComponent {
   readonly label = input('Прогноз на конец месяца');
   readonly headline = input.required<string>();
   readonly trackPct = input.required<number>();
+  /** Pace-засечка (forecastToday/forecast); только незавершённый период, 0 — скрыть. */
+  readonly planPct = input(0);
   readonly risk = input(false);
   readonly goalPopoverKey = input<string | undefined>();
   readonly popoverDetails = input<Record<string, DetailPopover>>({});

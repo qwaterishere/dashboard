@@ -58,6 +58,16 @@
   min-width: 0;
 }
 
+.app--with-right .app-main {
+  position: relative;
+  z-index: 2;
+}
+
+.app--with-right .right {
+  position: relative;
+  z-index: 1;
+}
+
 .page-body {
   min-width: 0;
 }

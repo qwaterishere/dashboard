@@ -1,6 +1,8 @@
 :host {
   display: block;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .kpi {
@@ -14,6 +16,9 @@
   flex-direction: column;
   height: 100%;
   min-height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .k-top {
@@ -27,11 +32,43 @@
   font-size: 0.7rem;
   color: var(--mut);
   margin-top: 6px;
-  min-height: 1.35rem;
+  min-height: var(--kpi-sub-height);
+  height: var(--kpi-sub-height);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .k-sub :global(b) {
   color: var(--txt);
   font-weight: 700;
+}
+
+.kpi__forecast {
+  margin-top: auto;
+  flex: 0 0 var(--kpi-footer-height);
+  height: var(--kpi-footer-height);
+  min-height: var(--kpi-footer-height);
+  max-height: var(--kpi-footer-height);
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.kpi__forecast > app-goal-track,
+.kpi__forecast > app-week-kpi-footer {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.kpi__forecast-placeholder {
+  flex: 1 1 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding-top: var(--kpi-footer-padding-top);
+  border-top: 1px solid var(--border-subtle);
 }

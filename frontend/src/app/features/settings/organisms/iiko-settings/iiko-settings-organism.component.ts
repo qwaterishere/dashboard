@@ -58,7 +58,13 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
           </app-text>
         }
 
-        <form class="form-grid" (ngSubmit)="onSubmit()">
+        <form
+          class="form-grid"
+          [class.iiko-sync-anchor]="!settings()?.configured"
+          [attr.id]="settings()?.configured ? null : 'iiko-sync'"
+          [attr.tabindex]="settings()?.configured ? null : -1"
+          (ngSubmit)="onSubmit()"
+        >
           <app-form-field
             label="URL сервера iiko"
             inputId="settings-iiko-url"
@@ -94,7 +100,7 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
         </form>
 
         @if (settings()?.configured) {
-          <div class="sync-block">
+          <div id="iiko-sync" class="sync-block iiko-sync-anchor" tabindex="-1">
             <div class="sync-status">
               @if (isSyncRunning()) {
                 <div
@@ -123,14 +129,28 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
                 <app-text tone="muted">{{ syncStatusText() }}</app-text>
               }
             </div>
-            <app-button
-              variant="default"
-              type="button"
-              [disabled]="isSyncRunning()"
-              (pressed)="syncRequested.emit()"
-            >
-              {{ isSyncRunning() ? 'Загрузка…' : 'Загрузить данные из iiko' }}
-            </app-button>
+            <div class="sync-actions">
+              <app-button
+                variant="default"
+                type="button"
+                [disabled]="isSyncRunning()"
+                (pressed)="syncRequested.emit()"
+              >
+                {{ isSyncRunning() ? 'Загрузка…' : 'Догрузить новые дни' }}
+              </app-button>
+              <app-button
+                variant="pill"
+                type="button"
+                [disabled]="isSyncRunning()"
+                (pressed)="onResyncClick()"
+              >
+                Скачать заново
+              </app-button>
+            </div>
+            <app-text tone="muted" class="sync-hint">
+              «Догрузить» подтягивает дни с последней выгрузки. «Скачать заново» перезапишет всю
+              историю с {{ historyFromLabel() }} — может занять несколько минут.
+            </app-text>
             <div class="sync-feedback">
               @if (syncError()) {
                 <app-form-banner variant="error" [message]="syncError()!" />
@@ -157,6 +177,7 @@ export class IikoSettingsOrganismComponent {
   readonly syncSuccess = input(false);
   readonly saved = output<UpdateIikoSettingsRequest>();
   readonly syncRequested = output<void>();
+  readonly resyncRequested = output<void>();
 
   protected iikoUrl = '';
   protected iikoLogin = '';
@@ -185,6 +206,22 @@ export class IikoSettingsOrganismComponent {
       hidePersistedError: !!this.syncError(),
     }),
   );
+
+  /** Подпись нижней границы полной перезагрузки (как history_limit на бэкенде). */
+  protected readonly historyFromLabel = computed(() => {
+    const year = new Date().getFullYear() - 1;
+    return `1 января ${year}`;
+  });
+
+  protected onResyncClick(): void {
+    if (this.isSyncRunning()) return;
+    const ok = confirm(
+      `Перезагрузить все продажи с ${this.historyFromLabel()}? Текущие данные за этот период будут заменены.`,
+    );
+    if (ok) {
+      this.resyncRequested.emit();
+    }
+  }
 
   protected isDirty(): boolean {
     const current = this.settings();

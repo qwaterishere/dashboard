@@ -23,7 +23,7 @@ import {
     StockPanelOrganismComponent,
   ],
   template: `
-    <aside class="right">
+    <aside class="right app-scroll">
       <app-profile-block
         [initials]="auth.initials()"
         [name]="auth.displayName()"

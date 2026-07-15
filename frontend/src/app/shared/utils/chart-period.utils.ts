@@ -3,7 +3,7 @@ import type {
   ChartWeekRange,
 } from '../models/chart-period.model';
 import type { PeriodGranularity } from '../models/common.model';
-import type { DataBoundsV2, PeriodV2 } from '../models/dashboard-v2.model';
+import type { DataBounds, ApiPeriod } from '../models/dashboard-api.model';
 import { CHART_MONTH_LABELS } from '../constants/month-labels.constants';
 
 export { CHART_MONTH_LABELS };
@@ -19,7 +19,7 @@ export interface WeekRangeOption extends ChartWeekRange {
   label: string;
 }
 
-export function resolveChartPeriodBounds(bounds: DataBoundsV2 | null): ChartPeriodBounds | null {
+export function resolveChartPeriodBounds(bounds: DataBounds | null): ChartPeriodBounds | null {
   if (!bounds?.earliest || !bounds.latest) return null;
 
   const earliest = parseIsoDate(bounds.earliest);
@@ -55,7 +55,7 @@ export function isMonthInBounds(
 export function clampChartMonthInYear(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
 ): number {
   const limits = resolveChartPeriodBounds(bounds);
   if (!limits) return Math.min(12, Math.max(1, month));
@@ -108,7 +108,7 @@ export function monthKeysInIsoRange(
 export function weekIndexInMonth(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
   weekRange: ChartWeekRange,
 ): number {
   const options = listWeekRangesInMonth(year, month, bounds, weekRange);
@@ -123,7 +123,7 @@ export function weekIndexInMonth(
 export function resolveWeekByIndexInMonth(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
   weekIndex: number,
 ): ChartWeekRange & { month: number } {
   const resolvedMonth = clampChartMonthInYear(year, month, bounds);
@@ -140,7 +140,7 @@ export function resolveWeekByIndexInMonth(
 
 export function resolveChartWeekRange(
   selection: ChartPeriodSelection | null,
-  period: PeriodV2,
+  period: ApiPeriod,
 ): ChartWeekRange | undefined {
   if (selection?.weekStartDate && selection.weekEndDate) {
     return { startDate: selection.weekStartDate, endDate: selection.weekEndDate };
@@ -191,7 +191,7 @@ export function daysInMonth(year: number, month: number): number {
 export function getMonthDayLimits(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
 ): { minDay: number; maxDay: number } {
   let minDay = 1;
   let maxDay = daysInMonth(year, month);
@@ -280,7 +280,7 @@ export function resolveDefaultWeekRange(
 function weekOverlapsDataBounds(
   startDate: string,
   endDate: string,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
 ): boolean {
   if (!bounds?.earliest && !bounds?.latest) return true;
 
@@ -323,8 +323,8 @@ export function findWeekOptionForDay(
 /** Год совпадает с последним доступным годом в dataBounds / KPI-периоде. */
 export function isCurrentChartYear(
   year: number,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: Pick<PeriodV2, 'year'> | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: Pick<ApiPeriod, 'year'> | null,
 ): boolean {
   const limits = resolveChartPeriodBounds(bounds);
   if (limits) return year === limits.maxYear;
@@ -341,8 +341,8 @@ export function firstMonthInBounds(year: number, limits: ChartPeriodBounds | nul
 /** Дефолтный месяц при переключении на month: текущий год → последний месяц, иначе первый. */
 export function resolveDefaultChartMonth(
   year: number,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: Pick<PeriodV2, 'year' | 'month'> | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: Pick<ApiPeriod, 'year' | 'month'> | null,
 ): number {
   const limits = resolveChartPeriodBounds(bounds);
   if (isCurrentChartYear(year, bounds, dashboardPeriod)) {
@@ -356,8 +356,8 @@ export function resolveDefaultChartMonth(
 export function resolveDefaultWeekForMonth(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: PeriodV2 | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: ApiPeriod | null,
 ): ChartWeekRange {
   const limits = resolveChartPeriodBounds(bounds);
   const options = listWeekRangesInMonth(year, month, bounds);
@@ -398,8 +398,8 @@ export function resolveDefaultWeekForMonth(
 /** Дефолтный chartPeriod при переключении на week. */
 export function resolveDefaultChartWeekSelection(
   year: number,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: PeriodV2 | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: ApiPeriod | null,
 ): ChartPeriodSelection {
   const month = resolveDefaultChartMonth(year, bounds, dashboardPeriod);
   const week = resolveDefaultWeekForMonth(year, month, bounds, dashboardPeriod);
@@ -410,7 +410,7 @@ export function resolveDefaultChartWeekSelection(
 export function listWeekRangesInMonth(
   year: number,
   month: number,
-  bounds: DataBoundsV2 | null,
+  bounds: DataBounds | null,
   ensureRange?: ChartWeekRange,
 ): WeekRangeOption[] {
   const lastDay = daysInMonth(year, month);
@@ -460,8 +460,8 @@ export function listWeekRangesInMonth(
 /** Актуальный chartPeriod: последний год / месяц / неделя по dataBounds. */
 export function resolveLatestChartPeriodSelection(
   granularity: PeriodGranularity,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: PeriodV2 | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: ApiPeriod | null,
 ): ChartPeriodSelection | null {
   const limits = resolveChartPeriodBounds(bounds);
   const year = limits?.maxYear ?? dashboardPeriod?.year;
@@ -497,8 +497,8 @@ export function chartPeriodSelectionsEqual(
 export function isChartPeriodResetVisible(
   selection: ChartPeriodSelection | null,
   granularity: PeriodGranularity,
-  bounds: DataBoundsV2 | null,
-  dashboardPeriod: PeriodV2 | null,
+  bounds: DataBounds | null,
+  dashboardPeriod: ApiPeriod | null,
 ): boolean {
   if (!selection) return false;
   const latest = resolveLatestChartPeriodSelection(granularity, bounds, dashboardPeriod);
@@ -511,7 +511,7 @@ export function chartPeriodSelectionForMonthDay(
   year: number,
   month: number,
   day: number,
-  _bounds: DataBoundsV2 | null = null,
+  _bounds: DataBounds | null = null,
 ): ChartPeriodSelection {
   const week = resolveFullIsoWeekRange(year, month, day);
   return chartPeriodSelectionFromWeek(year, month, week);

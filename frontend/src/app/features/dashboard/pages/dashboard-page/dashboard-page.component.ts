@@ -25,7 +25,13 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
   template: `
     <app-dashboard-layout-template>
       @if (viewModel(); as d) {
-        <app-kpi-grid-organism [kpis]="d.kpis" [details]="d.details" [loading]="kpiLoading()" />
+        <app-kpi-grid-organism
+          [kpis]="d.kpis"
+          [details]="d.details"
+          [loading]="kpiChartLoading()"
+          [lflLoading]="compareLflLoading()"
+          [timeframe]="granularity()"
+        />
         <app-revenue-days-chart-organism
           [days]="d.revenueByDay"
           [max]="d.revenueByDayMax"
@@ -67,7 +73,8 @@ export class DashboardPageComponent {
   protected readonly dashboard = this.store.dashboard;
   protected readonly viewModel = this.store.displayedViewModel;
   protected readonly chartLoading = this.store.chartLoadingState;
-  protected readonly kpiLoading = this.store.kpiLoadingState;
+  protected readonly kpiChartLoading = this.store.kpiChartLoadingState;
+  protected readonly compareLflLoading = this.store.compareLflLoadingState;
   protected readonly granularity = this.store.granularity;
 
   onChartDisplayModeChange(mode: ChartDisplayMode): void {

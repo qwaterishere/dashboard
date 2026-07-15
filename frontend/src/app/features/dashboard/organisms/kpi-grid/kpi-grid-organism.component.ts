@@ -2,6 +2,7 @@ import { Component, input } from '@angular/core';
 
 import { KpiCardOrganismComponent } from '../kpi-card/kpi-card-organism.component';
 import { PopoverTriggerDirective } from '../../../../ui/directives/popover-trigger.directive';
+import type { PeriodGranularity } from '../../../../shared/models/common.model';
 import type { DashboardData } from '../../../../shared/models';
 import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 
@@ -18,11 +19,17 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
         valueFormat="money"
         [lflPct]="kpis().revenue.lfl?.pct"
         [lflDir]="kpis().revenue.lfl?.dir"
+        [comparisonLabel]="kpis().revenue.comparisonLabel ?? 'LfL'"
+        [lflLoading]="lflLoading()"
         [forecastHeadline]="kpis().revenue.forecast.headline ?? '—'"
+        [forecastLabel]="kpis().revenue.forecast.label ?? 'Прогноз на конец месяца'"
         [trackPct]="kpis().revenue.forecast.trackPct"
+        [planPct]="kpis().revenue.forecast.planPct"
         [risk]="kpis().revenue.forecast.risk"
         lflPopoverKey="rev-lfl"
         goalPopoverKey="rev-goal"
+        [weekFooter]="kpis().revenue.weekFooter"
+        [showForecast]="timeframe() !== 'week'"
         [popoverDetails]="details()"
       >
         <span subtext>
@@ -37,11 +44,17 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
         valueFormat="money"
         [lflPct]="kpis().avgCheck.lfl?.pct"
         [lflDir]="kpis().avgCheck.lfl?.dir"
+        [comparisonLabel]="kpis().avgCheck.comparisonLabel ?? 'LfL'"
+        [lflLoading]="lflLoading()"
         [forecastHeadline]="kpis().avgCheck.forecast.headline ?? '—'"
+        [forecastLabel]="kpis().avgCheck.forecast.label ?? 'Прогноз на конец месяца'"
         [trackPct]="kpis().avgCheck.forecast.trackPct"
+        [planPct]="kpis().avgCheck.forecast.planPct"
         [risk]="kpis().avgCheck.forecast.risk"
         lflPopoverKey="check-lfl"
         goalPopoverKey="check-goal"
+        [weekFooter]="kpis().avgCheck.weekFooter"
+        [showForecast]="timeframe() !== 'week'"
         [popoverDetails]="details()"
       >
         <span subtext>
@@ -71,11 +84,17 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
         valueFormat="number"
         [lflPct]="kpis().guests.lfl?.pct"
         [lflDir]="kpis().guests.lfl?.dir"
+        [comparisonLabel]="kpis().guests.comparisonLabel ?? 'LfL'"
+        [lflLoading]="lflLoading()"
         [forecastHeadline]="kpis().guests.forecast.headline ?? '—'"
+        [forecastLabel]="kpis().guests.forecast.label ?? 'Прогноз на конец месяца'"
         [trackPct]="kpis().guests.forecast.trackPct"
+        [planPct]="kpis().guests.forecast.planPct"
         [risk]="kpis().guests.forecast.risk"
         lflPopoverKey="guests-lfl"
         goalPopoverKey="guests-goal"
+        [weekFooter]="kpis().guests.weekFooter"
+        [showForecast]="timeframe() !== 'week'"
         [popoverDetails]="details()"
       >
         <span subtext>
@@ -93,7 +112,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
   styles: `
     .kpis {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       align-items: stretch;
       gap: 16px;
       margin-bottom: 16px;
@@ -138,6 +157,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 
     .kpis > app-kpi-card-organism {
       display: block;
+      min-width: 0;
       min-height: 0;
     }
 
@@ -173,4 +193,8 @@ export class KpiGridOrganismComponent {
   readonly kpis = input.required<DashboardData['kpis']>();
   readonly details = input<Record<string, DashboardData['details'][string]>>({});
   readonly loading = input(false);
+  /** Compare overlay — спиннер внутри LfL-бейджа, без dim карточки. */
+  readonly lflLoading = input(false);
+  /** month | week | year — управляет видимостью прогноза в KPI-карточках. */
+  readonly timeframe = input<PeriodGranularity>('month');
 }

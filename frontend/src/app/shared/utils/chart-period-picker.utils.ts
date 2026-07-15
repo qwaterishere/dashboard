@@ -1,6 +1,6 @@
-import type { DataBoundsV2 } from '../models/dashboard-v2.model';
+import type { DataBounds } from '../models/dashboard-api.model';
 
-export function formatBoundRange(bounds: DataBoundsV2 | null): string {
+export function formatBoundRange(bounds: DataBounds | null): string {
   if (!bounds?.earliest || !bounds.latest) return '';
   const from = formatBound(bounds.earliest);
   const to = formatBound(bounds.latest);

@@ -1,0 +1,10 @@
+.target-fact-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+
+  &__value {
+    color: var(--grn);
+    font-weight: 700;
+  }
+}

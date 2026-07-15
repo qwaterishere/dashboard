@@ -17,23 +17,50 @@ import type { DetailPopover } from '../../../shared/models';
       } @else {
         <app-heading [level]="1" variant="big" [text]="value() | fmt" />
       }
-      @if (lflPct() !== undefined && lflDir()) {
-        <app-lfl-badge
-          [pct]="lflPct()!"
-          [direction]="lflDir()!"
-          [appPopoverTrigger]="lflPopoverKey()"
-          [popoverDetails]="popoverDetails()"
-        />
-      }
+      <div class="k-val__lfl">
+        @if (lflPct() !== undefined && lflDir()) {
+          @if (lflLoading()) {
+            <app-lfl-badge
+              [pct]="lflPct()!"
+              [direction]="lflDir()!"
+              [label]="comparisonLabel()"
+              [isLoading]="true"
+            />
+          } @else {
+            <app-lfl-badge
+              [pct]="lflPct()!"
+              [direction]="lflDir()!"
+              [label]="comparisonLabel()"
+              [appPopoverTrigger]="lflPopoverKey()"
+              [popoverDetails]="popoverDetails()"
+            />
+          }
+        }
+      </div>
     </div>
   `,
   styles: `
+    :host {
+      display: block;
+      min-width: 0;
+      max-width: 100%;
+    }
+
     .k-val {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
       margin-top: 10px;
-      flex-wrap: wrap;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .k-val__lfl {
+      display: flex;
+      align-items: center;
+      min-height: var(--kpi-lfl-slot-height);
+      height: var(--kpi-lfl-slot-height);
     }
   `,
 })
@@ -42,6 +69,8 @@ export class KpiValueComponent {
   readonly format = input<'money' | 'number'>('money');
   readonly lflPct = input<number>();
   readonly lflDir = input<'up' | 'dn'>();
+  readonly comparisonLabel = input<'LfL' | 'WoW'>('LfL');
+  readonly lflLoading = input(false);
   readonly lflPopoverKey = input<string | undefined>();
   readonly popoverDetails = input<Record<string, DetailPopover>>({});
 }

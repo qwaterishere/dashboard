@@ -63,11 +63,16 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'purchases',
+        path: 'targets',
         loadComponent: () =>
-          import('./features/purchases/pages/purchases-page/purchases-page.component').then(
-            (m) => m.PurchasesPageComponent,
+          import('./features/targets/pages/targets-page/targets-page.component').then(
+            (m) => m.TargetsPageComponent,
           ),
+      },
+      {
+        path: 'purchases',
+        redirectTo: 'targets',
+        pathMatch: 'full',
       },
       {
         path: 'settings',

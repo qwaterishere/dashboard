@@ -1,5 +1,15 @@
 @use '../../../../shared/styles/form-layout';
 
+.iiko-sync-anchor {
+  scroll-margin-top: 20px;
+  outline: none;
+}
+
+.iiko-sync-anchor:focus-visible {
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.35);
+  border-radius: 8px;
+}
+
 .sync-block {
   display: grid;
   gap: 12px;
@@ -26,8 +36,14 @@
   width: 100%;
 }
 
-.sync-feedback {
-  min-height: 0;
+.sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sync-hint {
+  max-width: 42rem;
 }
 
 .sync-feedback:has(app-form-banner) {

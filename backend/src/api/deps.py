@@ -89,4 +89,37 @@ def get_current_restaurant(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentRestaurant = Annotated[Restaurant, Depends(get_current_restaurant)]
 
-__all__ = ["get_db", "get_current_user", "get_current_restaurant", "CurrentUser", "CurrentRestaurant"]
+
+def verify_sync_scheduler_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> None:
+    """Bearer-токен для worker/cron — отдельно от JWT пользователя."""
+    settings = get_settings()
+    expected = settings.sync_scheduler_token
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sync scheduler is not configured",
+        )
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid scheduler token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if credentials.credentials != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid scheduler token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+__all__ = [
+    "get_db",
+    "get_current_user",
+    "get_current_restaurant",
+    "verify_sync_scheduler_token",
+    "CurrentUser",
+    "CurrentRestaurant",
+]

@@ -65,8 +65,9 @@ def resolve_sync_plan(
     *,
     date_from: date | None = None,
     date_to: date | None = None,
+    full: bool = False,
 ) -> SyncPlan | None:
-    """Диапазон загрузки: как в CLI — от последнего дня в БД до вчера."""
+    """Диапазон загрузки: incremental — от последнего дня в БД; full — с history_limit()."""
     yesterday = date.today() - timedelta(days=1)
     resolved_to = min(date_to or yesterday, yesterday)
 
@@ -74,9 +75,13 @@ def resolve_sync_plan(
         Order.restaurant_id == restaurant_id,
     ).scalar()
 
+    limit = history_limit()
     resolved_from = date_from
-    if last is None:
-        limit = history_limit()
+    if full:
+        resolved_from = date_from if date_from is not None else limit
+        if resolved_from < limit:
+            resolved_from = limit
+    elif last is None:
         if resolved_from is None:
             resolved_from = limit
         elif resolved_from < limit:
@@ -216,7 +221,22 @@ def normalize_sync_status(restaurant: Restaurant) -> tuple[str, str | None]:
     return restaurant.sync_status, restaurant.last_sync_error
 
 
-def run_sync_job(restaurant_id: uuid.UUID) -> None:
+def acquire_sync_lock(session: Session, restaurant_id: uuid.UUID) -> bool:
+    """Ставит sync_status=running; False если ресторан занят или не настроен."""
+    restaurant = session.get(Restaurant, restaurant_id)
+    if restaurant is None or not restaurant.iiko_configured:
+        return False
+    status, _ = normalize_sync_status(restaurant)
+    if status == "running":
+        return False
+    restaurant.sync_status = "running"
+    restaurant.sync_started_at = _utc_now()
+    restaurant.last_sync_error = None
+    session.commit()
+    return True
+
+
+def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
     """Фоновая задача: один web/CLI sync для ресторана."""
     session = db_manager.get_session()
     try:
@@ -225,7 +245,7 @@ def run_sync_job(restaurant_id: uuid.UUID) -> None:
             logger.error("sync job: restaurant %s not found", restaurant_id)
             return
 
-        plan = resolve_sync_plan(session, restaurant_id)
+        plan = resolve_sync_plan(session, restaurant_id, full=full)
         if plan is None:
             restaurant.sync_status = "noop"
             restaurant.last_sync_at = _utc_now()

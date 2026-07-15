@@ -109,7 +109,7 @@ class Foodcost(StrictModel):
         "(или ?year/?month)"
     )
     compare: Period = Field(
-        description="Период сравнения: те же числа прошлого года (29.02 -> 28.02)"
+        description="Период сравнения: непосредственно предшествующий период той же формы"
     )
     totals: CostTotals = Field(
         description="Тоталы страницы («чистый фудкост» в сырье); "

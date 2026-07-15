@@ -4,7 +4,7 @@ import { PopoverController } from '../../../../core/state/popover.controller';
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
 import type { ChartDisplayMode, PeriodGranularity } from '../../../../shared/models/common.model';
-import type { PeriodV2 } from '../../../../shared/models/dashboard-v2.model';
+import type { ApiPeriod } from '../../../../shared/models/dashboard-api.model';
 import type { RevenueDay } from '../../../../shared/models';
 import { chartDisplayOptionsForTimeframe } from '../../../../shared/constants/chart-display.constants';
 import {
@@ -80,13 +80,13 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               fill="url(#dayg)"
               (click)="onBarClick($event, bar.index)"
             />
-            @if (bar.hasPlan) {
+            @if (bar.hasMark) {
               <line
                 [attr.x1]="bar.x - 3"
-                [attr.y1]="bar.planY"
+                [attr.y1]="bar.markY"
                 [attr.x2]="bar.x + bar.w + 3"
-                [attr.y2]="bar.planY"
-                stroke="var(--chart-axis)"
+                [attr.y2]="bar.markY"
+                stroke="var(--mark-plan)"
                 stroke-width="2"
                 stroke-linecap="round"
                 pointer-events="none"
@@ -201,7 +201,7 @@ export class RevenueDaysChartOrganismComponent {
 
   readonly days = input.required<RevenueDay[]>();
   readonly max = input.required<number>();
-  readonly period = input.required<PeriodV2>();
+  readonly period = input.required<ApiPeriod>();
   readonly loading = input(false);
   readonly timeframe = input.required<PeriodGranularity>();
   readonly displayMode = input.required<ChartDisplayMode>();
@@ -217,7 +217,7 @@ export class RevenueDaysChartOrganismComponent {
   protected readonly selectedIndex = signal<number | null>(null);
 
   protected readonly layout = computed(() =>
-    buildRevenueDaysChartLayout(this.days(), this.max(), this.displayMode()),
+    buildRevenueDaysChartLayout(this.days(), this.max(), this.displayMode(), this.timeframe()),
   );
 
   constructor() {

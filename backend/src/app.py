@@ -1,7 +1,8 @@
 """Application factory (12-factor V: build vs run, VII: port binding)."""
 
+import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,7 @@ from src.api.routes.auth import create_auth_router
 from src.api.routes.dashboard import create_dashboard_router
 from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
+from src.api.routes.internal import create_internal_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.stubs import create_stub_router
 from src.api.routes.warehouse import create_warehouse_router
@@ -22,7 +24,18 @@ from src.core.logging import configure_logging
 from src.db.session import db_manager
 from src.middleware.security_headers import SecurityHeadersMiddleware
 
+from src.services.iiko_sync_scheduler import run_scheduled_syncs
+
 logger = logging.getLogger(__name__)
+
+
+async def _embedded_sync_worker_loop(interval_seconds: int) -> None:
+    while True:
+        try:
+            await asyncio.to_thread(run_scheduled_syncs)
+        except Exception:
+            logger.exception("embedded sync worker tick failed")
+        await asyncio.sleep(interval_seconds)
 
 
 @asynccontextmanager
@@ -33,7 +46,23 @@ async def lifespan(app: FastAPI):
             "JWT_SECRET_KEY is a development placeholder — set a strong secret in production",
         )
     db_manager.create_all()
+
+    worker_task: asyncio.Task[None] | None = None
+    if settings.sync_embedded_worker:
+        logger.info(
+            "embedded iiko sync worker started (interval=%ss)",
+            settings.sync_worker_interval_seconds,
+        )
+        worker_task = asyncio.create_task(
+            _embedded_sync_worker_loop(settings.sync_worker_interval_seconds),
+        )
+
     yield
+
+    if worker_task is not None:
+        worker_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await worker_task
 
 
 def create_app() -> FastAPI:
@@ -52,6 +81,7 @@ def create_app() -> FastAPI:
             {"name": "Health", "description": "Liveness / load balancer probes"},
             {"name": "Авторизация", "description": "JWT, профиль, настройки iiko"},
             {"name": "Дашборд", "description": "Главная (v2, БД)"},
+            {"name": "Internal", "description": "Worker/cron (bearer token)"},
             {"name": "Продажи", "description": "Продажи (БД)"},
             {"name": "Заглушки", "description": "warehouse/foodcost из data/*.json"},
         ],
@@ -76,6 +106,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(create_health_router(limiter))
+    app.include_router(create_internal_router(limiter))
     app.include_router(create_auth_router(limiter))
     app.include_router(create_sales_router(limiter))
     app.include_router(create_dashboard_router(limiter))

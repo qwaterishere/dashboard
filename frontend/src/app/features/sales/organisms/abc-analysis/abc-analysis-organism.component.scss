@@ -28,6 +28,12 @@
   gap: 8px;
   font-size: 0.74rem;
   color: var(--mut);
+
+  app-segment-control ::ng-deep button {
+    white-space: nowrap;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
 }
 
 .abc-summary {

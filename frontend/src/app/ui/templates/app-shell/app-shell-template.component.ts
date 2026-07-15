@@ -26,9 +26,12 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
     }
     <div class="app" [class.app--with-right]="showRightPanel()">
       <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
-      <main class="app-main" (scroll)="mainScroll.emit()">
+      <main class="app-main app-scroll" (scroll)="mainScroll.emit()">
         @if (showPageHeadline()) {
           <app-page-greeting [headline]="pageHeadline()" [variant]="pageHeadlineVariant()" />
+        }
+        @if (showPeriodBar()) {
+          <ng-content select="[appFreshnessBanner]" />
         }
         @if (showPeriodBar()) {
           <ng-content select="[appPeriodBar]" />

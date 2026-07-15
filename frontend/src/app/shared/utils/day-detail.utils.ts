@@ -1,6 +1,6 @@
 import { WEEKDAYS_FULL } from '../constants/category.constants';
 import type { DetailPopover } from '../models/common.model';
-import type { PeriodV2 } from '../models/dashboard-v2.model';
+import type { ApiPeriod } from '../models/dashboard-api.model';
 import type { RevenueDay } from '../models/dashboard.model';
 
 const MONTHS_GENITIVE = [
@@ -42,21 +42,28 @@ function formatSignedPct(value: number): string {
   return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} %`;
 }
 
-function toIsoDate(period: PeriodV2, day: number): string {
+function toIsoDate(period: ApiPeriod, day: number): string {
   return `${period.year}-${String(period.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /** Заголовок popover дня: «5 июня · пятница». */
-export function formatDayPopoverTitle(day: RevenueDay, period: PeriodV2): string {
+export function formatDayPopoverTitle(day: RevenueDay, period: ApiPeriod): string {
   const month = MONTHS_GENITIVE[period.month - 1] ?? '';
   return `${day.day} ${month} · ${WEEKDAYS_FULL[day.weekday]}`;
 }
 
 /** Контент popover при клике на столбик «Выручка по дням». */
-export function buildDayDetailPopover(day: RevenueDay, period: PeriodV2): DetailPopover {
+export function buildDayDetailPopover(day: RevenueDay, period: ApiPeriod): DetailPopover {
   const rows: DetailPopover['rows'] = [['Выручка', formatMoney(day.revenue)]];
 
-  if (day.plan !== null && day.plan > 0) {
+  if (day.forecast !== null && day.forecast > 0) {
+    const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
+    rows.push([
+      `К прогнозу дня (${formatMoney(day.forecast)})`,
+      formatSignedPct(deltaPct),
+      deltaPct >= 0 ? 'up' : 'dn',
+    ]);
+  } else if (day.plan !== null && day.plan > 0) {
     const deltaPct = ((day.revenue - day.plan) / day.plan) * 100;
     rows.push([
       `К плану дня (${formatMoney(day.plan)})`,
@@ -64,7 +71,7 @@ export function buildDayDetailPopover(day: RevenueDay, period: PeriodV2): Detail
       deltaPct >= 0 ? 'up' : 'dn',
     ]);
   } else {
-    rows.push(['К плану дня', '—']);
+    rows.push(['К прогнозу дня', '—']);
   }
 
   rows.push(
@@ -123,13 +130,28 @@ export function buildMonthDetailPopover(day: RevenueDay, year: number): DetailPo
   const month = day.day;
   const rows: DetailPopover['rows'] = [
     ['Выручка', formatMoney(day.revenue)],
-    ['К плану месяца', '—'],
+  ];
+
+  if (day.forecast !== null && day.forecast > 0) {
+    const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
+    rows.push([
+      `К прогнозу месяца (${formatMoney(day.forecast)})`,
+      formatSignedPct(deltaPct),
+      deltaPct >= 0 ? 'up' : 'dn',
+    ]);
+  } else if (day.plan !== null && day.plan > 0) {
+    rows.push(['К плану месяца', formatMoney(day.plan)]);
+  } else {
+    rows.push(['К прогнозу месяца', '—']);
+  }
+
+  rows.push(
     [
       'Чеки · средний чек',
       `${day.checks.toLocaleString('ru-RU')} · ${formatMoney(day.avg)}`,
     ],
     ['Гости', day.guests.toLocaleString('ru-RU')],
-  ];
+  );
   const range = monthIsoRange(year, month);
 
   return {

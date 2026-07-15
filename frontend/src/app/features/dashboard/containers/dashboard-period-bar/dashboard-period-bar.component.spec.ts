@@ -33,6 +33,7 @@ describe('DashboardPeriodBarComponent', () => {
               note: pickerConfig()?.note ?? '',
             })),
             chartPickerConfig: computed(() => pickerConfig()),
+            comparePickerConfig: computed(() => null),
           },
         },
       ],

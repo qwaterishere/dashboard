@@ -1,0 +1,55 @@
+{
+  "period": {
+    "year": 2026,
+    "month": 8,
+    "label": "Август 2026"
+  },
+  "reference": {
+    "label": "июня (1–12)",
+    "revenueFact": 4600000,
+    "revenuePace": 11900000
+  },
+  "revenue": {
+    "monthPlan": 11800000,
+    "weekProfile": [1.0, 1.0, 1.0, 1.05, 1.1, 1.2, 1.15]
+  },
+  "foodcost": [
+    {
+      "key": "k",
+      "name": "Кухня",
+      "goalPct": 30.0,
+      "factPct": 30.2
+    },
+    {
+      "key": "b",
+      "name": "Бар",
+      "goalPct": 24.0,
+      "factPct": 24.7
+    }
+  ],
+  "writeoffs": [
+    {
+      "key": "k",
+      "name": "Кухня",
+      "mode": "pct",
+      "pct": 1.2,
+      "rub": 138000
+    },
+    {
+      "key": "b",
+      "name": "Бар",
+      "mode": "pct",
+      "pct": 0.8,
+      "rub": 92000
+    }
+  ],
+  "compliments": {
+    "goalPct": 0.4,
+    "factPct": 0.4,
+    "factRub": 46000
+  },
+  "inventory": {
+    "goalPct": 0.15,
+    "note": "факта нет — домен фазы 2"
+  }
+}

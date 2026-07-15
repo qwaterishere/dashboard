@@ -1,0 +1,44 @@
+.week-profile {
+  display: grid;
+  gap: 10px;
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--txt);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  &__cell {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__day {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mut2);
+    text-align: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .week-profile__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

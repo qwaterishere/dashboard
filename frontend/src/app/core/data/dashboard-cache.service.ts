@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 
-import type { DashboardV2 } from '../../shared/models/dashboard-v2.model';
+import type { DashboardApi } from '../../shared/models/dashboard-api.model';
 import { tenantScopeFromCacheKey } from './analytics-cache-key';
 
 export interface DashboardCacheEntry {
-  data: DashboardV2;
+  data: DashboardApi;
   etag: string | null;
   fetchedAt: number;
 }
@@ -16,13 +16,13 @@ export interface DashboardCacheHit<T> {
 }
 
 export type DashboardCacheLoaderResult =
-  | { kind: 'ok'; data: DashboardV2; etag: string | null }
+  | { kind: 'ok'; data: DashboardApi; etag: string | null }
   | { kind: 'not-modified' };
 
 @Injectable({ providedIn: 'root' })
 export class DashboardCache {
   private readonly entries = new Map<string, DashboardCacheEntry>();
-  private readonly inflight = new Map<string, Promise<DashboardCacheHit<DashboardV2>>>();
+  private readonly inflight = new Map<string, Promise<DashboardCacheHit<DashboardApi>>>();
 
   peek(key: string): DashboardCacheEntry | undefined {
     return this.entries.get(key);
@@ -36,6 +36,14 @@ export class DashboardCache {
     const entry = this.entries.get(key);
     if (!entry) return false;
     return now - entry.fetchedAt < staleAfterMs;
+  }
+
+  markTenantStale(tenantScope: string, exceptKey?: string): void {
+    for (const [key, entry] of this.entries) {
+      if (tenantScopeFromCacheKey(key) === tenantScope && key !== exceptKey) {
+        entry.fetchedAt = 0;
+      }
+    }
   }
 
   clearAll(): void {
@@ -56,7 +64,7 @@ export class DashboardCache {
     key: string,
     loader: (etag: string | null) => Promise<DashboardCacheLoaderResult>,
     staleAfterMs: number,
-  ): Promise<DashboardCacheHit<DashboardV2>> {
+  ): Promise<DashboardCacheHit<DashboardApi>> {
     const cached = this.entries.get(key);
     if (cached && this.isFresh(key, staleAfterMs)) {
       return { data: cached.data, etag: cached.etag, fromCache: true };
@@ -80,7 +88,7 @@ export class DashboardCache {
     key: string,
     loader: (etag: string | null) => Promise<DashboardCacheLoaderResult>,
     cached: DashboardCacheEntry | undefined,
-  ): Promise<DashboardCacheHit<DashboardV2>> {
+  ): Promise<DashboardCacheHit<DashboardApi>> {
     const result = await loader(cached?.etag ?? null);
 
     if (result.kind === 'not-modified') {

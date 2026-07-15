@@ -1,9 +1,9 @@
 import { DashboardCache } from './dashboard-cache.service';
-import type { DashboardV2 } from '../../shared/models/dashboard-v2.model';
+import type { DashboardApi } from '../../shared/models/dashboard-api.model';
 
 const sample = {
   period: { year: 2026, month: 6, dayFrom: 1, dayTo: 11 },
-} as DashboardV2;
+} as DashboardApi;
 
 describe('DashboardCache', () => {
   it('returns fresh entry without calling loader', async () => {
@@ -23,10 +23,10 @@ describe('DashboardCache', () => {
 
   it('dedupes inflight requests', async () => {
     const cache = new DashboardCache();
-    let resolveLoader!: (value: { kind: 'ok'; data: DashboardV2; etag: string | null }) => void;
+    let resolveLoader!: (value: { kind: 'ok'; data: DashboardApi; etag: string | null }) => void;
     const loader = vi.fn(
       () =>
-        new Promise<{ kind: 'ok'; data: DashboardV2; etag: string | null }>((resolve) => {
+        new Promise<{ kind: 'ok'; data: DashboardApi; etag: string | null }>((resolve) => {
           resolveLoader = resolve;
         }),
     );

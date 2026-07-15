@@ -9,7 +9,7 @@ import { isCachedRoutePath } from './analytics-routes';
 
 /**
  * Кэширует экземпляры analytics-страниц при переключении вкладок.
- * Settings / support / purchases пересоздаются как обычно.
+ * Settings / support / targets пересоздаются как обычно.
  */
 @Injectable()
 export class AnalyticsRouteReuseStrategy implements RouteReuseStrategy {

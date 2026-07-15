@@ -59,7 +59,7 @@ CURRENT = [
           paid=280, price=350, cost=48, discount=70, top='Бар', group='Кофе'),
 ]
 PREV = [
-    _dish('2025-06-05', 5, '22222222-0000-0000-0000-000000000001',
+    _dish('2026-05-05', 5, '22222222-0000-0000-0000-000000000001',
           paid=400, price=400, cost=100),
 ]
 
@@ -113,7 +113,7 @@ def test_rule3_blocks_and_lfl(session, restaurant):
 
 
 def test_no_compare_gives_null_prev(session, restaurant):
-    _load(session, restaurant, CURRENT)          # прошлого года нет
+    _load(session, restaurant, CURRENT)          # compare-периода нет
 
     page = build_food_cost(session, restaurant.id)
     assert page.totals.prevRevenue is None       # сравнивать не с чем

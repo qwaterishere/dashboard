@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/angular';
 
 import type { PeriodGranularity } from '../../../../shared/models/common.model';
 import type { ChartPeriodSelection } from '../../../../core/services/period.service';
-import type { DataBoundsV2 } from '../../../../shared/models/dashboard-v2.model';
+import type { DataBounds } from '../../../../shared/models/dashboard-api.model';
 import { MOLECULE_DEMO_WIDE } from '../../../../ui/storybook/demo-frame';
 import { ChartPeriodPickerComponent } from './chart-period-picker.component';
 
@@ -12,7 +12,7 @@ interface ChartPeriodPickerStoryArgs {
   hasSelection: boolean;
 }
 
-const MOCK_BOUNDS: DataBoundsV2 = {
+const MOCK_BOUNDS: DataBounds = {
   earliest: '2025-03-10',
   latest: '2026-08-22',
 };
@@ -63,11 +63,15 @@ function renderPicker(args: ChartPeriodPickerStoryArgs) {
           ? MOCK_SELECTION
           : { year: 2026, month: 5 }
         : null,
+      panelOpen: false,
       onApplied: (value: ChartPeriodSelection) => {
         console.log('applied', value);
       },
       onReset: () => {
         console.log('reset');
+      },
+      onPanelOpenChange(open: boolean, props: { panelOpen: boolean }) {
+        props.panelOpen = open;
       },
     },
     template: `
@@ -78,6 +82,8 @@ function renderPicker(args: ChartPeriodPickerStoryArgs) {
           [bounds]="bounds"
           [activePeriod]="activePeriod"
           [selection]="selection"
+          [panelOpen]="panelOpen"
+          (panelOpenChange)="onPanelOpenChange($event, this)"
           (applied)="onApplied($event)"
           (resetSelection)="onReset()"
         />

@@ -2,14 +2,14 @@ from pydantic import BaseModel
 
 from src.schemas.dashboard import Dashboard
 from src.schemas.sales import SalesPage
-from src.schemas.stubs.foodcost import FoodcostData
+from src.schemas.stubs.targets import TargetsData
 from src.schemas.stubs.warehouse import WarehouseData
 
 SCHEMA_REGISTRY: dict[str, type[BaseModel]] = {
     "dashboard": Dashboard,
     "sales": SalesPage,
     "warehouse": WarehouseData,
-    "foodcost": FoodcostData,
+    "targets": TargetsData,
 }
 
 

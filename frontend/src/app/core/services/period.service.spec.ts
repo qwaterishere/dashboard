@@ -274,4 +274,61 @@ describe('PeriodService', () => {
     service.applyChartPeriod({ year: 2026, month: 8 });
     expect(service.chartPeriod()).toBeNull();
   });
+
+  it('clears custom compare when chart period collides with it', () => {
+    const service = TestBed.inject(PeriodService);
+    service.dashboardPeriod.set(dashboardPeriod);
+    service.chartDataBounds.set(bounds);
+    service.applyChartPeriod({ year: 2026, month: 6 });
+    service.applyComparePeriod({ year: 2026, month: 5 });
+
+    expect(service.comparePeriod()).toEqual({ year: 2026, month: 5 });
+
+    service.applyChartPeriod({ year: 2026, month: 5 });
+    expect(service.comparePeriod()).toBeNull();
+  });
+
+  it('normalizes month-shaped custom compare when switching to week granularity', () => {
+    const service = TestBed.inject(PeriodService);
+    service.dashboardPeriod.set(dashboardPeriod);
+    service.chartDataBounds.set(bounds);
+    service.applyComparePeriod({ year: 2026, month: 5 });
+
+    service.granularity.set('week');
+    TestBed.flushEffects();
+
+    expect(service.granularity()).toBe('week');
+    expect(service.comparePeriod()?.weekStartDate).toBe('2026-05-01');
+    expect(service.comparePeriod()?.weekEndDate).toBe('2026-05-11');
+  });
+
+  it('clears custom compare week when chart week collides with it', () => {
+    const service = TestBed.inject(PeriodService);
+    service.dashboardPeriod.set(dashboardPeriod);
+    service.chartDataBounds.set(bounds);
+    service.granularity.set('week');
+    service.markGranularitySynced();
+    service.applyChartPeriod({
+      year: 2026,
+      month: 6,
+      weekStartDate: '2026-06-08',
+      weekEndDate: '2026-06-14',
+    });
+    service.applyComparePeriod({
+      year: 2026,
+      month: 5,
+      weekStartDate: '2026-06-01',
+      weekEndDate: '2026-06-07',
+    });
+
+    expect(service.comparePeriod()?.weekStartDate).toBe('2026-06-01');
+
+    service.applyChartPeriod({
+      year: 2026,
+      month: 6,
+      weekStartDate: '2026-06-01',
+      weekEndDate: '2026-06-07',
+    });
+    expect(service.comparePeriod()).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import type { PeriodGranularity, PeriodInfo } from '../models/common.model';
-import type { ChartWeekRange } from '../models/chart-period.model';
-import type { PeriodV2, RevenueDayV2 } from '../models/dashboard-v2.model';
+import type { ChartPeriodSelection, ChartWeekRange } from '../models/chart-period.model';
+import type { ApiPeriod, RevenueDayFact } from '../models/dashboard-api.model';
 import { MONTHS_SHORT } from '../constants/month-labels.constants';
 import {
   enumerateIsoDateRange,
@@ -46,7 +46,7 @@ function parseIsoDate(value: string): { year: number; month: number; day: number
 }
 
 /** Диапазон дат периода для шапки и подписей графиков. */
-export function formatPeriodRange(p: PeriodV2): string {
+export function formatPeriodRange(p: ApiPeriod): string {
   const month = MONTHS_GENITIVE[p.month - 1] ?? '';
   if (p.dayFrom === p.dayTo) {
     return `${p.dayTo} ${month} ${p.year}`;
@@ -55,7 +55,7 @@ export function formatPeriodRange(p: PeriodV2): string {
 }
 
 /** Подпись периода для chart period pill (сокращённые месяцы). */
-export function formatChartPeriodRange(p: PeriodV2): string {
+export function formatChartPeriodRange(p: ApiPeriod): string {
   const month = MONTHS_SHORT[p.month - 1] ?? '';
   if (p.dayFrom === p.dayTo) {
     return `${p.dayTo} ${month} ${p.year}`;
@@ -96,7 +96,7 @@ export function formatYearPeriodLabel(
 
 /** Подпись периода для chart pill с учётом granularity. */
 export function formatChartPeriodLabel(
-  period: PeriodV2,
+  period: ApiPeriod,
   granularity: PeriodGranularity,
   monthRange?: { from: number; to: number },
   weekRange?: ChartWeekRange,
@@ -114,12 +114,12 @@ export function formatChartPeriodLabel(
 
 /** Фильтрует дни графика по granularity (данные API — месячный календарь). */
 export function filterRevenueDays(
-  days: RevenueDayV2[],
-  period: PeriodV2,
+  days: RevenueDayFact[],
+  period: ApiPeriod,
   granularity: PeriodGranularity,
   weekRange?: ChartWeekRange,
-  lookupDay?: (year: number, month: number, day: number) => RevenueDayV2 | undefined,
-): RevenueDayV2[] {
+  lookupDay?: (year: number, month: number, day: number) => RevenueDayFact | undefined,
+): RevenueDayFact[] {
   if (granularity === 'month' || granularity === 'year') {
     return days;
   }
@@ -134,11 +134,11 @@ function apiWeekday(isoDate: string): number {
 
 /** Полная календарная неделя (пн–вс) с нулевыми днями для отсутствующих в API. */
 export function buildWeekRevenueDays(
-  days: RevenueDayV2[],
-  period: PeriodV2,
+  days: RevenueDayFact[],
+  period: ApiPeriod,
   weekRange?: ChartWeekRange,
-  lookupDay?: (year: number, month: number, day: number) => RevenueDayV2 | undefined,
-): RevenueDayV2[] {
+  lookupDay?: (year: number, month: number, day: number) => RevenueDayFact | undefined,
+): RevenueDayFact[] {
   const effectiveWeek =
     weekRange ?? resolveDefaultWeekRange(period.year, period.month, period.dayFrom, period.dayTo);
   const byDay = new Map(days.map((d) => [d.day, d]));
@@ -162,6 +162,7 @@ export function buildWeekRevenueDays(
       checks: 0,
       guests: 0,
       plan: null,
+      forecast: null,
     };
   });
 }
@@ -171,14 +172,88 @@ export function monthRangeFromSeries(months: { month: number }[]): { from: numbe
   return { from: months[0].month, to: months[months.length - 1].month };
 }
 
-/** Подпись LfL-сравнения («июнем 2025»). */
-export function formatCompareWith(p: PeriodV2): string {
-  const month = MONTHS_INSTRUMENTAL[p.month - 1] ?? '';
-  return `${month} ${p.year}`;
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
 }
 
-/** PeriodInfo для period bar из фактов API dashboard v2. */
-export function buildPeriodInfo(period: PeriodV2, compare: PeriodV2): PeriodInfo {
+function shiftMonth(year: number, month: number, delta = -1): { year: number; month: number } {
+  let nextMonth = month + delta;
+  let nextYear = year;
+  while (nextMonth < 1) {
+    nextMonth += 12;
+    nextYear -= 1;
+  }
+  while (nextMonth > 12) {
+    nextMonth -= 12;
+    nextYear += 1;
+  }
+  return { year: nextYear, month: nextMonth };
+}
+
+/** Предыдущий период той же формы (зеркало backend previous_period для month-mode). */
+export function inferComparePeriod(period: ApiPeriod): ApiPeriod {
+  const monthDays = daysInMonth(period.year, period.month);
+  const prev = shiftMonth(period.year, period.month);
+
+  if (period.dayFrom === 1 && period.dayTo === monthDays) {
+    const prevDays = daysInMonth(prev.year, prev.month);
+    return { year: prev.year, month: prev.month, dayFrom: 1, dayTo: prevDays };
+  }
+
+  if (period.dayFrom === 1) {
+    const prevDays = daysInMonth(prev.year, prev.month);
+    return {
+      year: prev.year,
+      month: prev.month,
+      dayFrom: 1,
+      dayTo: Math.min(period.dayTo, prevDays),
+    };
+  }
+
+  const length = period.dayTo - period.dayFrom + 1;
+  const prevEndDay = period.dayFrom - 1;
+  const prevStartDay = prevEndDay - length + 1;
+  return {
+    year: period.year,
+    month: period.month,
+    dayFrom: prevStartDay,
+    dayTo: prevEndDay,
+  };
+}
+
+/** Период KPI для picker selection, пока chart slice ещё грузится. */
+export function inferPendingChartPeriod(
+  selection: ChartPeriodSelection,
+  granularity: PeriodGranularity,
+  basePeriod: ApiPeriod,
+): ApiPeriod {
+  if (granularity === 'year') {
+    return { year: selection.year, month: 1, dayFrom: 1, dayTo: 12 };
+  }
+
+  const isLatestMonth =
+    selection.year === basePeriod.year && selection.month === basePeriod.month;
+
+  return {
+    year: selection.year,
+    month: selection.month,
+    dayFrom: 1,
+    dayTo: isLatestMonth ? basePeriod.dayTo : daysInMonth(selection.year, selection.month),
+  };
+}
+
+/** Подпись LfL-сравнения («маем 2026» или «1–11 мая 2026»). */
+export function formatCompareWith(p: ApiPeriod): string {
+  const daysInMonth = new Date(p.year, p.month, 0).getDate();
+  if (p.dayFrom === 1 && p.dayTo === daysInMonth) {
+    const month = MONTHS_INSTRUMENTAL[p.month - 1] ?? '';
+    return `${month} ${p.year}`;
+  }
+  return formatPeriodRange(p);
+}
+
+/** PeriodInfo для period bar из фактов API dashboard. */
+export function buildPeriodInfo(period: ApiPeriod, compare: ApiPeriod): PeriodInfo {
   return {
     label: formatPeriodRange(period),
     note: 'закрытые дни',

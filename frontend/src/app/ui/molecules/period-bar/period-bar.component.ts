@@ -16,9 +16,17 @@ import { ComparePillComponent } from '../compare-pill/compare-pill.component';
       <ng-content select="[periodDate]">
         <app-date-pill class="period-bar__date" [label]="period().label" [note]="period().note" />
       </ng-content>
-      @if (period().compareWith) {
-        <app-compare-pill [compareWith]="period().compareWith!" />
-      }
+      <div
+        class="period-bar__compare"
+        [class.period-bar__compare--empty]="!period().compareWith && !reserveCompareSlot()"
+        [class.period-bar__compare--reserved]="reserveCompareSlot()"
+      >
+        <ng-content select="[comparePeriod]">
+          @if (period().compareWith) {
+            <app-compare-pill [compareWith]="period().compareWith!" />
+          }
+        </ng-content>
+      </div>
     </div>
   `,
   styleUrl: './period-bar.component.scss',
@@ -26,6 +34,8 @@ import { ComparePillComponent } from '../compare-pill/compare-pill.component';
 export class PeriodBarComponent {
   readonly period = input.required<PeriodInfo>();
   readonly granularity = model<PeriodGranularity>('month');
+  /** Держит ширину LfL-слота даже без compareWith (dashboard loading). */
+  readonly reserveCompareSlot = input(false);
 
   protected readonly granularityOptions = PERIOD_GRANULARITY_OPTIONS;
 }

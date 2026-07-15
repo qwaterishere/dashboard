@@ -79,9 +79,11 @@ export class SettingsService {
     }).pipe(tap((settings) => this.iikoSettings.set(settings)));
   }
 
-  syncIiko(): Observable<IikoSyncStartResponse> {
+  syncIiko(full = false): Observable<IikoSyncStartResponse> {
+    const params = full ? { full: 'true' } : undefined;
     return this.http.post<IikoSyncStartResponse>(this.url('me/iiko/sync'), null, {
       withCredentials: true,
+      params,
     });
   }
 

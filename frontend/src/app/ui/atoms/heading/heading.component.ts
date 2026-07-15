@@ -20,6 +20,12 @@ import { Component, input } from '@angular/core';
     }
   `,
   styles: `
+    :host {
+      display: block;
+      min-width: 0;
+      max-width: 100%;
+    }
+
     h1 {
       font-size: 1.35rem;
       font-weight: 700;
@@ -45,6 +51,9 @@ import { Component, input } from '@angular/core';
       font-size: 1.42rem;
       letter-spacing: -0.01em;
       color: var(--txt);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   `,
 })
