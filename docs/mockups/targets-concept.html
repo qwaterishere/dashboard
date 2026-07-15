@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сезоны — Цели (мокап)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #edeee8; --panel: #f7f8f3; --line: #d9dbd2; --line2: #dee0d7;
+    --txt: #191b1e; --mut: #6f7368; --mut2: #84887d;
+    --good: #3f7a5f; --good-bg: rgba(63,122,95,.12);
+    --bad: #9e4f58; --bad-bg: rgba(158,79,88,.12);
+    --gold: #837020; --cell: #e6e8e0;
+  }
+  :root[data-theme="dark"] {
+    --bg: #101112; --panel: #17181a; --line: #262829; --line2: #2c2e2f;
+    --txt: #ecede7; --mut: #8f938a; --mut2: #63665f;
+    --good: #93bfa9; --good-bg: rgba(147,191,169,.12);
+    --bad: #d68f95; --bad-bg: rgba(214,143,149,.12);
+    --gold: #c9b26e; --cell: #1d1f21;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--txt);
+    font: 14px/1.5 'Onest', sans-serif;
+    padding: 32px 28px 48px; max-width: 1120px; margin: 0 auto;
+    transition: background .2s, color .2s;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; letter-spacing: .12em;
+          font-size: 10px; color: var(--mut2); }
+  header { display: flex; justify-content: space-between; align-items: center; }
+  .brand { font-weight: 800; font-size: 17px; letter-spacing: .02em; }
+  .brand span { color: var(--mut2); }
+  .stamp { display: flex; align-items: center; gap: 8px; }
+  .reticle { width: 12px; height: 12px; border-radius: 50%;
+             border: 1px solid var(--mut2); position: relative; display: inline-block; }
+  .reticle::after { content: ''; position: absolute; inset: 3px;
+                    border-radius: 50%; border: 1px solid var(--mut2); }
+  .barcode { height: 10px; margin: 16px 0 22px;
+    background: repeating-linear-gradient(90deg, var(--line2) 0 2px,
+      transparent 2px 5px, var(--line2) 5px 6px, transparent 6px 11px); }
+  .titlebar { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -.015em; }
+  h1 span { color: var(--mut2); }
+  .titlebar .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .pill { border: 1px solid var(--line2); border-radius: 99px; padding: 7px 14px;
+          background: var(--panel); color: var(--txt); font-size: 13px; }
+  .pill b { color: var(--good); }
+  button.ink {
+    background: var(--txt); color: var(--bg); border: 0; border-radius: 10px;
+    font: 700 13px 'Onest', sans-serif; padding: 10px 22px; cursor: pointer;
+  }
+  button.ghost {
+    background: var(--panel); color: var(--mut); border: 1px solid var(--line2);
+    border-radius: 99px; font: 500 12px 'Onest', sans-serif;
+    padding: 7px 13px; cursor: pointer;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line2);
+          border-radius: 14px; padding: 16px 18px; }
+  .card.wide { grid-column: 1 / -1; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .card-head h3 { font-size: 14.5px; font-weight: 700; }
+  .card .sub { color: var(--mut2); font-size: 12px; margin: 2px 0 12px; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 9px 0;
+         border-top: 1px solid var(--line); }
+  .row:first-of-type { border-top: 0; }
+  .row label { flex: 1; font-weight: 500; }
+  .fact { font-size: 11px; font-weight: 700; border-radius: 99px; padding: 2px 9px;
+          background: var(--good-bg); color: var(--good); white-space: nowrap; }
+  .fact.na { background: transparent; color: var(--mut2); font-weight: 500;
+             border: 1px dashed var(--line2); }
+  input[type="text"] {
+    width: 150px; background: var(--bg); border: 1px solid var(--line2);
+    color: var(--txt); border-radius: 8px; padding: 8px 10px;
+    font: 500 13px 'JetBrains Mono', monospace; text-align: right;
+  }
+  input:focus { outline: 1px solid var(--good); }
+  .derived { color: var(--good); font-size: 12px; min-width: 165px;
+             text-align: right; font-weight: 600; }
+  .unit-toggle { display: flex; border: 1px solid var(--line2);
+                 border-radius: 8px; overflow: hidden; }
+  .unit-toggle button { background: var(--bg); color: var(--mut2); border: 0;
+                        padding: 7px 10px; cursor: pointer; font-size: 12px; }
+  .unit-toggle button.on { background: var(--txt); color: var(--bg); }
+  /* календарь дневных планов */
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 12px; }
+  .cal .wd { text-align: center; padding-bottom: 2px; }
+  .cal .day { background: var(--cell); border: 1px solid var(--line);
+              border-radius: 8px; padding: 6px 7px; min-height: 46px; }
+  .cal .day.we { outline: 1px solid var(--line2); }
+  .cal .day .n { font-size: 10px; color: var(--mut2); font-family: 'JetBrains Mono', monospace; }
+  .cal .day .v { font-size: 11.5px; font-weight: 700; margin-top: 3px; }
+  .cal .day.empty { background: transparent; border: 0; }
+  .weights { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .weights .w { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .weights input { width: 52px; padding: 5px 6px; text-align: center; }
+  .ruler { display: flex; justify-content: space-between; align-items: center;
+           margin-top: 22px; }
+  .ruler .mid { flex: 1; border-top: 1px solid var(--line2); margin: 0 14px; }
+  .foot { margin-top: 14px; color: var(--mut2); font-size: 12px; line-height: 1.7; }
+  .foot b { color: var(--txt); }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">СЕЗОНЫ<span>.</span></div>
+    <div class="stamp mono"><span class="reticle"></span> TRG-001 · ЛЕСНОЙ ТАШКЕНТ</div>
+  </header>
+  <div class="barcode"></div>
+
+  <div class="titlebar">
+    <h1>Цели на месяц<span>.</span></h1>
+    <span class="mono">[МОКАП]</span>
+    <div class="right">
+      <span class="pill">‹ &nbsp;<b>Август 2026</b>&nbsp; ›</span>
+      <button class="ghost" id="themeBtn" onclick="toggleTheme()">◐ тёмная</button>
+      <button class="ink" onclick="alert('Мокап: здесь PUT /api/targets')">Сохранить</button>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card wide">
+      <div class="card-head"><h3>Выручка — план по дням</h3><span class="mono">[01]</span></div>
+      <div class="sub">сумма месяца распределяется профилем дней недели; дневные планы уезжают в plan графика на дашборде</div>
+      <div class="row">
+        <label>План на месяц, сум</label>
+        <span class="fact">факт июля (1–12): 431,9 млн · темп ≈ 1,08 млрд</span>
+        <input type="text" id="rev" value="1 100 000 000" oninput="recalc()">
+        <span class="derived" id="revDay"></span>
+      </div>
+      <div class="row" style="align-items:flex-start">
+        <label style="padding-top:6px">Профиль недели<br><span class="sub" style="margin:0">коэффициенты нагрузки</span></label>
+        <div class="weights" id="weights"></div>
+      </div>
+      <div class="cal" id="cal"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Фудкост по юнитам</h3><span class="mono">[02]</span></div>
+      <div class="sub">цель на странице «Фудкост» (totals и юниты)</div>
+      <div class="row">
+        <label>Кухня, %</label>
+        <span class="fact">факт июля: 31,8%</span>
+        <input type="text" id="fck" value="30" oninput="recalc()">
+        <span class="derived" id="fckSum"></span>
+      </div>
+      <div class="row">
+        <label>Бар, %</label>
+        <span class="fact">факт июля: 30,1%</span>
+        <input type="text" id="fcb" value="27" oninput="recalc()">
+        <span class="derived" id="fcbSum"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Списания</h3><span class="mono">[03]</span></div>
+      <div class="sub">акты списания (порча, бой, срок) — фаза 2 фудкоста</div>
+      <div class="row">
+        <label>Кухня</label>
+        <div class="unit-toggle"><button class="on">%</button><button>сум</button></div>
+        <input type="text" id="wok" value="1,0" oninput="recalc()">
+        <span class="derived" id="wokSum"></span>
+      </div>
+      <div class="row">
+        <label>Бар</label>
+        <div class="unit-toggle"><button class="on">%</button><button>сум</button></div>
+        <input type="text" id="wob" value="0,5" oninput="recalc()">
+        <span class="derived" id="wobSum"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Комплименты и представительские</h3><span class="mono">[04]</span></div>
+      <div class="sub">блок losses страницы «Фудкост», по себестоимости</div>
+      <div class="row">
+        <label>План, % от выручки</label>
+        <span class="fact">факт июля: 0,52% (2,26 млн)</span>
+        <input type="text" id="compl" value="0,6" oninput="recalc()">
+        <span class="derived" id="complSum"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Инвентаризация</h3><span class="mono">[05]</span></div>
+      <div class="sub">допустимая недостача по итогам месячной инвентаризации</div>
+      <div class="row">
+        <label>План, % от выручки</label>
+        <span class="fact na">факта нет — домен фазы 2</span>
+        <input type="text" id="inv" value="0,3" oninput="recalc()">
+        <span class="derived" id="invSum"></span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="ruler mono">
+    <span style="border:1px solid var(--line2);border-radius:99px;padding:6px 14px">◯ TARGETS / МЕСЯЦ</span>
+    <span class="mid"></span>
+    <span id="ctl" style="border:1px solid var(--line2);border-radius:4px;padding:6px 10px">Σ ДНЕЙ = ПЛАНУ ✓</span>
+  </div>
+
+  <div class="foot">
+    <b>Решения:</b> план выручки задаётся ПО ДНЯМ (сумма месяца × профиль недели, дни можно будет
+    докрутить вручную); наследования из прошлого месяца НЕТ — каждый месяц заполняется заново;
+    права на изменение целей — <b>вопрос открыт</b> (упирается в роли, карточка №11).
+    Проценты пересчитываются от плана выручки — зелёные подписи. Цели уезжают: выручка →
+    дашборд (plan дня на графике, трек прогноза), фудкост → foodcost goal, списания/комплименты →
+    losses, инвентаризация — блок фазы 2.
+  </div>
+
+<script>
+  const WD = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  const DEFAULT_W = [1.0, 1.0, 1.0, 1.1, 1.3, 1.4, 1.2];
+  const YEAR = 2026, MONTH = 7;               // август 2026
+  const num = s => parseFloat(String(s).replace(/\s/g, '').replace(',', '.')) || 0;
+  const fmtM = n => n >= 1e9 ? (n / 1e9).toFixed(2).replace('.', ',') + ' млрд'
+                             : (n / 1e6).toFixed(1).replace('.', ',') + ' млн';
+
+  const weightsBox = document.getElementById('weights');
+  WD.forEach((d, i) => {
+    weightsBox.insertAdjacentHTML('beforeend',
+      `<span class="w"><span class="mono">${d}</span>
+       <input type="text" id="w${i}" value="${DEFAULT_W[i].toFixed(1).replace('.', ',')}" oninput="recalc()"></span>`);
+  });
+
+  function recalc() {
+    const rev = num(document.getElementById('rev').value);
+    const w = WD.map((_, i) => num(document.getElementById('w' + i).value));
+    const days = new Date(YEAR, MONTH + 1, 0).getDate();
+    let totalW = 0;
+    const wd = [];
+    for (let d = 1; d <= days; d++) {
+      const k = (new Date(YEAR, MONTH, d).getDay() + 6) % 7;   // пн=0
+      wd.push(k); totalW += w[k];
+    }
+    // календарь
+    const cal = document.getElementById('cal');
+    cal.innerHTML = WD.map(d => `<div class="wd mono">${d}</div>`).join('');
+    for (let i = 0; i < wd[0]; i++) cal.insertAdjacentHTML('beforeend', '<div class="day empty"></div>');
+    let sum = 0;
+    for (let d = 1; d <= days; d++) {
+      const plan = totalW ? rev * w[wd[d - 1]] / totalW : 0;
+      sum += plan;
+      cal.insertAdjacentHTML('beforeend',
+        `<div class="day${wd[d - 1] >= 5 ? ' we' : ''}"><div class="n">${String(d).padStart(2, '0')}</div>
+         <div class="v">${(plan / 1e6).toFixed(1).replace('.', ',')}М</div></div>`);
+    }
+    document.getElementById('revDay').textContent = '≈ ' + fmtM(rev / days) + '/день в среднем';
+    document.getElementById('ctl').textContent =
+      Math.abs(sum - rev) < 1 ? 'Σ ДНЕЙ = ПЛАНУ ✓' : 'Σ ДНЕЙ ≠ ПЛАНУ ⚠';
+    // остальные блоки: доли юнитов из факта июля (68% кухня, 31% бар)
+    const set = (id, val, suffix) =>
+      document.getElementById(id).textContent = val ? '≈ ' + fmtM(val) + (suffix || '') : '';
+    set('fckSum', rev * 0.68 * num(document.getElementById('fck').value) / 100, ' с/с');
+    set('fcbSum', rev * 0.31 * num(document.getElementById('fcb').value) / 100, ' с/с');
+    set('wokSum', rev * 0.68 * num(document.getElementById('wok').value) / 100);
+    set('wobSum', rev * 0.31 * num(document.getElementById('wob').value) / 100);
+    set('complSum', rev * num(document.getElementById('compl').value) / 100);
+    set('invSum', rev * num(document.getElementById('inv').value) / 100);
+  }
+
+  function toggleTheme() {
+    const root = document.documentElement;
+    const dark = root.dataset.theme === 'dark';
+    root.dataset.theme = dark ? '' : 'dark';
+    document.getElementById('themeBtn').textContent = dark ? '◐ тёмная' : '◑ светлая';
+  }
+
+  document.querySelectorAll('.unit-toggle button').forEach(b =>
+    b.addEventListener('click', e => {
+      e.target.parentNode.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      e.target.classList.add('on');
+    }));
+
+  recalc();
+</script>
+</body>
+</html>

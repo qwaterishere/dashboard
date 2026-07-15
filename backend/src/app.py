@@ -16,6 +16,7 @@ from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.stubs import create_stub_router
+from src.api.routes.warehouse import create_warehouse_router
 from src.core.config import get_settings
 from src.core.logging import configure_logging
 from src.db.session import db_manager
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
     app.include_router(create_dashboard_router(limiter))
     # до стабов: /api/{page} — катч-олл, маршруты матчятся в порядке регистрации
     app.include_router(create_foodcost_router(limiter))
+    app.include_router(create_warehouse_router(limiter))
     app.include_router(create_stub_router(limiter))
 
     @app.exception_handler(Exception)
