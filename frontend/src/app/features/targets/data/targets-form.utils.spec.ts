@@ -1,5 +1,12 @@
-import { complimentsAmountFromPlan, buildTargetsFormState } from './targets-form.utils';
-import type { TargetsData } from '../../../shared/models/targets.model';
+import {
+  buildTargetsFormState,
+  cloneTargetsFormState,
+  complimentsAmountFromPlan,
+  isTargetsFormDirty,
+  isTargetsSectionDirty,
+  restoreTargetsSection,
+} from './targets-form.utils';
+import type { TargetsData, TargetsFormState } from '../../../shared/models/targets.model';
 
 const SAMPLE: TargetsData = {
   period: { year: 2026, month: 8, label: 'Август 2026' },
@@ -29,5 +36,28 @@ describe('targets-form.utils', () => {
 
   it('computes compliments amount from revenue plan', () => {
     expect(complimentsAmountFromPlan(10_000_000, 0.4)).toBe(40_000);
+  });
+
+  it('detects section and form dirtiness against saved snapshot', () => {
+    const saved = buildTargetsFormState(SAMPLE);
+    const current: TargetsFormState = {
+      ...cloneTargetsFormState(saved),
+      inventoryGoalPct: 0.5,
+    };
+
+    expect(isTargetsSectionDirty(current, saved, 'inventory')).toBe(true);
+    expect(isTargetsSectionDirty(current, saved, 'revenue')).toBe(false);
+    expect(isTargetsFormDirty(current, saved)).toBe(true);
+  });
+
+  it('restores only the selected section from saved snapshot', () => {
+    const saved = buildTargetsFormState(SAMPLE);
+    const dirty = cloneTargetsFormState(saved);
+    dirty.revenueMonthPlan = 1;
+    dirty.inventoryGoalPct = 9;
+
+    const restored = restoreTargetsSection(dirty, saved, 'revenue');
+    expect(restored.revenueMonthPlan).toBe(saved.revenueMonthPlan);
+    expect(restored.inventoryGoalPct).toBe(9);
   });
 });

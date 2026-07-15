@@ -15,16 +15,26 @@
     min-width: 12rem;
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: none;
+  }
+
   &__toolbar app-button {
     flex: none;
     width: auto;
-    min-width: 10rem;
   }
 
   &__toolbar ::ng-deep button.btn--primary {
     width: auto;
     min-width: 10rem;
     padding-inline: 22px;
+  }
+
+  &__toolbar ::ng-deep button.btn--pill {
+    min-width: 7.5rem;
   }
 
   &__grid {
