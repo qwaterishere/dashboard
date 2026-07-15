@@ -5,6 +5,7 @@ export const ALLOWED_PAGES: readonly PageName[] = [
   'sales',
   'warehouse',
   'foodcost',
+  'targets',
 ] as const;
 
 export function isAllowedPage(page: string): page is PageName {

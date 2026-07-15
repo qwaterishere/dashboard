@@ -1,6 +1,7 @@
 import { Component, computed, inject, input } from '@angular/core';
 
 import { NavActiveService } from '../../../core/routing/nav-active.service';
+import { DataFreshnessService } from '../../../core/data/data-freshness.service';
 import { ThemeService } from '../../../core/state/theme.service';
 import {
   MAIN_NAV_ITEMS,
@@ -9,12 +10,13 @@ import {
 } from '../../../shared/constants/nav.constants';
 import { NavItemComponent } from '../../molecules/nav-item/nav-item.component';
 import { ThemeToggleComponent } from '../../molecules/theme-toggle/theme-toggle.component';
+import { DataFreshnessBadgeComponent } from '../../molecules/data-freshness-badge/data-freshness-badge.component';
 import { DividerComponent } from '../../atoms/divider/divider.component';
 
 @Component({
   selector: 'app-sidebar-organism',
   standalone: true,
-  imports: [NavItemComponent, ThemeToggleComponent, DividerComponent],
+  imports: [NavItemComponent, ThemeToggleComponent, DataFreshnessBadgeComponent, DividerComponent],
   template: `
     <aside class="side">
       <div class="logo">СЕЗОНЫ<span>.</span></div>
@@ -37,6 +39,12 @@ import { DividerComponent } from '../../atoms/divider/divider.component';
         }
       </nav>
       <div class="side-bottom">
+        @if (showFreshnessBadge()) {
+          <app-data-freshness-badge
+            [freshness]="freshness()"
+            [loadError]="freshnessLoadError()"
+          />
+        }
         <app-theme-toggle [isDark]="isDark()" (toggled)="onThemeToggle()" />
       </div>
     </aside>
@@ -46,11 +54,17 @@ import { DividerComponent } from '../../atoms/divider/divider.component';
 export class SidebarOrganismComponent {
   private readonly navActive = inject(NavActiveService);
   private readonly themeService = inject(ThemeService);
+  private readonly freshnessService = inject(DataFreshnessService);
 
   readonly mainNav = input<NavItemConfig[]>(MAIN_NAV_ITEMS);
   readonly secondaryNav = input<NavItemConfig[]>(SECONDARY_NAV_ITEMS);
 
   protected readonly isDark = computed(() => this.themeService.theme() === 'dark');
+  protected readonly freshness = this.freshnessService.freshness;
+  protected readonly freshnessLoadError = this.freshnessService.loadError;
+  protected readonly showFreshnessBadge = computed(
+    () => this.freshness() !== null || this.freshnessLoadError(),
+  );
 
   isActive(path: string): boolean {
     const expected = path.replace(/^\//, '');

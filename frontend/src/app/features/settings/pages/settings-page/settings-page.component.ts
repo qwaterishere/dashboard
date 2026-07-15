@@ -1,7 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal, DestroyRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal, DestroyRef, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { switchMap, timer, takeWhile } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router';
+import { switchMap, timer, takeWhile, filter, startWith } from 'rxjs';
 
 import type { ChangePasswordRequest, UpdateProfileRequest } from '../../../../shared/models/auth.model';
 import type { UpdateIikoSettingsRequest } from '../../../../shared/models/iiko-settings.model';
@@ -13,6 +14,10 @@ import { PasswordSettingsOrganismComponent } from '../../organisms/password-sett
 import { ProfileSettingsOrganismComponent } from '../../organisms/profile-settings/profile-settings-organism.component';
 import { resolveIikoSyncError, resolveSettingsError } from '../../settings-errors';
 import { SettingsService } from '../../services/settings.service';
+import {
+  isIikoSyncFragment,
+  scrollToIikoSyncAnchor,
+} from '../../../../shared/utils/scroll-to-iiko-sync.util';
 
 @Component({
   selector: 'app-settings-page',
@@ -66,6 +71,7 @@ import { SettingsService } from '../../services/settings.service';
 export class SettingsPageComponent {
   private readonly settings = inject(SettingsService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   protected readonly user = this.settings.user;
   protected readonly iikoSettings = this.settings.iikoSettings;
@@ -98,6 +104,34 @@ export class SettingsPageComponent {
       },
       error: () => undefined,
     });
+
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        startWith(null),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.scheduleIikoSyncScroll());
+
+    effect(() => {
+      const fragment = this.router.parseUrl(this.router.url).fragment;
+      if (!isIikoSyncFragment(fragment)) {
+        return;
+      }
+      const profileReady = this.user() !== null;
+      const iikoReady = !this.iikoSettingsLoading();
+      if (!profileReady || !iikoReady) {
+        return;
+      }
+      untracked(() => this.scheduleIikoSyncScroll());
+    });
+  }
+
+  private scheduleIikoSyncScroll(): void {
+    if (!isIikoSyncFragment(this.router.parseUrl(this.router.url).fragment)) {
+      return;
+    }
+    queueMicrotask(() => scrollToIikoSyncAnchor());
   }
 
   onProfileSave(payload: UpdateProfileRequest): void {

@@ -79,6 +79,8 @@ _RESTAURANT_SYNC_COLUMNS: tuple[tuple[str, str], ...] = (
     ("sync_plan_to", "DATE"),
     ("sync_days_done", "INTEGER"),
     ("sync_current_day", "DATE"),
+    ("timezone", "VARCHAR(64) NOT NULL DEFAULT 'Asia/Bishkek'"),
+    ("auto_sync_enabled", "BOOLEAN NOT NULL DEFAULT TRUE"),
 )
 
 

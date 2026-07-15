@@ -31,6 +31,9 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
           <app-page-greeting [headline]="pageHeadline()" [variant]="pageHeadlineVariant()" />
         }
         @if (showPeriodBar()) {
+          <ng-content select="[appFreshnessBanner]" />
+        }
+        @if (showPeriodBar()) {
           <ng-content select="[appPeriodBar]" />
         }
         <div class="page-body">

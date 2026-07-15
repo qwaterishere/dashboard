@@ -1,0 +1,24 @@
+.target-numeric-field {
+  display: grid;
+  gap: 6px;
+
+  &__label {
+    font-weight: 600;
+    color: var(--txt);
+    font-size: 0.78rem;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__suffix {
+    color: var(--mut2);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+}

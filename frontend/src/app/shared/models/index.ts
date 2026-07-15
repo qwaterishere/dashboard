@@ -7,3 +7,5 @@ export * from './sales.model';
 export * from './warehouse.model';
 export * from './foodcost.model';
 export * from './foodcost-api.model';
+export * from './data-freshness.model';
+export * from './targets.model';

@@ -58,7 +58,13 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
           </app-text>
         }
 
-        <form class="form-grid" (ngSubmit)="onSubmit()">
+        <form
+          class="form-grid"
+          [class.iiko-sync-anchor]="!settings()?.configured"
+          [attr.id]="settings()?.configured ? null : 'iiko-sync'"
+          [attr.tabindex]="settings()?.configured ? null : -1"
+          (ngSubmit)="onSubmit()"
+        >
           <app-form-field
             label="URL сервера iiko"
             inputId="settings-iiko-url"
@@ -94,7 +100,7 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
         </form>
 
         @if (settings()?.configured) {
-          <div class="sync-block">
+          <div id="iiko-sync" class="sync-block iiko-sync-anchor" tabindex="-1">
             <div class="sync-status">
               @if (isSyncRunning()) {
                 <div

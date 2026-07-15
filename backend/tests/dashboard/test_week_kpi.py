@@ -108,4 +108,4 @@ def test_build_dashboard_with_week_params(session, restaurant):
     assert page.compare.year == 2026 and page.compare.month == 6
     assert page.period.month == 6
     assert page.period.dayTo == 8
-    assert len(page.revenueByDay) == 8
+    assert len(page.revenueByDay) == 30

@@ -221,6 +221,21 @@ def normalize_sync_status(restaurant: Restaurant) -> tuple[str, str | None]:
     return restaurant.sync_status, restaurant.last_sync_error
 
 
+def acquire_sync_lock(session: Session, restaurant_id: uuid.UUID) -> bool:
+    """Ставит sync_status=running; False если ресторан занят или не настроен."""
+    restaurant = session.get(Restaurant, restaurant_id)
+    if restaurant is None or not restaurant.iiko_configured:
+        return False
+    status, _ = normalize_sync_status(restaurant)
+    if status == "running":
+        return False
+    restaurant.sync_status = "running"
+    restaurant.sync_started_at = _utc_now()
+    restaurant.last_sync_error = None
+    session.commit()
+    return True
+
+
 def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
     """Фоновая задача: один web/CLI sync для ресторана."""
     session = db_manager.get_session()

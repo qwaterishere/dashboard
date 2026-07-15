@@ -48,6 +48,12 @@ class Restaurant(Base):
     sync_plan_to: Mapped[date | None] = mapped_column(Date, nullable=True)
     sync_days_done: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sync_current_day: Mapped[date | None] = mapped_column(Date, nullable=True)
+    timezone: Mapped[str] = mapped_column(
+        String(64),
+        default="Asia/Bishkek",
+        nullable=False,
+    )
+    auto_sync_enabled: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

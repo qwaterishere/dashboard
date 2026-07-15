@@ -1,6 +1,6 @@
 """Контракт страницы «Дашборд» — docs/frontend-handoff.md §1."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import Field
@@ -130,6 +130,44 @@ class DataBounds(StrictModel):
     )
     latest: date | None = Field(
         description="Последний закрытый день с данными; null — база пустая",
+    )
+
+
+DataFreshnessStatus = Literal[
+    "fresh",
+    "stale",
+    "stale_manual",
+    "syncing",
+    "error",
+    "empty",
+    "unconfigured",
+]
+
+SyncStatus = Literal["idle", "running", "success", "error", "noop"]
+
+
+class DataFreshness(StrictModel):
+    """Актуальность продаж в БД относительно закрытого дня (TZ ресторана)."""
+
+    status: DataFreshnessStatus
+    expectedDay: date = Field(description="Ожидаемый последний закрытый день (вчера в TZ)")
+    latestSalesDay: date | None = Field(
+        description="Фактический последний день с продажами в БД",
+    )
+    lagDays: int | None = Field(
+        description="Отставание в календарных днях; null — нет данных",
+    )
+    lastSyncAt: datetime | None = Field(description="Завершение последней синхронизации iiko")
+    syncStatus: SyncStatus = Field(description="Текущий статус sync job")
+    syncError: str | None = Field(description="Сообщение об ошибке sync; null — нет ошибки")
+    autoSyncEnabled: bool = Field(
+        description="Автосинхронизация включена и iiko настроен",
+    )
+    syncProgressPercent: int | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        description="Прогресс текущей синхронизации; null — sync не идёт",
     )
 
 

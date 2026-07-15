@@ -98,6 +98,45 @@ class Settings(BaseSettings):
         validation_alias="IIKO_URL_ALLOWED_SUFFIXES",
     )
 
+    # --- iiko auto-sync scheduler / worker ---
+    sync_scheduler_token: str | None = Field(
+        default=None,
+        validation_alias="SYNC_SCHEDULER_TOKEN",
+        min_length=16,
+    )
+    sync_default_timezone: str = Field(
+        default="Asia/Bishkek",
+        validation_alias="SYNC_DEFAULT_TIMEZONE",
+    )
+    sync_worker_interval_seconds: int = Field(
+        default=900,
+        validation_alias="SYNC_WORKER_INTERVAL_SECONDS",
+        ge=60,
+        le=86_400,
+    )
+    sync_morning_hour_start: int = Field(
+        default=6,
+        validation_alias="SYNC_MORNING_HOUR_START",
+        ge=0,
+        le=23,
+    )
+    sync_morning_hour_end: int = Field(
+        default=10,
+        validation_alias="SYNC_MORNING_HOUR_END",
+        ge=0,
+        le=23,
+    )
+    sync_midday_hour: int = Field(
+        default=14,
+        validation_alias="SYNC_MIDDAY_HOUR",
+        ge=0,
+        le=23,
+    )
+    sync_embedded_worker: bool = Field(
+        default=False,
+        validation_alias="SYNC_EMBEDDED_WORKER",
+    )
+
     @field_validator("db_url", mode="before")
     @classmethod
     def empty_db_url_to_none(cls, value: str | None) -> str | None:

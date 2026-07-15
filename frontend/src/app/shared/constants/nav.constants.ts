@@ -8,7 +8,7 @@ export const MAIN_NAV_ITEMS: NavItemConfig[] = [
   { path: '/dashboard', label: 'Дашборд' },
   { path: '/sales', label: 'Продажи' },
   { path: '/warehouse', label: 'Склад' },
-  { path: '/purchases', label: 'Закупки' },
+  { path: '/targets', label: 'Цели' },
   { path: '/foodcost', label: 'Фудкост', badge: '3' },
 ];
 

@@ -21,16 +21,26 @@ test.describe('security', () => {
   test('malicious API strings render as plain text on foodcost', async ({ page }) => {
     const payload = '<script>alert(1)</script>';
 
-    await page.route('**/api/foodcost', async (route) => {
+    await page.route('**/api/foodcost**', async (route) => {
       const response = await route.fetch();
       const json = await response.json();
-      if (Array.isArray(json.groups) && json.groups.length > 0) {
-        json.groups[0].group = payload;
-      }
+      json.groups = [
+        {
+          unit: 'k',
+          group: payload,
+          revenue: 1000,
+          cost: 300,
+          revenueWithCost: 1000,
+          prevRevenue: null,
+          prevCost: null,
+          prevRevenueWithCost: null,
+        },
+      ];
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(json) });
     });
 
     await page.goto('/foodcost');
+    await page.reload();
     await expect(page.getByText(payload)).toBeVisible();
     expect(await page.evaluate(() => (window as unknown as { __xss?: boolean }).__xss)).toBeFalsy();
   });

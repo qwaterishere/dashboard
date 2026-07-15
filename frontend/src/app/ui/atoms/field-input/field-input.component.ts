@@ -10,6 +10,8 @@ import { FormsModule } from '@angular/forms';
       class="field-input"
       [class.field-input--invalid]="invalid()"
       [type]="type()"
+      [attr.inputmode]="inputMode()"
+      [attr.step]="step()"
       [id]="inputId()"
       [name]="name()"
       [placeholder]="placeholder()"
@@ -49,11 +51,13 @@ import { FormsModule } from '@angular/forms';
   `,
 })
 export class FieldInputComponent {
-  readonly type = input<'text' | 'email' | 'password'>('text');
+  readonly type = input<'text' | 'email' | 'password' | 'number'>('text');
   readonly inputId = input.required<string>();
   readonly name = input.required<string>();
   readonly placeholder = input('');
   readonly autocomplete = input<string | undefined>(undefined);
+  readonly step = input<string | undefined>(undefined);
+  readonly inputMode = input<string | undefined>(undefined);
   readonly disabled = input(false);
   readonly required = input(false);
   readonly invalid = input(false);

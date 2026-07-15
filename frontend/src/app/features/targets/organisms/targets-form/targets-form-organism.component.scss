@@ -1,0 +1,66 @@
+.targets-form {
+  display: grid;
+  gap: 16px;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__status {
+    flex: 1;
+    min-width: 12rem;
+  }
+
+  &__toolbar app-button {
+    flex: none;
+    width: auto;
+    min-width: 10rem;
+  }
+
+  &__toolbar ::ng-deep button.btn--primary {
+    width: auto;
+    min-width: 10rem;
+    padding-inline: 22px;
+  }
+
+  &__grid {
+    display: grid;
+    gap: 14px;
+
+    &--2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &__writeoff {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--card2);
+    border: 1px solid var(--line);
+  }
+
+  &__writeoff-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__writeoff-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--txt);
+  }
+}
+
+@media (max-width: 900px) {
+  .targets-form__grid--2 {
+    grid-template-columns: 1fr;
+  }
+}

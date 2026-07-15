@@ -7,9 +7,10 @@ from slowapi import Limiter
 
 from src.api.deps import CurrentRestaurant, CurrentUser, get_db
 from src.core.config import get_settings
-from src.schemas.dashboard import Dashboard, DashboardChart, DashboardKpi
+from src.schemas.dashboard import Dashboard, DashboardChart, DashboardKpi, DataFreshness
 from src.services.dashboard import build_dashboard, build_dashboard_chart, build_dashboard_kpi
 from src.services.dashboard_etag import compute_dashboard_etag
+from src.services.data_freshness import build_data_freshness
 
 
 def _validate_dashboard_query(
@@ -249,5 +250,19 @@ def create_dashboard_router(limiter: Limiter) -> APIRouter:
             content=payload.model_dump(mode="json"),
             headers=cache_headers,
         )
+
+    @router.get(
+        "/api/data-freshness",
+        response_model=DataFreshness,
+        summary="Актуальность продаж в БД относительно закрытого дня",
+    )
+    @limiter.limit(settings.rate_limit)
+    def get_data_freshness(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+    ) -> DataFreshness:
+        return build_data_freshness(db, restaurant)
 
     return router

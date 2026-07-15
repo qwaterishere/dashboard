@@ -47,12 +47,18 @@ test.describe('smoke', () => {
   }
 
   test('sidebar navigates between dashboard and sales', async ({ page }) => {
+    const dashboardReady = waitForPageApi(page, 'dashboard');
     await page.goto('/dashboard');
-    await waitForPageApi(page, 'dashboard');
+    await dashboardReady;
+
+    const salesReady = waitForPageApi(page, 'sales');
     await page.getByRole('link', { name: 'Продажи', exact: true }).click();
     await expect(page).toHaveURL(/\/sales$/);
+    await salesReady;
+
     await page.getByRole('link', { name: 'Дашборд', exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText('Выручка по дням')).toBeVisible();
   });
 
   test('period bar reflects dashboard API period', async ({ page }) => {
@@ -77,9 +83,17 @@ test.describe('smoke', () => {
     await expect(page).toHaveURL(/\/dashboard$/);
   });
 
-  test('purchases placeholder renders', async ({ page }) => {
-    await page.goto('/purchases');
-    await expect(page.getByText('Модуль закупок появится')).toBeVisible();
+  test('targets page renders goal sections', async ({ page }) => {
+    const apiReady = waitForPageApi(page, 'targets');
+    await page.goto('/targets');
+    await apiReady;
+
+    await expect(page.locator('app-page-greeting')).toContainText('Цели');
+    await expect(page.locator('app-period-bar')).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: 'Выручка — план по дням' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Фудкост по юнитам' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Списания' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Сохранить' })).toBeVisible();
   });
 
   test('settings page loads profile sections', async ({ page }) => {
@@ -92,8 +106,9 @@ test.describe('smoke', () => {
   });
 
   test('sales page shows title and period bar', async ({ page }) => {
+    const apiReady = waitForPageApi(page, 'sales');
     await page.goto('/sales');
-    await waitForPageApi(page, 'sales');
+    await apiReady;
     await expect(page.locator('app-page-greeting')).toContainText('Продажи');
     await expect(page.locator('app-period-bar')).toHaveCount(1);
   });
