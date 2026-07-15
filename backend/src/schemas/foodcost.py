@@ -44,6 +44,10 @@ class UnitCost(BaseCost):
         description="Юнит: k кухня, b бар, w вино, o «вне подразделений» "
         "(группы iiko вне папок Кухня/Бар/Вино)"
     )
+    goal: float | None = Field(
+        default=None,
+        description="Цель фудкоста юнита, %; null — цель не задана в Целях",
+    )
 
 
 class GroupCost(BaseCost):
@@ -51,6 +55,10 @@ class GroupCost(BaseCost):
     group: str = Field(
         description="Группа iiko — папка, в которой лежит блюдо "
         "(живой разрез, терминология — frontend-handoff §0)"
+    )
+    goal: float | None = Field(
+        default=None,
+        description="Цель % (наследуется от юнита в Целях); null — нет цели",
     )
 
 
@@ -100,6 +108,14 @@ class Losses(StrictModel):
         default=None,
         description="Акты списания (порча, бой, бракераж) — null до фазы 2: "
         "источник OLAP TRANSACTIONS ещё не загружается",
+    )
+    writeoffsGoal: float | None = Field(
+        default=None,
+        description="Цель списаний в ₽ за месяц из Целей; null — не задана",
+    )
+    complimentsGoal: float | None = Field(
+        default=None,
+        description="Цель представительских в ₽ за месяц из Целей; null — не задана",
     )
 
 

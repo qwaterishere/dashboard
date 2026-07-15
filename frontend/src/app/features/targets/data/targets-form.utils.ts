@@ -1,4 +1,8 @@
-import type { TargetsData, TargetsFormState } from '../../../shared/models/targets.model';
+import type {
+  TargetsData,
+  TargetsFormState,
+  TargetsUpsertRequest,
+} from '../../../shared/models/targets.model';
 
 export type TargetsFormSection =
   | 'revenue'
@@ -8,14 +12,49 @@ export type TargetsFormSection =
   | 'inventory';
 
 export function buildTargetsFormState(data: TargetsData): TargetsFormState {
+  const dailyPlanOverrides: Record<number, number> = {};
+  for (const [key, amount] of Object.entries(data.dailyOverrides ?? {})) {
+    const day = Number(key);
+    if (Number.isFinite(day) && day >= 1 && day <= 31) {
+      dailyPlanOverrides[day] = amount;
+    }
+  }
+
   return {
     revenueMonthPlan: data.revenue.monthPlan,
     weekProfile: [...data.revenue.weekProfile],
-    dailyPlanOverrides: {},
+    dailyPlanOverrides,
     foodcostGoals: Object.fromEntries(data.foodcost.map((unit) => [unit.key, unit.goalPct])),
     writeoffs: data.writeoffs.map((unit) => ({ ...unit })),
     complimentsGoalPct: data.compliments.goalPct,
     inventoryGoalPct: data.inventory.goalPct,
+  };
+}
+
+export function formStateToUpsertRequest(
+  data: TargetsData,
+  form: TargetsFormState,
+): TargetsUpsertRequest {
+  const dailyOverrides: Record<string, number> = {};
+  for (const [day, amount] of Object.entries(form.dailyPlanOverrides)) {
+    dailyOverrides[String(day)] = amount;
+  }
+
+  return {
+    year: data.period.year,
+    month: data.period.month,
+    revenue: {
+      monthPlan: form.revenueMonthPlan,
+      weekProfile: [...form.weekProfile],
+    },
+    dailyOverrides,
+    foodcost: data.foodcost.map((unit) => ({
+      ...unit,
+      goalPct: form.foodcostGoals[unit.key] ?? unit.goalPct,
+    })),
+    writeoffs: form.writeoffs.map((unit) => ({ ...unit })),
+    complimentsGoalPct: form.complimentsGoalPct,
+    inventoryGoalPct: form.inventoryGoalPct,
   };
 }
 

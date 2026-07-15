@@ -104,7 +104,9 @@ def test_build_dashboard_with_week_params(session, restaurant):
     assert page.weekKpi is not None
     assert page.kpis.revenue.value == 1000
     assert page.kpis.revenue.prevValue == 400
-    assert page.kpis.revenue.forecast is None
+    # цели: план на выбранную неделю (сумма дневных планов)
+    assert page.kpis.revenue.forecast is not None
+    assert page.kpis.revenue.forecast > 0
     assert page.compare.year == 2026 and page.compare.month == 6
     assert page.period.month == 6
     assert page.period.dayTo == 8

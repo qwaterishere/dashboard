@@ -21,7 +21,7 @@ class DataBaseManager:
 
     def create_all(self) -> None:
         from src.db import migrate
-        from src.db.models import restaurant, sales, user  # noqa: F401
+        from src.db.models import restaurant, sales, targets, user  # noqa: F401
 
         migrate.upgrade_schema(self.engine)
 

@@ -56,6 +56,22 @@ describe('day-detail.utils', () => {
       avg: 100,
     };
     const pop = buildDayDetailPopover(day, period);
-    expect(pop.rows[1]).toEqual(['К прогнозу дня', '—']);
+    expect(pop.rows[1]).toEqual(['К плану дня', '—']);
+  });
+
+  it('prefers day plan over statistical forecast', () => {
+    const day: RevenueDay = {
+      day: 5,
+      weekday: 5,
+      revenue: 900_000,
+      plan: 940_000,
+      forecast: 700_000,
+      checks: 400,
+      guests: 800,
+      avg: 2250,
+    };
+    const pop = buildDayDetailPopover(day, period);
+    expect(pop.rows[1][0]).toMatch(/К плану дня/);
+    expect(pop.rows[1][0]).toMatch(/940/);
   });
 });

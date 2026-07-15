@@ -183,29 +183,40 @@ def build_food_cost(session: Session, restaurant_id: UUID,
     prev_units = _unit_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
     prev_groups = _group_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
 
+    # model_validate на выходе: опечатка в ключе или дыра в структуре
+    # ловится юнит-тестом на сборке, а не на HTTP-запросе.
+    from src.services.targets import load_foodcost_goals
+
+    unit_revenues = {key: units[key]['revenue'] for key in UNIT_KEYS}
+    goals = load_foodcost_goals(
+        session,
+        restaurant_id,
+        d_from.year,
+        d_from.month,
+        unit_revenues=unit_revenues,
+    )
+
     groups_payload = [
         {'unit': unit, 'group': group,
          **_facts(cur,
                   (prev_groups.get((unit, group), _zero_sums())
-                   if has_prev else None))}
-        # только группы с продажами в period; порядок — по выручке,
-        # для детерминизма ответа (фронт волен пересортировать)
+                   if has_prev else None)),
+         'goal': goals.unit_goal_pct.get(unit)}
         for (unit, group), cur in sorted(groups.items(),
                                          key=lambda kv: -kv[1]['revenue'])
         if cur['revenue'] > 0
     ]
 
-    # model_validate на выходе: опечатка в ключе или дыра в структуре
-    # ловится юнит-тестом на сборке, а не на HTTP-запросе.
     return Foodcost.model_validate({
         'period': _period_dict(d_from, d_to),
         'compare': _period_dict(p_from, p_to),
         'totals': {**_facts(_fold(units), _fold(prev_units) if has_prev else None),
-                   'goal': None},                     # до модуля targets
+                   'goal': goals.totals_goal_pct},
         'dirty': None,                                # фаза 2 (writeoffs)
         'units': [{'key': key,
                    **_facts(units[key],
-                            prev_units[key] if has_prev else None)}
+                            prev_units[key] if has_prev else None),
+                   'goal': goals.unit_goal_pct.get(key)}
                   for key in UNIT_KEYS],
         'groups': groups_payload,
         'discounts': _discount_sums(session, restaurant_id, d_from, d_to),
@@ -213,5 +224,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
             'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),
             'staff': _staff_sums(),
             'writeoffs': None,                        # фаза 2
+            'writeoffsGoal': goals.writeoffs_goal_rub,
+            'complimentsGoal': goals.compliments_goal_rub,
         },
     })

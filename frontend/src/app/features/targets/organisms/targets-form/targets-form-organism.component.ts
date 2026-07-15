@@ -59,6 +59,9 @@ const WRITEOFF_MODE_OPTIONS = [
           @if (saveSuccess()) {
             <app-form-banner variant="success" message="Цели сохранены" />
           }
+          @if (saveError(); as err) {
+            <app-form-banner variant="error" [message]="err" />
+          }
         </div>
         <div class="targets-form__actions">
           @if (canResetAll()) {
@@ -219,9 +222,11 @@ export class TargetsFormOrganismComponent {
   readonly form = model.required<TargetsFormState>();
 
   readonly saved = output<TargetsFormState>();
+  readonly saveRequested = output<TargetsFormState>();
 
   protected readonly saving = signal(false);
   protected readonly saveSuccess = signal(false);
+  protected readonly saveError = signal<string | null>(null);
   protected readonly writeoffModeOptions = WRITEOFF_MODE_OPTIONS;
 
   private readonly savedState = signal<TargetsFormState | null>(null);
@@ -345,12 +350,19 @@ export class TargetsFormOrganismComponent {
   onSave(): void {
     this.saving.set(true);
     this.saveSuccess.set(false);
-    window.setTimeout(() => {
-      const snapshot = cloneTargetsFormState(this.form());
-      this.savedState.set(snapshot);
-      this.saving.set(false);
-      this.saveSuccess.set(true);
-      this.saved.emit(snapshot);
-    }, 450);
+    this.saveError.set(null);
+    this.saveRequested.emit(cloneTargetsFormState(this.form()));
+  }
+
+  markSaveSuccess(snapshot: TargetsFormState): void {
+    this.savedState.set(cloneTargetsFormState(snapshot));
+    this.saving.set(false);
+    this.saveSuccess.set(true);
+    this.saved.emit(snapshot);
+  }
+
+  markSaveError(message: string): void {
+    this.saving.set(false);
+    this.saveError.set(message);
   }
 }

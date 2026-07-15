@@ -84,7 +84,7 @@ function buildUnits(units: UnitCost[]): FoodcostData['units'] {
       name: CAT_NAME[unit.key as CategoryKey],
       pct,
       lfl: fcLfl(pct, prevPct),
-      goal: resolveGoal(null, prevPct),
+      goal: resolveGoal(unit.goal ?? null, prevPct),
       cost: unit.cost,
       shareOfSpend: totalCost > 0 ? (unit.cost / totalCost) * 100 : 0,
     };
@@ -101,7 +101,7 @@ function buildCategories(groups: GroupCost[]): FoodcostData['categories'] {
     byUnit[group.unit as CategoryKey].push({
       name: group.group,
       fact: pct,
-      goal: resolveGoal(null, prevPct),
+      goal: resolveGoal(group.goal ?? null, prevPct),
       cost: group.cost,
     });
   }
@@ -115,7 +115,7 @@ function buildLosses(losses: FoodcostApi['losses']): FoodcostData['losses'] {
       name: 'Списания',
       note: losses.writeoffs === null ? 'данные появятся после подключения OLAP' : 'порча, бой, истёкший срок',
       fact: 0,
-      goal: 0,
+      goal: losses.writeoffsGoal ?? 0,
     },
     {
       name: 'Стафф-питание',
@@ -127,14 +127,15 @@ function buildLosses(losses: FoodcostApi['losses']): FoodcostData['losses'] {
       name: 'Представительские',
       note: 'угощения за счёт заведения',
       fact: losses.compliments.cost,
-      goal: 0,
+      goal: losses.complimentsGoal ?? 0,
     },
   ];
 
   const fact = rows.reduce((sum, row) => sum + row.fact, 0);
+  const goal = rows.reduce((sum, row) => sum + row.goal, 0);
   return {
     rows,
-    total: { fact, goal: 0 },
+    total: { fact, goal },
   };
 }
 
@@ -182,7 +183,7 @@ export function buildDashboardFoodcostMini(units: UnitCost[]): DashboardData['fo
       const unit = units.find((entry) => entry.key === key);
       const pct = unit ? fcPct(unit.cost, unit.revenueWithCost) : 0;
       const prevPct = unit ? prevFcPct(unit) : null;
-      const goal = prevPct ?? 0;
+      const goal = resolveGoal(unit?.goal ?? null, prevPct);
       const deltaPP = pct - goal;
       return {
         key,

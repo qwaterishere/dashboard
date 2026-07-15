@@ -56,22 +56,16 @@ export function formatDayPopoverTitle(day: RevenueDay, period: ApiPeriod): strin
 export function buildDayDetailPopover(day: RevenueDay, period: ApiPeriod): DetailPopover {
   const rows: DetailPopover['rows'] = [['Выручка', formatMoney(day.revenue)]];
 
-  if (day.forecast !== null && day.forecast > 0) {
-    const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
-    rows.push([
-      `К прогнозу дня (${formatMoney(day.forecast)})`,
-      formatSignedPct(deltaPct),
-      deltaPct >= 0 ? 'up' : 'dn',
-    ]);
-  } else if (day.plan !== null && day.plan > 0) {
-    const deltaPct = ((day.revenue - day.plan) / day.plan) * 100;
-    rows.push([
-      `К плану дня (${formatMoney(day.plan)})`,
-      formatSignedPct(deltaPct),
-      deltaPct >= 0 ? 'up' : 'dn',
-    ]);
+  const dayExpectation = day.plan != null && day.plan > 0 ? day.plan : day.forecast;
+  if (dayExpectation != null && dayExpectation > 0) {
+    const deltaPct = ((day.revenue - dayExpectation) / dayExpectation) * 100;
+    const label =
+      day.plan != null && day.plan > 0
+        ? `К плану дня (${formatMoney(day.plan)})`
+        : `К прогнозу дня (${formatMoney(day.forecast!)})`;
+    rows.push([label, formatSignedPct(deltaPct), deltaPct >= 0 ? 'up' : 'dn']);
   } else {
-    rows.push(['К прогнозу дня', '—']);
+    rows.push(['К плану дня', '—']);
   }
 
   rows.push(
@@ -132,17 +126,22 @@ export function buildMonthDetailPopover(day: RevenueDay, year: number): DetailPo
     ['Выручка', formatMoney(day.revenue)],
   ];
 
-  if (day.forecast !== null && day.forecast > 0) {
+  if (day.plan != null && day.plan > 0) {
+    const deltaPct = ((day.revenue - day.plan) / day.plan) * 100;
+    rows.push([
+      `К плану месяца (${formatMoney(day.plan)})`,
+      formatSignedPct(deltaPct),
+      deltaPct >= 0 ? 'up' : 'dn',
+    ]);
+  } else if (day.forecast != null && day.forecast > 0) {
     const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
     rows.push([
       `К прогнозу месяца (${formatMoney(day.forecast)})`,
       formatSignedPct(deltaPct),
       deltaPct >= 0 ? 'up' : 'dn',
     ]);
-  } else if (day.plan !== null && day.plan > 0) {
-    rows.push(['К плану месяца', formatMoney(day.plan)]);
   } else {
-    rows.push(['К прогнозу месяца', '—']);
+    rows.push(['К плану месяца', '—']);
   }
 
   rows.push(

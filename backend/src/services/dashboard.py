@@ -33,6 +33,92 @@ FORECAST_MIN_DAYS = 7
 # Данные берутся из нашей БД — реплики iiko, ходить в кассу не нужно.
 HISTORY_WEEKS = 8
 
+
+def _targets_day_and_month_plans(
+    session: Session,
+    restaurant_id: UUID,
+    d_from: date,
+    d_to: date,
+    *,
+    year_mode: bool = False,
+) -> tuple[dict[date, float], dict[int, float]]:
+    """Планы из модуля Целей: по датам и по номерам месяцев года d_from."""
+    from src.services.targets import load_revenue_plans
+
+    day_plans: dict[date, float] = {}
+    month_plans: dict[int, float] = {}
+
+    months: set[tuple[int, int]] = set()
+    if year_mode:
+        for month in range(1, 13):
+            months.add((d_from.year, month))
+    else:
+        cursor = date(d_from.year, d_from.month, 1)
+        end_month = date(d_to.year, d_to.month, 1)
+        while cursor <= end_month:
+            months.add((cursor.year, cursor.month))
+            if cursor.month == 12:
+                cursor = date(cursor.year + 1, 1, 1)
+            else:
+                cursor = date(cursor.year, cursor.month + 1, 1)
+
+    for year, month in months:
+        plans = load_revenue_plans(session, restaurant_id, year, month)
+        month_plans[month] = plans.month_plan or 0.0
+        last_day = calendar.monthrange(year, month)[1]
+        for day_num, amount in plans.day_plans.items():
+            if 1 <= day_num <= last_day:
+                day_plans[date(year, month, day_num)] = amount
+
+    return day_plans, month_plans
+
+
+def _apply_revenue_plan_to_kpis(
+    forecasts: dict[str, float | None],
+    paces: dict[str, float | None],
+    *,
+    day_plans: dict[date, float],
+    month_plans: dict[int, float],
+    d_from: date,
+    d_to: date,
+    latest: date | None,
+    year_mode: bool = False,
+) -> None:
+    """Цели выручки → forecast (конец периода) и forecastToday (ожидание на сегодня)."""
+    if not day_plans and not month_plans:
+        return
+
+    if year_mode:
+        period_plan = sum(month_plans.values()) if month_plans else 0.0
+        horizon_end = date(d_from.year, 12, 31)
+    else:
+        horizon_end = _revenue_by_day_chart_end(d_from, d_to)
+        period_plan = sum(
+            amount
+            for day, amount in day_plans.items()
+            if d_from <= day <= horizon_end
+        )
+        if period_plan <= 0 and d_from.month == d_to.month:
+            period_plan = month_plans.get(d_from.month, 0.0)
+
+    if period_plan > 0:
+        forecasts['revenue'] = round(period_plan)
+
+    # Полный период закрыт — засечку pace не показываем (как у статистического прогноза).
+    if d_to >= horizon_end:
+        paces['revenue'] = None
+        return
+
+    pace_end = d_to
+    if latest is not None:
+        pace_end = min(pace_end, latest)
+    pace = sum(
+        amount
+        for day, amount in day_plans.items()
+        if d_from <= day <= pace_end
+    )
+    paces['revenue'] = round(pace) if pace > 0 else None
+
 UNIT_KEYS = ('k', 'b', 'w', CAT_OTHER)   # порядок элементов units в ответе
 
 
@@ -308,22 +394,25 @@ def _build_revenue_by_day(
     d_from: date,
     d_to: date,
     ctx: ForecastContext,
+    day_plans: dict[date, float] | None = None,
 ) -> list[dict]:
     if (d_to - d_from).days > 31:
         return []
 
     chart_end = _revenue_by_day_chart_end(d_from, d_to)
+    plans = day_plans or {}
     rows: list[dict] = []
     day = d_from
     while day <= chart_end:
         m = daily.get(day, {'revenue': 0.0, 'checks': 0, 'guests': 0})
+        plan_value = plans.get(day)
         rows.append({
             'day': day.day,
             'weekday': (day.weekday() + 1) % 7,
             'revenue': round(m['revenue']),
             'checks': m['checks'],
             'guests': m['guests'],
-            'plan': None,
+            'plan': round(plan_value) if plan_value is not None else None,
             'forecast': _daily_forecast_value(ctx, day),
         })
         day += timedelta(days=1)
@@ -334,10 +423,13 @@ def _monthly_with_forecasts(
     monthly: list[dict],
     ctx: ForecastContext,
     year: int,
+    month_plans: dict[int, float] | None = None,
 ) -> list[dict]:
+    plans = month_plans or {}
     return [
         {
             **row,
+            'plan': round(plans[row['month']]) if row['month'] in plans else None,
             'forecast': _month_forecast_total(ctx, year, row['month']),
         }
         for row in monthly
@@ -514,9 +606,15 @@ def _assemble_chart_response(
     compare_to: date,
     forecast_ctx: ForecastContext,
     week_kpi: dict | None = None,
+    day_plans: dict[date, float] | None = None,
+    month_plans: dict[int, float] | None = None,
 ) -> DashboardChart:
-    revenue_by_day = _build_revenue_by_day(daily, d_from, d_to, forecast_ctx)
-    revenue_by_month = _monthly_with_forecasts(monthly, forecast_ctx, d_from.year)
+    revenue_by_day = _build_revenue_by_day(
+        daily, d_from, d_to, forecast_ctx, day_plans=day_plans,
+    )
+    revenue_by_month = _monthly_with_forecasts(
+        monthly, forecast_ctx, d_from.year, month_plans=month_plans,
+    )
 
     return DashboardChart.model_validate({
         'period': _period_dict(d_from, d_to),
@@ -565,9 +663,13 @@ def build_dashboard_chart(
             forecast_ctx=empty_ctx,
         )
 
+    year_mode = year is not None and month is None
     daily = _daily(session, restaurant_id, d_from, d_to)
     monthly = _monthly(session, restaurant_id, d_to)
     forecast_ctx = _load_forecast_context(session, restaurant_id, d_from, d_to)
+    day_plans, month_plans = _targets_day_and_month_plans(
+        session, restaurant_id, d_from, d_to, year_mode=year_mode,
+    )
 
     chart = _assemble_chart_response(
         d_from,
@@ -581,6 +683,8 @@ def build_dashboard_chart(
         compare_from=compare_from,
         compare_to=compare_to,
         forecast_ctx=forecast_ctx,
+        day_plans=day_plans,
+        month_plans=month_plans,
     )
 
     if week_start is not None or week_end is not None:
@@ -654,6 +758,31 @@ def build_dashboard_kpi(
             compare_start=compare_start,
             compare_end=compare_end,
         )
+        day_plans, month_plans = _targets_day_and_month_plans(
+            session, restaurant_id, week_start, week_end,
+        )
+        week_forecasts = {
+            'revenue': overlay['kpis']['revenue'].get('forecast'),
+            'checks': overlay['kpis']['checks'].get('forecast'),
+            'guests': overlay['kpis']['guests'].get('forecast'),
+        }
+        week_paces = {
+            'revenue': overlay['kpis']['revenue'].get('forecastToday'),
+            'checks': overlay['kpis']['checks'].get('forecastToday'),
+            'guests': overlay['kpis']['guests'].get('forecastToday'),
+        }
+        _apply_revenue_plan_to_kpis(
+            week_forecasts,
+            week_paces,
+            day_plans=day_plans,
+            month_plans=month_plans,
+            d_from=week_start,
+            d_to=week_end,
+            latest=latest,
+            year_mode=False,
+        )
+        overlay['kpis']['revenue']['forecast'] = week_forecasts['revenue']
+        overlay['kpis']['revenue']['forecastToday'] = week_paces['revenue']
         return DashboardKpi.model_validate({
             'period': _period_dict(d_from, d_to),
             'compare': overlay['compare'],
@@ -667,6 +796,19 @@ def build_dashboard_kpi(
     prev = prev_raw if prev_raw['checks'] > 0 else None
     forecasts, paces = _forecasts_for_period(
         session, restaurant_id, d_from, d_to, year_mode=year_mode,
+    )
+    day_plans, month_plans = _targets_day_and_month_plans(
+        session, restaurant_id, d_from, d_to, year_mode=year_mode,
+    )
+    _apply_revenue_plan_to_kpis(
+        forecasts,
+        paces,
+        day_plans=day_plans,
+        month_plans=month_plans,
+        d_from=d_from,
+        d_to=d_to,
+        latest=latest,
+        year_mode=year_mode,
     )
 
     return DashboardKpi.model_validate({
@@ -731,6 +873,19 @@ def build_dashboard(
     )
     forecast_ctx = _load_forecast_context(session, restaurant_id, d_from, d_to)
     monthly = _monthly(session, restaurant_id, d_to)
+    day_plans, month_plans = _targets_day_and_month_plans(
+        session, restaurant_id, d_from, d_to, year_mode=year_mode,
+    )
+    _apply_revenue_plan_to_kpis(
+        forecasts,
+        paces,
+        day_plans=day_plans,
+        month_plans=month_plans,
+        d_from=d_from,
+        d_to=d_to,
+        latest=latest,
+        year_mode=year_mode,
+    )
 
     dashboard = _assemble_response(
         d_from,
@@ -748,6 +903,8 @@ def build_dashboard(
         compare_from=compare_from,
         compare_to=compare_to,
         forecast_ctx=forecast_ctx,
+        day_plans=day_plans,
+        month_plans=month_plans,
     )
 
     if week_start is not None or week_end is not None:
@@ -769,8 +926,34 @@ def build_dashboard(
             compare_end=compare_end,
         )
         payload = dashboard.model_dump()
+        week_forecasts = {
+            'revenue': overlay['kpis']['revenue'].get('forecast'),
+            'checks': overlay['kpis']['checks'].get('forecast'),
+            'guests': overlay['kpis']['guests'].get('forecast'),
+        }
+        week_paces = {
+            'revenue': overlay['kpis']['revenue'].get('forecastToday'),
+            'checks': overlay['kpis']['checks'].get('forecastToday'),
+            'guests': overlay['kpis']['guests'].get('forecastToday'),
+        }
+        week_day_plans, week_month_plans = _targets_day_and_month_plans(
+            session, restaurant_id, week_start, week_end,
+        )
+        _apply_revenue_plan_to_kpis(
+            week_forecasts,
+            week_paces,
+            day_plans=week_day_plans,
+            month_plans=week_month_plans,
+            d_from=week_start,
+            d_to=week_end,
+            latest=latest,
+            year_mode=False,
+        )
+        overlay_kpis = overlay['kpis']
+        overlay_kpis['revenue']['forecast'] = week_forecasts['revenue']
+        overlay_kpis['revenue']['forecastToday'] = week_paces['revenue']
         payload.update({
-            "kpis": overlay["kpis"],
+            "kpis": overlay_kpis,
             "compare": overlay["compare"],
             "weekKpi": overlay["weekKpi"],
         })
@@ -791,9 +974,15 @@ def _assemble_response(d_from: date, d_to: date, cur: dict, prev: dict | None,
               forecasts: dict, paces: dict, monthly: list[dict],
               earliest: date | None, latest: date | None,
               *, compare_from: date, compare_to: date,
-              forecast_ctx: ForecastContext) -> Dashboard:
-    revenue_by_day = _build_revenue_by_day(daily, d_from, d_to, forecast_ctx)
-    revenue_by_month = _monthly_with_forecasts(monthly, forecast_ctx, d_from.year)
+              forecast_ctx: ForecastContext,
+              day_plans: dict[date, float] | None = None,
+              month_plans: dict[int, float] | None = None) -> Dashboard:
+    revenue_by_day = _build_revenue_by_day(
+        daily, d_from, d_to, forecast_ctx, day_plans=day_plans,
+    )
+    revenue_by_month = _monthly_with_forecasts(
+        monthly, forecast_ctx, d_from.year, month_plans=month_plans,
+    )
 
     return Dashboard.model_validate({
         'period': _period_dict(d_from, d_to),

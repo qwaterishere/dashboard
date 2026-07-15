@@ -70,4 +70,20 @@ describe('AnalyticsDataSyncService', () => {
     await router.navigateByUrl('/warehouse');
     expect(resource.reload).not.toHaveBeenCalled();
   });
+
+  it('forceReload bypasses TTL and clears freshness', () => {
+    const dashboard = mockResource(true);
+    const foodcost = mockResource(true);
+    service.register('dashboard', dashboard);
+    service.register('foodcost', foodcost);
+    service.markFresh('dashboard');
+    service.markFresh('foodcost');
+
+    service.forceReload(['dashboard', 'foodcost']);
+
+    expect(dashboard.reload).toHaveBeenCalledTimes(1);
+    expect(foodcost.reload).toHaveBeenCalledTimes(1);
+    expect(service.isStale('dashboard')).toBe(true);
+    expect(service.isStale('foodcost')).toBe(true);
+  });
 });

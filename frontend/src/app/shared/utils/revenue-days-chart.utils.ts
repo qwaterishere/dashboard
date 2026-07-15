@@ -1,9 +1,9 @@
 import type { ChartDisplayMode, PeriodGranularity } from '../models/common.model';
 import type { RevenueDay } from '../models';
 
-/** Значение горизонтальной засечки на столбике: прогноз или план (targets). */
+/** Значение горизонтальной засечки: план из Целей, иначе статистический прогноз. */
 export function barMarkValue(day: RevenueDay): number | null {
-  const mark = day.forecast ?? day.plan;
+  const mark = day.plan ?? day.forecast;
   return mark !== null && mark > 0 ? mark : null;
 }
 
