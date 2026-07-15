@@ -147,7 +147,12 @@ export class DashboardRepository {
   }
 
   private chartApiToDashboardApi(chart: DashboardChartApi): DashboardApi {
-    const empty = { value: 0, prevValue: null as number | null, forecast: null as number | null };
+    const empty = {
+      value: 0,
+      prevValue: null as number | null,
+      forecast: null as number | null,
+      forecastToday: null as number | null,
+    };
     return {
       period: chart.period,
       compare: chart.compare,

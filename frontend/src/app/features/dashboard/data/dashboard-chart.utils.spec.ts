@@ -22,13 +22,13 @@ const basePayload = {
   compare: basePeriod,
   dataBounds: { earliest: null, latest: null },
   kpis: {
-    revenue: { value: 100, prevValue: 90, forecast: 200 },
-    checks: { value: 10, prevValue: 9, forecast: 20 },
-    guests: { value: 20, prevValue: 18, forecast: 40 },
-    avgCheck: { value: 10, prevValue: 9, forecast: 11 },
+    revenue: { value: 100, prevValue: 90, forecast: 200, forecastToday: null },
+    checks: { value: 10, prevValue: 9, forecast: 20, forecastToday: null },
+    guests: { value: 20, prevValue: 18, forecast: 40, forecastToday: null },
+    avgCheck: { value: 10, prevValue: 9, forecast: 11, forecastToday: null },
   },
-  revenueByDay: [{ day: 1, weekday: 1, revenue: 100, checks: 1, guests: 1, plan: null }],
-  revenueByMonth: [{ month: 6, revenue: 100, checks: 1, guests: 1, plan: null }],
+  revenueByDay: [{ day: 1, weekday: 1, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null }],
+  revenueByMonth: [{ month: 6, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null }],
   units: [],
   reviews: null,
   stock: null,
@@ -37,8 +37,8 @@ const basePayload = {
 describe('dashboard-chart.utils', () => {
   it('dashboardChartCacheKey encodes year and month modes with tenant scope', () => {
     const selection: ChartPeriodSelection = { year: 2026, month: 5 };
-    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v4:m:2026-5');
-    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v4:y:2026');
+    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v8:m:2026-5');
+    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v8:y:2026');
   });
 
   it('chartFetchNeeded is false when selection matches base period in month mode', () => {
@@ -112,8 +112,8 @@ describe('dashboard-chart.utils', () => {
     const data = {
       ...basePayload,
       revenueByMonth: [
-        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
-        { month: 2, revenue: 200, checks: 3, guests: 4, plan: null },
+        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null, forecast: null },
+        { month: 2, revenue: 200, checks: 3, guests: 4, plan: null, forecast: null },
       ],
     };
     const adjusted = applyYearTimeframeKpis(data);
@@ -124,8 +124,8 @@ describe('dashboard-chart.utils', () => {
 
   it('aggregateKpisFromRevenueMonths sums monthly metrics', () => {
     const kpis = aggregateKpisFromRevenueMonths([
-      { month: 6, revenue: 100, checks: 2, guests: 4, plan: null },
-      { month: 7, revenue: 300, checks: 6, guests: 8, plan: null },
+      { month: 6, revenue: 100, checks: 2, guests: 4, plan: null, forecast: null },
+      { month: 7, revenue: 300, checks: 6, guests: 8, plan: null, forecast: null },
     ]);
     expect(kpis.revenue.value).toBe(400);
     expect(kpis.checks.value).toBe(8);
@@ -133,16 +133,16 @@ describe('dashboard-chart.utils', () => {
 
   it('mergeDashboardChartData uses KPIs from chart slice', () => {
     const mayKpis = {
-      revenue: { value: 50, prevValue: 40, forecast: null },
-      checks: { value: 5, prevValue: 4, forecast: null },
-      guests: { value: 10, prevValue: 8, forecast: null },
-      avgCheck: { value: 10, prevValue: 9, forecast: null },
+      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null },
+      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null },
+      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null },
+      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null },
     };
     const merged = mergeDashboardChartData(basePayload, {
       period: { year: 2026, month: 5, dayFrom: 1, dayTo: 31 },
       compare: { year: 2026, month: 4, dayFrom: 1, dayTo: 30 },
       kpis: mayKpis,
-      revenueByDay: [{ day: 1, weekday: 1, revenue: 1, checks: 1, guests: 1, plan: null }],
+      revenueByDay: [{ day: 1, weekday: 1, revenue: 1, checks: 1, guests: 1, plan: null, forecast: null }],
       revenueByMonth: [],
       dataBounds: { earliest: '2026-05-01', latest: '2026-05-31' },
     });
@@ -184,7 +184,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       null,
-      'user-1:v4:m:2026-5',
+      'user-1:v8:m:2026-5',
     );
     expect(loading.revenueByDay).toEqual([]);
     expect(loading.kpis.revenue.value).toBe(0);
@@ -193,16 +193,16 @@ describe('dashboard-chart.utils', () => {
     expect(loading.period.month).toBe(5);
 
     const mayKpis = {
-      revenue: { value: 50, prevValue: 40, forecast: null },
-      checks: { value: 5, prevValue: 4, forecast: null },
-      guests: { value: 10, prevValue: 8, forecast: null },
-      avgCheck: { value: 10, prevValue: 9, forecast: null },
+      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null },
+      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null },
+      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null },
+      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null },
     };
     const maySlice = {
       period: { year: 2026, month: 5, dayFrom: 1, dayTo: 31 },
       compare: { year: 2026, month: 4, dayFrom: 1, dayTo: 30 },
       kpis: mayKpis,
-      revenueByDay: [{ day: 1, weekday: 1, revenue: 5, checks: 1, guests: 1, plan: null }],
+      revenueByDay: [{ day: 1, weekday: 1, revenue: 5, checks: 1, guests: 1, plan: null, forecast: null }],
       revenueByMonth: [],
       dataBounds: { earliest: null, latest: null },
     };
@@ -211,7 +211,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       maySlice,
-      'user-1:v4:m:2026-5',
+      'user-1:v8:m:2026-5',
     );
     expect(ready.revenueByDay[0].revenue).toBe(5);
     expect(ready.kpis.revenue.value).toBe(50);
@@ -219,8 +219,8 @@ describe('dashboard-chart.utils', () => {
 
   it('aggregateKpisFromRevenueDays sums week days', () => {
     const kpis = aggregateKpisFromRevenueDays([
-      { day: 8, weekday: 1, revenue: 100, checks: 2, guests: 4, plan: null },
-      { day: 9, weekday: 2, revenue: 200, checks: 3, guests: 6, plan: null },
+      { day: 8, weekday: 1, revenue: 100, checks: 2, guests: 4, plan: null, forecast: null },
+      { day: 9, weekday: 2, revenue: 200, checks: 3, guests: 6, plan: null, forecast: null },
     ]);
     expect(kpis.revenue.value).toBe(300);
     expect(kpis.checks.value).toBe(5);
@@ -287,7 +287,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 1 },
       'year',
       null,
-      'user-1:v4:y:2026',
+      'user-1:v8:y:2026',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual(basePayload.revenueByMonth);
@@ -299,7 +299,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2025, month: 1 },
       'year',
       null,
-      'user-1:v4:y:2025',
+      'user-1:v8:y:2025',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual([]);
@@ -328,10 +328,10 @@ describe('dashboard-chart.utils', () => {
       ...basePayload,
       compare: { year: 2026, month: 5, dayFrom: 1, dayTo: 11 },
       kpis: {
-        revenue: { value: 100, prevValue: 50, forecast: 200 },
-        checks: { value: 10, prevValue: 5, forecast: 20 },
-        guests: { value: 20, prevValue: 10, forecast: 40 },
-        avgCheck: { value: 10, prevValue: 5, forecast: 11 },
+        revenue: { value: 100, prevValue: 50, forecast: 200, forecastToday: null },
+        checks: { value: 10, prevValue: 5, forecast: 20, forecastToday: null },
+        guests: { value: 20, prevValue: 10, forecast: 40, forecastToday: null },
+        avgCheck: { value: 10, prevValue: 5, forecast: 11, forecastToday: null },
       },
     });
 

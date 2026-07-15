@@ -1,14 +1,20 @@
 import type { ChartDisplayMode, PeriodGranularity } from '../models/common.model';
 import type { RevenueDay } from '../models';
 
+/** Значение горизонтальной засечки на столбике: прогноз или план (targets). */
+export function barMarkValue(day: RevenueDay): number | null {
+  const mark = day.forecast ?? day.plan;
+  return mark !== null && mark > 0 ? mark : null;
+}
+
 export interface RevenueDayBarLayout {
   index: number;
   x: number;
   y: number;
   w: number;
   h: number;
-  planY: number;
-  hasPlan: boolean;
+  markY: number;
+  hasMark: boolean;
   labelX: number;
   label: string;
   weekend: boolean;
@@ -72,8 +78,9 @@ export function buildRevenueDaysChartLayout(
     const x = PADDING.left + slot * index + slot * 0.2;
     const w = slot * 0.6;
     const y = PADDING.top + ih - h;
-    const hasPlan = day.plan !== null && day.plan > 0;
-    const planY = hasPlan ? PADDING.top + ih - ((day.plan as number) / max) * ih : 0;
+    const mark = barMarkValue(day);
+    const hasMark = mark !== null;
+    const markY = hasMark ? PADDING.top + ih - (mark / max) * ih : 0;
     const labelX = PADDING.left + slot * index + slot / 2;
     const weekend = displayMode === 'day' && (day.weekday === 0 || day.weekday === 6);
 
@@ -83,8 +90,8 @@ export function buildRevenueDaysChartLayout(
       y: round1(y),
       w: round1(w),
       h: round1(h),
-      planY: round1(planY),
-      hasPlan,
+      markY: round1(markY),
+      hasMark,
       labelX: round1(labelX),
       label: formatBarLabel(day, displayMode, timeframe),
       weekend,

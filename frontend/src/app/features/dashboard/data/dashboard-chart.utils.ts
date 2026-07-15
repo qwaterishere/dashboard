@@ -38,6 +38,7 @@ export type DashboardChartSlice = Pick<
 const EMPTY_KPI_COMPARISON = {
   prevValue: null as number | null,
   forecast: null as number | null,
+  forecastToday: null as number | null,
 };
 
 /** Placeholder KPI while the selected chart slice is loading. */
@@ -244,7 +245,11 @@ export function aggregateKpisFromRevenueMonths(
   const revenue = months.reduce((sum, month) => sum + month.revenue, 0);
   const checks = months.reduce((sum, month) => sum + month.checks, 0);
   const guests = months.reduce((sum, month) => sum + month.guests, 0);
-  const emptyComparison = { prevValue: null as number | null, forecast: null as number | null };
+  const emptyComparison = {
+    prevValue: null as number | null,
+    forecast: null as number | null,
+    forecastToday: null as number | null,
+  };
 
   return {
     revenue: { value: revenue, ...emptyComparison },
@@ -273,7 +278,11 @@ export function aggregateKpisFromRevenueDays(days: RevenueDayFact[]): DashboardA
   const revenue = days.reduce((sum, day) => sum + day.revenue, 0);
   const checks = days.reduce((sum, day) => sum + day.checks, 0);
   const guests = days.reduce((sum, day) => sum + day.guests, 0);
-  const emptyComparison = { prevValue: null as number | null, forecast: null as number | null };
+  const emptyComparison = {
+    prevValue: null as number | null,
+    forecast: null as number | null,
+    forecastToday: null as number | null,
+  };
 
   return {
     revenue: { value: revenue, ...emptyComparison },

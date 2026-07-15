@@ -30,4 +30,20 @@ describe('GoalTrackComponent', () => {
     const headline = fixture.nativeElement.querySelector('.g-row b') as HTMLElement;
     expect(headline.classList.contains('r')).toBe(true);
   });
+
+  it('renders pace mark when planPct is between 0 and 100', () => {
+    fixture.componentRef.setInput('planPct', 42);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-mark-line').length).toBe(1);
+  });
+
+  it('hides mark at period edge (planPct 0 or 100)', () => {
+    fixture.componentRef.setInput('planPct', 0);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-mark-line').length).toBe(0);
+
+    fixture.componentRef.setInput('planPct', 100);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('app-mark-line').length).toBe(0);
+  });
 });

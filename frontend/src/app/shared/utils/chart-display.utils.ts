@@ -9,6 +9,7 @@ import {
 } from './chart-period.utils';
 import { MONTHS_SHORT } from '../constants/month-labels.constants';
 import { buildWeekRevenueDays, formatIsoWeekRangeLabel } from './period-format.utils';
+import { barMarkValue } from './revenue-days-chart.utils';
 
 export interface ChartSeriesInput {
   daily: RevenueDayFact[];
@@ -31,6 +32,7 @@ function toRevenueDay(
   checks: number,
   guests: number,
   plan: number | null,
+  forecast: number | null,
   barLabel?: string,
   weekday = 1,
 ): RevenueDay {
@@ -39,6 +41,7 @@ function toRevenueDay(
     weekday,
     revenue,
     plan,
+    forecast,
     checks,
     guests,
     avg: checks ? revenue / checks : 0,
@@ -46,15 +49,58 @@ function toRevenueDay(
   };
 }
 
-function sumDays(days: RevenueDayFact[]): { revenue: number; checks: number; guests: number } {
-  return days.reduce(
-    (acc, day) => ({
-      revenue: acc.revenue + day.revenue,
-      checks: acc.checks + day.checks,
-      guests: acc.guests + day.guests,
-    }),
-    { revenue: 0, checks: 0, guests: 0 },
-  );
+function sumDays(days: RevenueDayFact[]): {
+  revenue: number;
+  checks: number;
+  guests: number;
+  forecast: number | null;
+} {
+  let forecastSum = 0;
+  let hasForecast = false;
+  for (const day of days) {
+    if (day.forecast !== null && day.forecast > 0) {
+      forecastSum += day.forecast;
+      hasForecast = true;
+    }
+  }
+  return {
+    ...days.reduce(
+      (acc, day) => ({
+        revenue: acc.revenue + day.revenue,
+        checks: acc.checks + day.checks,
+        guests: acc.guests + day.guests,
+      }),
+      { revenue: 0, checks: 0, guests: 0 },
+    ),
+    forecast: hasForecast ? forecastSum : null,
+  };
+}
+
+function sumMonths(months: RevenueMonthFact[]): {
+  revenue: number;
+  checks: number;
+  guests: number;
+  forecast: number | null;
+} {
+  let forecastSum = 0;
+  let hasForecast = false;
+  for (const month of months) {
+    if (month.forecast !== null && month.forecast > 0) {
+      forecastSum += month.forecast;
+      hasForecast = true;
+    }
+  }
+  return {
+    ...months.reduce(
+      (acc, month) => ({
+        revenue: acc.revenue + month.revenue,
+        checks: acc.checks + month.checks,
+        guests: acc.guests + month.guests,
+      }),
+      { revenue: 0, checks: 0, guests: 0 },
+    ),
+    forecast: hasForecast ? forecastSum : null,
+  };
 }
 
 function calendarWeekday(year: number, month: number, day: number): number {
@@ -62,7 +108,7 @@ function calendarWeekday(year: number, month: number, day: number): number {
 }
 
 function emptyMonthFact(month: number): RevenueMonthFact {
-  return { month, revenue: 0, checks: 0, guests: 0, plan: null };
+  return { month, revenue: 0, checks: 0, guests: 0, plan: null, forecast: null };
 }
 
 /** Полный календарный год: месяцы без данных — нулевые столбцы. */
@@ -84,7 +130,16 @@ function buildDaySeries(input: ChartSeriesInput): RevenueDay[] {
       weekRange,
       input.weekDayLookup,
     ).map((d) =>
-      toRevenueDay(d.day, d.revenue, d.checks, d.guests, d.plan, undefined, d.weekday),
+      toRevenueDay(
+        d.day,
+        d.revenue,
+        d.checks,
+        d.guests,
+        d.plan,
+        d.forecast ?? null,
+        undefined,
+        d.weekday,
+      ),
     );
   }
 
@@ -103,18 +158,37 @@ function buildDaySeries(input: ChartSeriesInput): RevenueDay[] {
           entry.checks,
           entry.guests,
           entry.plan,
+          entry.forecast,
           undefined,
           entry.weekday,
         );
       }
-      return toRevenueDay(dayNum, 0, 0, 0, null, undefined, calendarWeekday(year, month, dayNum));
+      return toRevenueDay(
+        dayNum,
+        0,
+        0,
+        0,
+        null,
+        null,
+        undefined,
+        calendarWeekday(year, month, dayNum),
+      );
     });
   }
 
   return input.daily
     .filter((d) => d.day >= input.period.dayFrom && d.day <= input.period.dayTo)
     .map((d) =>
-      toRevenueDay(d.day, d.revenue, d.checks, d.guests, d.plan, undefined, d.weekday),
+      toRevenueDay(
+        d.day,
+        d.revenue,
+        d.checks,
+        d.guests,
+        d.plan,
+        d.forecast,
+        undefined,
+        d.weekday,
+      ),
     );
 }
 
@@ -130,7 +204,17 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
     const label = input.weekRange
       ? formatIsoWeekRangeLabel(input.weekRange)
       : `${input.period.dayFrom}–${input.period.dayTo}`;
-    return [toRevenueDay(1, totals.revenue, totals.checks, totals.guests, null, label)];
+    return [
+      toRevenueDay(
+        1,
+        totals.revenue,
+        totals.checks,
+        totals.guests,
+        null,
+        totals.forecast,
+        label,
+      ),
+    ];
   }
 
   const weeks = listWeekRangesInMonth(input.period.year, input.period.month, null);
@@ -153,6 +237,7 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
       totals.checks,
       totals.guests,
       null,
+      totals.forecast,
       week.label,
     );
   });
@@ -167,6 +252,7 @@ function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
         m.checks,
         m.guests,
         m.plan,
+        m.forecast,
         MONTHS_SHORT[m.month - 1] ?? String(m.month),
       ),
     );
@@ -180,6 +266,7 @@ function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
         m.checks,
         m.guests,
         m.plan,
+        m.forecast,
         MONTHS_SHORT[m.month - 1] ?? String(m.month),
       ),
     );
@@ -195,6 +282,7 @@ function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
       totals.checks,
       totals.guests,
       null,
+      totals.forecast,
       MONTHS_SHORT[input.period.month - 1] ?? String(input.period.month),
     ),
   ];
@@ -213,14 +301,15 @@ function buildQuarterSeries(input: ChartSeriesInput): RevenueDay[] {
               checks: 0,
               guests: 0,
               plan: null,
+              forecast: null,
             },
           ];
 
   const quarters = [
-    { revenue: 0, checks: 0, guests: 0 },
-    { revenue: 0, checks: 0, guests: 0 },
-    { revenue: 0, checks: 0, guests: 0 },
-    { revenue: 0, checks: 0, guests: 0 },
+    { revenue: 0, checks: 0, guests: 0, months: [] as RevenueMonthFact[] },
+    { revenue: 0, checks: 0, guests: 0, months: [] as RevenueMonthFact[] },
+    { revenue: 0, checks: 0, guests: 0, months: [] as RevenueMonthFact[] },
+    { revenue: 0, checks: 0, guests: 0, months: [] as RevenueMonthFact[] },
   ];
 
   for (const month of months) {
@@ -228,11 +317,21 @@ function buildQuarterSeries(input: ChartSeriesInput): RevenueDay[] {
     quarters[index].revenue += month.revenue;
     quarters[index].checks += month.checks;
     quarters[index].guests += month.guests;
+    quarters[index].months.push(month);
   }
 
-  return quarters.map((q, index) =>
-    toRevenueDay(index + 1, q.revenue, q.checks, q.guests, null, `Q${index + 1}`),
-  );
+  return quarters.map((q, index) => {
+    const forecast = sumMonths(q.months).forecast;
+    return toRevenueDay(
+      index + 1,
+      q.revenue,
+      q.checks,
+      q.guests,
+      null,
+      forecast,
+      `Q${index + 1}`,
+    );
+  });
 }
 
 /** Строит серию столбцов графика по режиму отображения. */
@@ -275,4 +374,9 @@ export function chartDisplayLegend(displayMode: ChartDisplayMode): string {
     case 'day':
       return 'клик по дню — детали';
   }
+}
+
+/** Максимум шкалы графика с учётом факта и засечек прогноза. */
+export function chartSeriesMaxValue(days: RevenueDay[]): number {
+  return days.reduce((max, d) => Math.max(max, d.revenue, barMarkValue(d) ?? 0), 1);
 }

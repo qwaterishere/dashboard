@@ -56,7 +56,14 @@ export function formatDayPopoverTitle(day: RevenueDay, period: ApiPeriod): strin
 export function buildDayDetailPopover(day: RevenueDay, period: ApiPeriod): DetailPopover {
   const rows: DetailPopover['rows'] = [['Выручка', formatMoney(day.revenue)]];
 
-  if (day.plan !== null && day.plan > 0) {
+  if (day.forecast !== null && day.forecast > 0) {
+    const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
+    rows.push([
+      `К прогнозу дня (${formatMoney(day.forecast)})`,
+      formatSignedPct(deltaPct),
+      deltaPct >= 0 ? 'up' : 'dn',
+    ]);
+  } else if (day.plan !== null && day.plan > 0) {
     const deltaPct = ((day.revenue - day.plan) / day.plan) * 100;
     rows.push([
       `К плану дня (${formatMoney(day.plan)})`,
@@ -64,7 +71,7 @@ export function buildDayDetailPopover(day: RevenueDay, period: ApiPeriod): Detai
       deltaPct >= 0 ? 'up' : 'dn',
     ]);
   } else {
-    rows.push(['К плану дня', '—']);
+    rows.push(['К прогнозу дня', '—']);
   }
 
   rows.push(
@@ -123,13 +130,28 @@ export function buildMonthDetailPopover(day: RevenueDay, year: number): DetailPo
   const month = day.day;
   const rows: DetailPopover['rows'] = [
     ['Выручка', formatMoney(day.revenue)],
-    ['К плану месяца', '—'],
+  ];
+
+  if (day.forecast !== null && day.forecast > 0) {
+    const deltaPct = ((day.revenue - day.forecast) / day.forecast) * 100;
+    rows.push([
+      `К прогнозу месяца (${formatMoney(day.forecast)})`,
+      formatSignedPct(deltaPct),
+      deltaPct >= 0 ? 'up' : 'dn',
+    ]);
+  } else if (day.plan !== null && day.plan > 0) {
+    rows.push(['К плану месяца', formatMoney(day.plan)]);
+  } else {
+    rows.push(['К прогнозу месяца', '—']);
+  }
+
+  rows.push(
     [
       'Чеки · средний чек',
       `${day.checks.toLocaleString('ru-RU')} · ${formatMoney(day.avg)}`,
     ],
     ['Гости', day.guests.toLocaleString('ru-RU')],
-  ];
+  );
   const range = monthIsoRange(year, month);
 
   return {

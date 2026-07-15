@@ -57,7 +57,7 @@ describe('filterRevenueDays', () => {
     revenue: 0,
     checks: 0,
     guests: 0,
-    plan: null,
+    plan: null, forecast: null,
   }));
 
   it('keeps calendar week for week granularity', () => {

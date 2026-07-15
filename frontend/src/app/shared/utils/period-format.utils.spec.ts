@@ -44,7 +44,7 @@ describe('period-format.utils', () => {
       revenue: 0,
       checks: 0,
       guests: 0,
-      plan: null,
+      plan: null, forecast: null,
     }));
     expect(filterRevenueDays(days, period, 'week')).toHaveLength(7);
     expect(filterRevenueDays(days, period, 'week').map((d) => d.day)).toEqual([
@@ -55,8 +55,8 @@ describe('period-format.utils', () => {
 
   it('buildWeekRevenueDays pads missing days with zeros', () => {
     const days: RevenueDayFact[] = [
-      { day: 9, weekday: 2, revenue: 100, checks: 1, guests: 1, plan: null },
-      { day: 11, weekday: 4, revenue: 50, checks: 1, guests: 1, plan: null },
+      { day: 9, weekday: 2, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null },
+      { day: 11, weekday: 4, revenue: 50, checks: 1, guests: 1, plan: null, forecast: null },
     ];
     const week = buildWeekRevenueDays(days, period, {
       startDate: '2026-06-08',

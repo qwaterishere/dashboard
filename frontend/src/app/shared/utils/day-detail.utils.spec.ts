@@ -11,6 +11,7 @@ describe('day-detail.utils', () => {
       weekday: 5,
       revenue: 985_000,
       plan: 940_000,
+      forecast: null,
       checks: 474,
       guests: 1090,
       avg: 2078,
@@ -24,6 +25,7 @@ describe('day-detail.utils', () => {
       weekday: 5,
       revenue: 985_000,
       plan: 940_000,
+      forecast: null,
       checks: 474,
       guests: 1090,
       avg: 2078,
@@ -42,17 +44,18 @@ describe('day-detail.utils', () => {
     });
   });
 
-  it('shows dash when plan is missing', () => {
+  it('shows dash when forecast and plan are missing', () => {
     const day: RevenueDay = {
       day: 1,
       weekday: 1,
       revenue: 500,
       plan: null,
+      forecast: null,
       checks: 5,
       guests: 10,
       avg: 100,
     };
     const pop = buildDayDetailPopover(day, period);
-    expect(pop.rows[1]).toEqual(['К плану дня', '—']);
+    expect(pop.rows[1]).toEqual(['К прогнозу дня', '—']);
   });
 });

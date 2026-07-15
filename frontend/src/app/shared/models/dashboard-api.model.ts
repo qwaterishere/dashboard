@@ -7,7 +7,10 @@ export type { ApiPeriod, DataBounds };
 export interface KpiMetric {
   value: number;
   prevValue: number | null;
+  /** End-of-month (month) or end-of-year (year mode) run-rate; null if < 7 closed days. */
   forecast: number | null;
+  /** Expected cumulative by as-of day; null if not ready or period already complete. */
+  forecastToday: number | null;
 }
 
 export interface RevenueDayFact {
@@ -17,6 +20,8 @@ export interface RevenueDayFact {
   checks: number;
   guests: number;
   plan: number | null;
+  /** Ожидаемая выручка на конец дня (weekday-модель). */
+  forecast: number | null;
 }
 
 export interface UnitSums {
@@ -33,6 +38,8 @@ export interface RevenueMonthFact {
   checks: number;
   guests: number;
   plan: number | null;
+  /** Сумма дневных прогнозов за календарный месяц. */
+  forecast: number | null;
 }
 
 export interface WeekDayStat {

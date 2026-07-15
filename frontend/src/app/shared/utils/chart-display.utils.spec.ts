@@ -9,14 +9,14 @@ const daily = Array.from({ length: 30 }, (_, i) => ({
   revenue: (i + 1) * 100,
   checks: 1,
   guests: 2,
-  plan: null,
+  plan: null, forecast: null,
 }));
 
 const monthly = [
-  { month: 1, revenue: 1000, checks: 10, guests: 20, plan: null },
-  { month: 2, revenue: 2000, checks: 20, guests: 40, plan: null },
-  { month: 3, revenue: 3000, checks: 30, guests: 60, plan: null },
-  { month: 4, revenue: 4000, checks: 40, guests: 80, plan: null },
+  { month: 1, revenue: 1000, checks: 10, guests: 20, plan: null, forecast: null },
+  { month: 2, revenue: 2000, checks: 20, guests: 40, plan: null, forecast: null },
+  { month: 3, revenue: 3000, checks: 30, guests: 60, plan: null, forecast: null },
+  { month: 4, revenue: 4000, checks: 40, guests: 80, plan: null, forecast: null },
 ];
 
 describe('chart-display.utils', () => {

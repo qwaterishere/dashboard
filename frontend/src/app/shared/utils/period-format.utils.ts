@@ -162,6 +162,7 @@ export function buildWeekRevenueDays(
       checks: 0,
       guests: 0,
       plan: null,
+      forecast: null,
     };
   });
 }

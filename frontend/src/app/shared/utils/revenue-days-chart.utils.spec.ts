@@ -2,8 +2,8 @@ import { buildRevenueDaysChartLayout, round1 } from './revenue-days-chart.utils'
 import type { RevenueDay } from '../models';
 
 const sampleDays: RevenueDay[] = [
-  { day: 1, weekday: 1, revenue: 637000, plan: 640000, checks: 306, guests: 704, avg: 2082 },
-  { day: 2, weekday: 2, revenue: 623000, plan: 640000, checks: 293, guests: 674, avg: 2126 },
+  { day: 1, weekday: 1, revenue: 637000, plan: 640000, forecast: null, checks: 306, guests: 704, avg: 2082 },
+  { day: 2, weekday: 2, revenue: 623000, plan: 640000, forecast: null, checks: 293, guests: 674, avg: 2126 },
 ];
 
 describe('revenue-days-chart.utils', () => {
@@ -20,17 +20,25 @@ describe('revenue-days-chart.utils', () => {
       expect(layout.bars).toHaveLength(2);
     });
 
-    it('hides plan line when plan is null', () => {
+    it('hides mark line when forecast and plan are null', () => {
       const days: RevenueDay[] = [
-        { day: 1, weekday: 1, revenue: 637000, plan: null, checks: 306, guests: 704, avg: 2082 },
+        { day: 1, weekday: 1, revenue: 637000, plan: null, forecast: null, checks: 306, guests: 704, avg: 2082 },
       ];
       const layout = buildRevenueDaysChartLayout(days, 1200000);
-      expect(layout.bars[0].hasPlan).toBe(false);
+      expect(layout.bars[0].hasMark).toBe(false);
+    });
+
+    it('shows mark line from forecast', () => {
+      const days: RevenueDay[] = [
+        { day: 1, weekday: 1, revenue: 637000, plan: null, forecast: 640000, checks: 306, guests: 704, avg: 2082 },
+      ];
+      const layout = buildRevenueDaysChartLayout(days, 1200000);
+      expect(layout.bars[0].hasMark).toBe(true);
     });
 
     it('marks weekend labels for week timeframe', () => {
       const days: RevenueDay[] = [
-        { day: 7, weekday: 0, revenue: 845000, plan: 800000, checks: 389, guests: 895, avg: 2172 },
+        { day: 7, weekday: 0, revenue: 845000, plan: 800000, forecast: null, checks: 389, guests: 895, avg: 2172 },
       ];
       const layout = buildRevenueDaysChartLayout(days, 1200000, 'day', 'week');
       expect(layout.bars[0].weekend).toBe(true);
@@ -39,7 +47,7 @@ describe('revenue-days-chart.utils', () => {
 
     it('uses day number only for month timeframe', () => {
       const days: RevenueDay[] = [
-        { day: 7, weekday: 0, revenue: 845000, plan: 800000, checks: 389, guests: 895, avg: 2172 },
+        { day: 7, weekday: 0, revenue: 845000, plan: 800000, forecast: null, checks: 389, guests: 895, avg: 2172 },
       ];
       const layout = buildRevenueDaysChartLayout(days, 1200000, 'day', 'month');
       expect(layout.bars[0].label).toBe('7');

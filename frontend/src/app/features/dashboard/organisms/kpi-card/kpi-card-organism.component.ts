@@ -39,8 +39,10 @@ export type KpiTone = 'kpi-rev' | 'kpi-check' | 'kpi-guests';
           />
         } @else if (showForecast()) {
           <app-goal-track
+            [label]="forecastLabel()"
             [headline]="forecastHeadline()"
             [trackPct]="trackPct()"
+            [planPct]="planPct()"
             [risk]="risk()"
             [goalPopoverKey]="goalPopoverKey()"
             [popoverDetails]="popoverDetails()"
@@ -63,7 +65,9 @@ export class KpiCardOrganismComponent {
   readonly comparisonLabel = input<'LfL' | 'WoW'>('LfL');
   readonly lflLoading = input(false);
   readonly forecastHeadline = input.required<string>();
+  readonly forecastLabel = input('Прогноз на конец месяца');
   readonly trackPct = input.required<number>();
+  readonly planPct = input(0);
   readonly risk = input(false);
   readonly lflPopoverKey = input<string | undefined>();
   readonly goalPopoverKey = input<string | undefined>();

@@ -12,9 +12,9 @@ describe('analytics-cache-key', () => {
   const tenant = analyticsTenantScope('user-1');
 
   it('builds latest, month and year keys with tenant scope', () => {
-    expect(buildDashboardCacheKey(tenant, {})).toBe('user-1:v4:latest');
-    expect(buildDashboardCacheKey(tenant, { year: 2026, month: 6 })).toBe('user-1:v4:m:2026-6');
-    expect(buildDashboardCacheKey(tenant, { year: 2025 })).toBe('user-1:v4:y:2025');
+    expect(buildDashboardCacheKey(tenant, {})).toBe('user-1:v8:latest');
+    expect(buildDashboardCacheKey(tenant, { year: 2026, month: 6 })).toBe('user-1:v8:m:2026-6');
+    expect(buildDashboardCacheKey(tenant, { year: 2025 })).toBe('user-1:v8:y:2025');
   });
 
   it('builds week overlay keys', () => {
@@ -25,7 +25,7 @@ describe('analytics-cache-key', () => {
         weekStart: '2026-06-08',
         weekEnd: '2026-06-14',
       }),
-    ).toBe('user-1:v4:m:2026-6:w:2026-06-08:2026-06-14');
+    ).toBe('user-1:v8:m:2026-6:w:2026-06-08:2026-06-14');
   });
 
   it('appends compare suffix when compare range is set', () => {
@@ -34,7 +34,7 @@ describe('analytics-cache-key', () => {
         compareStart: '2026-05-01',
         compareEnd: '2026-05-11',
       }),
-    ).toBe('user-1:v4:latest:c:2026-05-01:2026-05-11');
+    ).toBe('user-1:v8:latest:c:2026-05-01:2026-05-11');
 
     expect(
       buildDashboardCacheKey(tenant, {
@@ -43,7 +43,7 @@ describe('analytics-cache-key', () => {
         compareStart: '2026-05-01',
         compareEnd: '2026-05-31',
       }),
-    ).toBe('user-1:v4:m:2026-6:c:2026-05-01:2026-05-31');
+    ).toBe('user-1:v8:m:2026-6:c:2026-05-01:2026-05-31');
   });
 
   it('merges compare range into query', () => {
@@ -81,7 +81,7 @@ describe('analytics-cache-key', () => {
   });
 
   it('extracts tenant scope from cache key', () => {
-    expect(tenantScopeFromCacheKey('user-1:v4:m:2026-6')).toBe('user-1');
+    expect(tenantScopeFromCacheKey('user-1:v8:m:2026-6')).toBe('user-1');
   });
 
   it('round-trips cache keys via parseDashboardCacheKey', () => {

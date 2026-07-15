@@ -127,6 +127,7 @@ def build_week_kpi_overlay(
             "value": cur[name],
             "prevValue": prev[name] if prev else None,
             "forecast": None,
+            "forecastToday": None,
         }
 
     kpis = {
@@ -141,6 +142,7 @@ def build_week_kpi_overlay(
                 else None
             ),
             "forecast": None,
+            "forecastToday": None,
         },
     }
 

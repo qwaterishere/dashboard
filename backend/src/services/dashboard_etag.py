@@ -13,6 +13,10 @@ from sqlalchemy.orm import Session
 from src.db.models.restaurant import Restaurant
 from src.db.models.sales import Order
 
+# Bump when response semantics change without data/sync change
+# (e.g. forecast horizon fix) — invalidates client If-None-Match.
+ETAG_SCHEMA_VERSION = "v5"
+
 
 def _sync_version(restaurant: Restaurant | None) -> int:
     if restaurant is None:
@@ -66,7 +70,7 @@ def compute_dashboard_etag(
         compare_token = f"{compare_start.isoformat()}:{compare_end.isoformat()}"
 
     payload = (
-        f"{scope}:{restaurant_id}:{year}:{month}:{week_token}:"
+        f"{ETAG_SCHEMA_VERSION}:{scope}:{restaurant_id}:{year}:{month}:{week_token}:"
         f"{compare_token}:{latest_token}:{sync_token}"
     )
     digest = hashlib.sha256(payload.encode()).hexdigest()[:16]

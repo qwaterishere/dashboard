@@ -7,6 +7,7 @@ interface GoalTrackStoryArgs {
   label: string;
   headline: string;
   trackPct: number;
+  planPct: number;
   risk: boolean;
 }
 
@@ -18,6 +19,7 @@ const meta: Meta<GoalTrackStoryArgs> = {
     label: { control: 'text' },
     headline: { control: 'text' },
     trackPct: { control: { type: 'range', min: 0, max: 100, step: 1 } },
+    planPct: { control: { type: 'range', min: 0, max: 100, step: 1 } },
     risk: { control: 'boolean', description: 'Красный headline + fill variant risk' },
   },
 };
@@ -30,6 +32,7 @@ export const Default: Story = {
     label: 'Прогноз на конец месяца',
     headline: '9,2 млн ₽ · 94% плана',
     trackPct: 94,
+    planPct: 48,
     risk: false,
   },
   render: (args) => ({
@@ -40,6 +43,7 @@ export const Default: Story = {
           [label]="label"
           [headline]="headline"
           [trackPct]="trackPct"
+          [planPct]="planPct"
           [risk]="risk"
         />
       </div>

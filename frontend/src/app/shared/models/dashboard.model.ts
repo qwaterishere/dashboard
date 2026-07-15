@@ -11,6 +11,8 @@ export interface KpiBlock {
     trackPct: number;
     risk: boolean;
     headline?: string;
+    /** «Прогноз на конец месяца» / «…года» — зависит от granularity. */
+    label?: string;
   };
   weekFooter?: {
     label: string;
@@ -42,6 +44,8 @@ export interface RevenueDay {
   weekday: number;
   revenue: number;
   plan: number | null;
+  /** Ожидаемая выручка на конец дня — засечка на графике. */
+  forecast: number | null;
   checks: number;
   guests: number;
   avg: number;

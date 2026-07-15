@@ -2,7 +2,7 @@ import type { ChartPeriodSelection } from '../../shared/models/chart-period.mode
 import type { PeriodGranularity } from '../../shared/models/common.model';
 
 /** Bump when меняется контракт chart/kpi/compare — сбрасывает in-memory кэш дашборда. */
-export const DASHBOARD_CACHE_SCHEMA = 'v4';
+export const DASHBOARD_CACHE_SCHEMA = 'v8';
 
 export interface DashboardQueryKey {
   year?: number;

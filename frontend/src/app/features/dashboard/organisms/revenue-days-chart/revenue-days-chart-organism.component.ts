@@ -80,13 +80,13 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
               fill="url(#dayg)"
               (click)="onBarClick($event, bar.index)"
             />
-            @if (bar.hasPlan) {
+            @if (bar.hasMark) {
               <line
                 [attr.x1]="bar.x - 3"
-                [attr.y1]="bar.planY"
+                [attr.y1]="bar.markY"
                 [attr.x2]="bar.x + bar.w + 3"
-                [attr.y2]="bar.planY"
-                stroke="var(--chart-axis)"
+                [attr.y2]="bar.markY"
+                stroke="var(--mark-plan)"
                 stroke-width="2"
                 stroke-linecap="round"
                 pointer-events="none"

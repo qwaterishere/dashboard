@@ -29,7 +29,9 @@ import type { DetailPopover } from '../../../shared/models';
       </div>
       <app-progress-track variant="goal">
         <app-progress-fill [width]="trackPct()" [variant]="risk() ? 'risk' : 'default'" />
-        <app-mark-line [position]="100" />
+        @if (planPct() > 0 && planPct() < 100) {
+          <app-mark-line [position]="planPct()" />
+        }
       </app-progress-track>
     </div>
   `,
@@ -87,6 +89,8 @@ export class GoalTrackComponent {
   readonly label = input('Прогноз на конец месяца');
   readonly headline = input.required<string>();
   readonly trackPct = input.required<number>();
+  /** Pace-засечка (forecastToday/forecast); только незавершённый период, 0 — скрыть. */
+  readonly planPct = input(0);
   readonly risk = input(false);
   readonly goalPopoverKey = input<string | undefined>();
   readonly popoverDetails = input<Record<string, DetailPopover>>({});

@@ -5,8 +5,8 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { RevenueDaysChartOrganismComponent } from './revenue-days-chart-organism.component';
 
 const sampleDays = [
-  { day: 1, weekday: 1, revenue: 637000, plan: 640000, checks: 306, guests: 704, avg: 2082 },
-  { day: 2, weekday: 2, revenue: 623000, plan: 640000, checks: 293, guests: 674, avg: 2126 },
+  { day: 1, weekday: 1, revenue: 637000, plan: 640000, forecast: null, checks: 306, guests: 704, avg: 2082 },
+  { day: 2, weekday: 2, revenue: 623000, plan: 640000, forecast: null, checks: 293, guests: 674, avg: 2126 },
 ];
 
 describe('RevenueDaysChartOrganismComponent', () => {

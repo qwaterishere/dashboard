@@ -8,15 +8,15 @@ const sample: DashboardApi = {
   compare: { year: 2026, month: 5, dayFrom: 1, dayTo: 11 },
   dataBounds: { earliest: '2026-01-01', latest: '2026-06-11' },
   kpis: {
-    revenue: { value: 1000, prevValue: 800, forecast: 5000 },
-    checks: { value: 10, prevValue: 8, forecast: 50 },
-    guests: { value: 20, prevValue: 18, forecast: 100 },
-    avgCheck: { value: 100, prevValue: 90, forecast: 110 },
+    revenue: { value: 1000, prevValue: 800, forecast: 5000, forecastToday: 1200 },
+    checks: { value: 10, prevValue: 8, forecast: 50, forecastToday: 12 },
+    guests: { value: 20, prevValue: 18, forecast: 100, forecastToday: 22 },
+    avgCheck: { value: 100, prevValue: 90, forecast: 110, forecastToday: 100 },
   },
   revenueByDay: [
-    { day: 1, weekday: 1, revenue: 500, checks: 5, guests: 10, plan: null },
+    { day: 1, weekday: 1, revenue: 500, checks: 5, guests: 10, plan: null, forecast: null },
   ],
-  revenueByMonth: [{ month: 6, revenue: 500, checks: 5, guests: 10, plan: null }],
+  revenueByMonth: [{ month: 6, revenue: 500, checks: 5, guests: 10, plan: null, forecast: null }],
   units: [
     { key: 'k', revenue: 600, cost: 200, prevRevenue: 500, prevCost: 180 },
     { key: 'b', revenue: 400, cost: 100, prevRevenue: 300, prevCost: 90 },
@@ -151,7 +151,7 @@ describe('dashboard.mapper', () => {
         revenue: 100,
         checks: 1,
         guests: 1,
-        plan: null,
+        plan: null, forecast: null,
       })),
     };
     const vm = buildDashboardViewModel(extended, { granularity: 'week' });
@@ -169,7 +169,7 @@ describe('dashboard.mapper', () => {
         revenue: 100,
         checks: 1,
         guests: 1,
-        plan: null,
+        plan: null, forecast: null,
       })),
     };
     const vm = buildDashboardViewModel(extended, {
@@ -185,8 +185,8 @@ describe('dashboard.mapper', () => {
     const extended: DashboardApi = {
       ...sample,
       revenueByMonth: [
-        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
-        { month: 2, revenue: 200, checks: 2, guests: 4, plan: null },
+        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null, forecast: null },
+        { month: 2, revenue: 200, checks: 2, guests: 4, plan: null, forecast: null },
       ],
     };
     const vm = buildDashboardViewModel(extended, { granularity: 'year', chartDisplayMode: 'month' });
@@ -201,14 +201,41 @@ describe('dashboard.mapper', () => {
     const extended: DashboardApi = {
       ...sample,
       revenueByMonth: [
-        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null },
-        { month: 4, revenue: 200, checks: 2, guests: 4, plan: null },
+        { month: 1, revenue: 100, checks: 1, guests: 2, plan: null, forecast: null },
+        { month: 4, revenue: 200, checks: 2, guests: 4, plan: null, forecast: null },
       ],
     };
     const vm = buildDashboardViewModel(extended, { granularity: 'year', chartDisplayMode: 'quarter' });
     expect(vm.revenueByDay).toHaveLength(4);
     expect(vm.revenueByDay[0].revenue).toBe(100);
     expect(vm.revenueByDay[1].revenue).toBe(200);
+  });
+
+  it('uses year forecast label for year granularity', () => {
+    const monthVm = buildDashboardViewModel(sample, { granularity: 'month' });
+    const yearVm = buildDashboardViewModel(sample, { granularity: 'year' });
+    expect(monthVm.kpis.revenue.forecast.label).toBe('Прогноз на конец месяца');
+    expect(yearVm.kpis.revenue.forecast.label).toBe('Прогноз на конец года');
+    expect(yearVm.details['rev-goal'].rows[1]?.[0]).toBe('Ожидание на сегодня');
+    expect(yearVm.details['rev-goal'].rows[2]?.[0]).toBe('Прогноз на конец года');
+  });
+
+  it('marks planPct from forecastToday and risks when behind pace by >2%', () => {
+    const vm = buildDashboardViewModel(sample, { granularity: 'month' });
+    // 1200/5000 = 24%
+    expect(vm.kpis.revenue.forecast.planPct).toBe(24);
+    // 1000 < 1200 * 0.98 → risk
+    expect(vm.kpis.revenue.forecast.risk).toBe(true);
+
+    const onPace: DashboardApi = {
+      ...sample,
+      kpis: {
+        ...sample.kpis,
+        revenue: { value: 1200, prevValue: 800, forecast: 5000, forecastToday: 1200 },
+      },
+    };
+    const ok = buildDashboardViewModel(onPace, { granularity: 'month' });
+    expect(ok.kpis.revenue.forecast.risk).toBe(false);
   });
 
   it('builds stock panel from warehouse stub', () => {

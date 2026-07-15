@@ -16,7 +16,7 @@ import {
   buildDashboardRevenueCategories,
 } from '../../foodcost/data/foodcost.mapper';
 import { defaultChartDisplayMode } from '../../../shared/constants/chart-display.constants';
-import { buildChartDisplaySeries } from '../../../shared/utils/chart-display.utils';
+import { buildChartDisplaySeries, chartSeriesMaxValue } from '../../../shared/utils/chart-display.utils';
 import {
   buildPeriodInfo,
   filterRevenueDays,
@@ -55,18 +55,45 @@ function formatSignedMoney(delta: number): string {
   return `${sign}${formatMoney(Math.abs(delta))}`;
 }
 
-function forecastBlock(metric: KpiMetric, formatValue: (n: number) => string) {
+export function forecastLabelForGranularity(granularity: PeriodGranularity): string {
+  return granularity === 'year' ? 'Прогноз на конец года' : 'Прогноз на конец месяца';
+}
+
+/** Отставание факта от pace (forecastToday) больше 2% → risk на progress bar. */
+const PACE_RISK_RATIO = 0.98;
+
+function forecastBlock(
+  metric: KpiMetric,
+  formatValue: (n: number) => string,
+  granularity: PeriodGranularity = 'month',
+) {
+  const label = forecastLabelForGranularity(granularity);
   const forecast = metric.forecast;
+  const pace = metric.forecastToday;
   if (forecast === null) {
-    return { value: 0, planPct: 0, trackPct: 0, risk: false, headline: '—' };
+    return {
+      value: 0,
+      planPct: 0,
+      trackPct: 0,
+      risk: false,
+      headline: '—',
+      label,
+    };
   }
-  const trackPct = metric.value > 0 ? Math.min(100, Math.round((metric.value / forecast) * 1000) / 10) : 0;
+  const trackPct =
+    metric.value > 0 ? Math.min(100, Math.round((metric.value / forecast) * 1000) / 10) : 0;
+  const planPct =
+    pace != null && pace > 0
+      ? Math.min(100, Math.round((pace / forecast) * 1000) / 10)
+      : 0;
+  const risk = pace != null && pace > 0 && metric.value < pace * PACE_RISK_RATIO;
   return {
     value: forecast,
-    planPct: 100,
+    planPct,
     trackPct,
-    risk: trackPct < 90,
+    risk,
     headline: formatValue(forecast),
+    label,
   };
 }
 
@@ -89,15 +116,25 @@ function buildLflPopover(
   return { title, rows, footnote };
 }
 
-function buildGoalPopover(title: string, metric: KpiMetric, format: (n: number) => string): DetailPopover {
-  const fc = forecastBlock(metric, format);
+function buildGoalPopover(
+  title: string,
+  metric: KpiMetric,
+  format: (n: number) => string,
+  granularity: PeriodGranularity = 'month',
+): DetailPopover {
+  const fc = forecastBlock(metric, format, granularity);
+  const rows: DetailPopover['rows'] = [
+    ['Сейчас', format(metric.value)],
+  ];
+  if (metric.forecastToday != null) {
+    rows.push(['Ожидание на сегодня', format(metric.forecastToday)]);
+  }
+  rows.push([fc.label, fc.headline]);
   return {
     title,
-    rows: [
-      ['Сейчас', format(metric.value)],
-      ['Прогноз на конец месяца', fc.headline],
-    ],
-    footnote: 'Run-rate по средним рабочим дням недели. Планы появятся с модулем targets.',
+    rows,
+    footnote:
+      'Run-rate по средним рабочим дням недели. Красный трек — факт ниже ожидания к текущему дню более чем на 2%.',
   };
 }
 
@@ -188,10 +225,7 @@ export function buildDashboardChartCore(
     },
     chartDisplayMode,
   );
-  const maxRevenue = revenueDays.reduce(
-    (max, d) => Math.max(max, d.revenue, d.plan ?? 0),
-    1,
-  );
+  const maxRevenue = chartSeriesMaxValue(revenueDays);
   const monthRange = monthRangeFromSeries(data.revenueByMonth ?? []);
   const chartLabel =
     options.chartPeriodLabel ??
@@ -266,12 +300,13 @@ export function buildDashboardKpiLayer(
       (n) => Math.round(n).toLocaleString('ru-RU'),
       `Сравнение с предыдущим периодом: ${formatPeriodRange(compare)}.`,
     ),
-    'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney),
-    'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney),
+    'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney, granularity),
+    'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney, granularity),
     'guests-goal': buildGoalPopover(
       'Прогноз — чеки',
       kpis.checks,
       (n) => Math.round(n).toLocaleString('ru-RU'),
+      granularity,
     ),
   };
 
@@ -293,7 +328,7 @@ export function buildDashboardKpiLayer(
         guests: kpis.guests.value,
         weekFooter: weekFooters?.revenueWeekFooter,
         forecast: {
-          ...forecastBlock(kpis.revenue, (n) => `${(n / 1e6).toFixed(1).replace('.', ',')} млн`),
+          ...forecastBlock(kpis.revenue, (n) => `${(n / 1e6).toFixed(1).replace('.', ',')} млн`, granularity),
         },
       },
       avgCheck: {
@@ -303,7 +338,7 @@ export function buildDashboardKpiLayer(
         perGuest: kpis.guests.value ? kpis.revenue.value / kpis.guests.value : 0,
         qualityFlag: false,
         weekFooter: weekFooters?.avgCheckWeekFooter,
-        forecast: forecastBlock(kpis.avgCheck, formatMoney),
+        forecast: forecastBlock(kpis.avgCheck, formatMoney, granularity),
       },
       guests: {
         value: kpis.checks.value,
@@ -312,7 +347,7 @@ export function buildDashboardKpiLayer(
         guests: kpis.guests.value,
         perCheck: kpis.checks.value ? kpis.guests.value / kpis.checks.value : 0,
         weekFooter: weekFooters?.checksWeekFooter,
-        forecast: forecastBlock(kpis.checks, (n) => Math.round(n).toLocaleString('ru-RU')),
+        forecast: forecastBlock(kpis.checks, (n) => Math.round(n).toLocaleString('ru-RU'), granularity),
       },
     },
     details,

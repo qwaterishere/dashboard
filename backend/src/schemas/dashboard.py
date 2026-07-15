@@ -18,8 +18,14 @@ class KpiMetric(StrictModel):
         "null — сравнивать не с чем (нет данных в compare)"
     )
     forecast: float | None = Field(
-        description="Run-rate-прогноз на конец месяца по средним дням недели;"
+        description="Run-rate-прогноз на конец месяца (month-mode) или года "
+        "(year-mode, year без month) по средним дням недели; "
         "null — прогноз не готов (< 7 закрытых дней)"
+    )
+    forecastToday: float | None = Field(
+        description="Ожидаемый накопленный объём к последнему дню датафрейма "
+        "(pace-засечка); null — прогноз не готов ИЛИ период уже завершён "
+        "(засечка только у незавершённых month/year)"
     )
 
 
@@ -37,6 +43,10 @@ class RevenueDay(StrictModel):
     plan: float | None = Field(
         description="План дня; null — планы не внесены (до модуля targets)"
     )
+    forecast: float | None = Field(
+        description="Ожидаемая выручка на конец дня (weekday-модель); "
+        "null — прогноз не готов (< 7 закрытых дней периода)"
+    )
 
 
 class RevenueMonth(StrictModel):
@@ -48,6 +58,10 @@ class RevenueMonth(StrictModel):
     guests: int = Field(description="Гости за месяц")
     plan: float | None = Field(
         description="План месяца; null — планы не внесены (до модуля targets)"
+    )
+    forecast: float | None = Field(
+        description="Сумма дневных прогнозов за календарный месяц; "
+        "null — прогноз не готов (< 7 закрытых дней периода)"
     )
 
 
