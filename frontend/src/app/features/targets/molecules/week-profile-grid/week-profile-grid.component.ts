@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, model } from '@angular/core';
+import { ChangeDetectionStrategy, Component, model, input } from '@angular/core';
 
 import { FieldInputComponent } from '../../../../ui/atoms/field-input/field-input.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
@@ -26,6 +26,7 @@ const WEEK_PROFILE_LABELS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'в
               type="number"
               inputMode="decimal"
               step="0.01"
+              [disabled]="disabled()"
               [value]="displayValue(i)"
               (valueChange)="onValueChange(i, $event)"
             />
@@ -38,6 +39,7 @@ const WEEK_PROFILE_LABELS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'в
 })
 export class WeekProfileGridComponent {
   readonly profile = model.required<number[]>();
+  readonly disabled = input(false);
 
   protected readonly labels = WEEK_PROFILE_LABELS;
 

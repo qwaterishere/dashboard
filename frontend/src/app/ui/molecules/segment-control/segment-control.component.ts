@@ -16,6 +16,7 @@ import type { SegmentOption } from './segment-control.model';
       @for (opt of options(); track opt.value) {
         <app-button
           [variant]="value() === opt.value ? 'segment-on' : 'default'"
+          [disabled]="disabled()"
           (pressed)="value.set(opt.value)"
         >
           {{ opt.label }}
@@ -57,4 +58,5 @@ export class SegmentControlComponent<T extends string = string> {
   readonly value = model.required<T>();
   readonly size = input<'default' | 'sm'>('default');
   readonly tone = input<'default' | 'foodcost'>('default');
+  readonly disabled = input(false);
 }

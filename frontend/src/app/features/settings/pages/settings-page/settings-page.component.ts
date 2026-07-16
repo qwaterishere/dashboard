@@ -12,6 +12,7 @@ import { AccountInfoOrganismComponent } from '../../organisms/account-info/accou
 import { IikoSettingsOrganismComponent } from '../../organisms/iiko-settings/iiko-settings-organism.component';
 import { PasswordSettingsOrganismComponent } from '../../organisms/password-settings/password-settings-organism.component';
 import { ProfileSettingsOrganismComponent } from '../../organisms/profile-settings/profile-settings-organism.component';
+import { TargetsLockSettingsOrganismComponent } from '../../organisms/targets-lock-settings/targets-lock-settings-organism.component';
 import { resolveIikoSyncError, resolveSettingsError } from '../../settings-errors';
 import { SettingsService } from '../../services/settings.service';
 import {
@@ -29,6 +30,7 @@ import {
     ProfileSettingsOrganismComponent,
     PasswordSettingsOrganismComponent,
     IikoSettingsOrganismComponent,
+    TargetsLockSettingsOrganismComponent,
     AccountInfoOrganismComponent,
   ],
   template: `
@@ -55,6 +57,7 @@ import {
           (syncRequested)="onIikoSync(false)"
           (resyncRequested)="onIikoSync(true)"
         />
+        <app-targets-lock-settings-organism />
         <app-password-settings-organism
           [loading]="passwordLoading()"
           [error]="passwordError()"

@@ -21,6 +21,8 @@ import { TargetsFormOrganismComponent } from '../../organisms/targets-form/targe
           [data]="store.data.value()"
           [(form)]="formState"
           (saveRequested)="onSave($event)"
+          (clearRequested)="onClear()"
+          (lockRequested)="onLock()"
         />
       } @else if (store.data.error()) {
         <app-load-error message="Не удалось загрузить цели" />
@@ -53,8 +55,8 @@ export class TargetsPageComponent {
         return;
       }
       const data = this.store.data.value();
-      const periodKey = `${data.period.year}-${data.period.month}`;
-      if (periodKey === this.loadedPeriodKey) {
+      const periodKey = `${data.period.year}-${data.period.month}-${data.locked ? '1' : '0'}`;
+      if (periodKey === this.loadedPeriodKey && this.formState) {
         return;
       }
       this.loadedPeriodKey = periodKey;
@@ -63,17 +65,45 @@ export class TargetsPageComponent {
   }
 
   async onSave(form: TargetsFormState): Promise<void> {
-    if (!this.store.data.hasValue()) return;
+    if (!this.store.data.hasValue() || this.store.data.value().locked) return;
     const data = this.store.data.value();
     const payload = formStateToUpsertRequest(data, form);
     const formOrg = this.formRef();
     try {
       const saved = await this.store.save(payload);
-      this.loadedPeriodKey = `${saved.period.year}-${saved.period.month}`;
+      this.loadedPeriodKey = `${saved.period.year}-${saved.period.month}-${saved.locked ? '1' : '0'}`;
       this.formState = buildTargetsFormState(saved);
       formOrg?.markSaveSuccess(this.formState);
     } catch {
       formOrg?.markSaveError('Не удалось сохранить цели');
+    }
+  }
+
+  async onClear(): Promise<void> {
+    if (!this.store.data.hasValue() || this.store.data.value().locked) return;
+    const data = this.store.data.value();
+    const formOrg = this.formRef();
+    try {
+      const cleared = await this.store.clearMonth(data.period.year, data.period.month);
+      this.loadedPeriodKey = `${cleared.period.year}-${cleared.period.month}-${cleared.locked ? '1' : '0'}`;
+      this.formState = buildTargetsFormState(cleared);
+      formOrg?.markClearSuccess(this.formState);
+    } catch {
+      formOrg?.markSaveError('Не удалось очистить цели');
+    }
+  }
+
+  async onLock(): Promise<void> {
+    if (!this.store.data.hasValue() || this.store.data.value().locked) return;
+    const data = this.store.data.value();
+    const formOrg = this.formRef();
+    try {
+      const locked = await this.store.lockMonth(data.period.year, data.period.month);
+      this.loadedPeriodKey = `${locked.period.year}-${locked.period.month}-1`;
+      this.formState = buildTargetsFormState(locked);
+      formOrg?.markLockSuccess(this.formState);
+    } catch {
+      formOrg?.markSaveError('Не удалось заблокировать цели');
     }
   }
 }

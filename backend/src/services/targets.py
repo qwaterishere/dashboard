@@ -17,6 +17,8 @@ from src.schemas.targets import (
     TargetsData,
     TargetsFoodcostUnit,
     TargetsInventory,
+    TargetsLockedList,
+    TargetsLockedPeriod,
     TargetsPeriod,
     TargetsReference,
     TargetsRevenue,
@@ -26,6 +28,8 @@ from src.schemas.targets import (
 from src.services.targets_plan import build_month_day_plans
 
 UNIT_KEYS = ("k", "b", "w", "o")
+
+TARGETS_LOCKED_DETAIL = "Targets are locked for this month"
 
 _MONTH_GENITIVE = (
     "",
@@ -61,12 +65,7 @@ _MONTH_NOMINATIVE = (
 
 _UNIT_NAMES = {"k": "Кухня", "b": "Бар", "w": "Вино", "o": "Прочее"}
 
-# Шаблон месяца (stubs/data/targets.json) — без наследования из прошлого месяца.
-DEFAULT_REVENUE_MONTH_PLAN = 11_800_000.0
-DEFAULT_WEEK_PROFILE = [1.0, 1.0, 1.0, 1.05, 1.1, 1.2, 1.15]
-DEFAULT_FOODCOST_GOALS = {"k": 30.0, "b": 24.0}
-DEFAULT_COMPLIMENTS_GOAL_PCT = 0.4
-DEFAULT_INVENTORY_GOAL_PCT = 0.15
+_DEFAULT_WEEK_PROFILE = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 _DEFAULT_FOODCOST_KEYS = ("k", "b")
 
 
@@ -117,11 +116,11 @@ def build_targets(
     foodcost_facts = _foodcost_facts(session, restaurant_id, y, m)
 
     if not _is_customized(row):
-        return _default_targets(y, m, reference, foodcost_facts)
+        return _empty_targets(y, m, reference, foodcost_facts)
 
-    week_profile = list(row.week_profile or DEFAULT_WEEK_PROFILE)
+    week_profile = list(row.week_profile or _DEFAULT_WEEK_PROFILE)
     if len(week_profile) != 7:
-        week_profile = DEFAULT_WEEK_PROFILE[:]
+        week_profile = _DEFAULT_WEEK_PROFILE[:]
 
     daily_overrides = {
         str(int(k)): float(v)
@@ -133,7 +132,7 @@ def build_targets(
         TargetsFoodcostUnit(
             key=key,  # type: ignore[arg-type]
             name=_UNIT_NAMES[key],
-            goalPct=float(foodcost_goals.get(key, DEFAULT_FOODCOST_GOALS.get(key, 0.0))),
+            goalPct=float(foodcost_goals.get(key, 0.0)),
             factPct=foodcost_facts.get(key, 0.0),
         )
         for key in _DEFAULT_FOODCOST_KEYS
@@ -152,7 +151,7 @@ def build_targets(
         if item.get("key") in _UNIT_NAMES
     ]
     if not writeoffs:
-        writeoffs = _default_writeoffs(float(row.revenue_month_plan or DEFAULT_REVENUE_MONTH_PLAN))
+        writeoffs = _empty_writeoffs()
 
     return TargetsData(
         period=TargetsPeriod(year=y, month=m, label=_period_label(y, m)),
@@ -173,7 +172,12 @@ def build_targets(
             goalPct=float(row.inventory_goal_pct or 0.0),
             note="факта нет — домен фазы 2",
         ),
+        locked=bool(getattr(row, "locked", False)),
     )
+
+
+class TargetsLockedError(Exception):
+    """Цели месяца заблокированы для изменения."""
 
 
 def save_targets(
@@ -182,6 +186,8 @@ def save_targets(
     payload: TargetsUpsertRequest,
 ) -> TargetsData:
     row = _load_row(session, restaurant_id, payload.year, payload.month)
+    if row is not None and bool(row.locked):
+        raise TargetsLockedError(TARGETS_LOCKED_DETAIL)
     if row is None:
         row = MonthlyTarget(
             restaurant_id=restaurant_id,
@@ -214,15 +220,94 @@ def save_targets(
     return build_targets(session, restaurant_id, year=payload.year, month=payload.month)
 
 
+def clear_targets(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int,
+    month: int,
+) -> TargetsData:
+    """Удаляет сохранённые цели месяца — снова пустой шаблон без засечек на дашборде."""
+    row = _load_row(session, restaurant_id, year, month)
+    if row is not None and bool(row.locked):
+        raise TargetsLockedError(TARGETS_LOCKED_DETAIL)
+    if row is not None:
+        session.delete(row)
+        session.commit()
+    return build_targets(session, restaurant_id, year=year, month=month)
+
+
+def lock_targets(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int,
+    month: int,
+) -> TargetsData:
+    """Блокирует редактирование сохранённых целей месяца."""
+    row = _load_row(session, restaurant_id, year, month)
+    if not _is_customized(row):
+        raise ValueError("Cannot lock empty targets")
+    assert row is not None
+    row.locked = True
+    session.commit()
+    session.refresh(row)
+    return build_targets(session, restaurant_id, year=year, month=month)
+
+
+def unlock_targets(
+    session: Session,
+    restaurant_id: UUID,
+    *,
+    year: int,
+    month: int,
+) -> TargetsData:
+    """Снимает блокировку целей месяца."""
+    row = _load_row(session, restaurant_id, year, month)
+    if row is None:
+        return build_targets(session, restaurant_id, year=year, month=month)
+    row.locked = False
+    session.commit()
+    session.refresh(row)
+    return build_targets(session, restaurant_id, year=year, month=month)
+
+
+def list_locked_targets(session: Session, restaurant_id: UUID) -> TargetsLockedList:
+    rows = session.scalars(
+        select(MonthlyTarget)
+        .where(
+            MonthlyTarget.restaurant_id == restaurant_id,
+            MonthlyTarget.locked.is_(True),
+        )
+        .order_by(MonthlyTarget.year.desc(), MonthlyTarget.month.desc())
+    ).all()
+    return TargetsLockedList(
+        items=[
+            TargetsLockedPeriod(
+                year=row.year,
+                month=row.month,
+                label=_period_label(row.year, row.month),
+            )
+            for row in rows
+        ]
+    )
+
 def load_revenue_plans(
     session: Session,
     restaurant_id: UUID,
     year: int,
     month: int,
-) -> TargetsRevenuePlans:
-    """Дневные/месячные планы для dashboard: кастом или шаблон месяца."""
+) -> TargetsRevenuePlans | None:
+    """Дневные/месячные планы для dashboard; None — цели месяца не настроены."""
     row = _load_row(session, restaurant_id, year, month)
-    month_plan, week_profile, overrides, updated_at_ts = _revenue_plan_inputs(row)
+    if not _is_customized(row):
+        return None
+
+    week_profile = list(row.week_profile or _DEFAULT_WEEK_PROFILE)
+    if len(week_profile) != 7:
+        week_profile = _DEFAULT_WEEK_PROFILE[:]
+    overrides = {int(k): float(v) for k, v in (row.daily_overrides or {}).items()}
+    month_plan = float(row.revenue_month_plan)
 
     plans = build_month_day_plans(
         year,
@@ -231,10 +316,12 @@ def load_revenue_plans(
         week_profile,
         overrides,
     )
+    updated = row.updated_at
+    ts = int(updated.timestamp()) if updated is not None else 0
     return TargetsRevenuePlans(
         month_plan=month_plan,
         day_plans={p.day: p.amount for p in plans},
-        updated_at_ts=updated_at_ts,
+        updated_at_ts=ts,
     )
 
 
@@ -247,38 +334,21 @@ def load_foodcost_goals(
     unit_revenues: dict[str, float] | None = None,
 ) -> TargetsFoodcostGoals:
     row = _load_row(session, restaurant_id, year, month)
-    if _is_customized(row):
-        unit_goal_pct = {
-            key: float(value)
-            for key, value in (row.foodcost_goals or {}).items()
-            if key in UNIT_KEYS
-        }
-        month_plan = float(row.revenue_month_plan or 0.0)
-        writeoffs = row.writeoffs or []
-        compliments_pct = float(row.compliments_goal_pct or 0.0)
-    else:
-        unit_goal_pct = dict(DEFAULT_FOODCOST_GOALS)
-        month_plan = DEFAULT_REVENUE_MONTH_PLAN
-        writeoffs = [
-            {
-                "key": unit.key,
-                "name": unit.name,
-                "mode": unit.mode,
-                "pct": unit.pct,
-                "rub": unit.rub,
-            }
-            for unit in _default_writeoffs(month_plan)
-        ]
-        compliments_pct = DEFAULT_COMPLIMENTS_GOAL_PCT
+    if not _is_customized(row):
+        return TargetsFoodcostGoals(None, {}, None, None)
 
-    if not unit_goal_pct:
-        unit_goal_pct = dict(DEFAULT_FOODCOST_GOALS)
+    unit_goal_pct = {
+        key: float(value)
+        for key, value in (row.foodcost_goals or {}).items()
+        if key in UNIT_KEYS
+    }
+    totals_goal = _weighted_goal_pct(unit_goal_pct, unit_revenues or {}) if unit_goal_pct else None
 
-    totals_goal = _weighted_goal_pct(unit_goal_pct, unit_revenues or {})
-    writeoffs_goal = _writeoffs_goal_rub(writeoffs, month_plan)
+    month_plan = float(row.revenue_month_plan or 0.0)
+    writeoffs_goal = _writeoffs_goal_rub(row.writeoffs or [], month_plan)
     compliments_goal = (
-        round(month_plan * compliments_pct / 100.0)
-        if month_plan > 0 and compliments_pct > 0
+        round(month_plan * float(row.compliments_goal_pct or 0.0) / 100.0)
+        if month_plan > 0 and (row.compliments_goal_pct or 0) > 0
         else None
     )
 
@@ -318,76 +388,41 @@ def _load_row(
 
 
 def _is_customized(row: MonthlyTarget | None) -> bool:
-    """Месяц считается заданным, если сохранён положительный план выручки."""
+    """Месяц настроен, только если сохранён положительный план выручки."""
     return row is not None and float(row.revenue_month_plan or 0.0) > 0
 
 
-def _revenue_plan_inputs(
-    row: MonthlyTarget | None,
-) -> tuple[float, list[float], dict[int, float], int]:
-    if not _is_customized(row):
-        return DEFAULT_REVENUE_MONTH_PLAN, DEFAULT_WEEK_PROFILE[:], {}, 0
-
-    week_profile = list(row.week_profile or DEFAULT_WEEK_PROFILE)
-    if len(week_profile) != 7:
-        week_profile = DEFAULT_WEEK_PROFILE[:]
-    overrides = {int(k): float(v) for k, v in (row.daily_overrides or {}).items()}
-    updated = row.updated_at
-    ts = int(updated.timestamp()) if updated is not None else 0
-    return float(row.revenue_month_plan), week_profile, overrides, ts
-
-
-def _default_targets(
+def _empty_targets(
     year: int,
     month: int,
     reference: TargetsReference,
     foodcost_facts: dict[str, float],
 ) -> TargetsData:
-    month_plan = DEFAULT_REVENUE_MONTH_PLAN
     return TargetsData(
         period=TargetsPeriod(year=year, month=month, label=_period_label(year, month)),
         reference=reference,
-        revenue=TargetsRevenue(monthPlan=month_plan, weekProfile=DEFAULT_WEEK_PROFILE[:]),
+        revenue=TargetsRevenue(monthPlan=0.0, weekProfile=_DEFAULT_WEEK_PROFILE[:]),
         dailyOverrides={},
         foodcost=[
             TargetsFoodcostUnit(
                 key=key,  # type: ignore[arg-type]
                 name=_UNIT_NAMES[key],
-                goalPct=DEFAULT_FOODCOST_GOALS[key],
+                goalPct=0.0,
                 factPct=foodcost_facts.get(key, 0.0),
             )
             for key in _DEFAULT_FOODCOST_KEYS
         ],
-        writeoffs=_default_writeoffs(month_plan),
-        compliments=TargetsCompliments(
-            goalPct=DEFAULT_COMPLIMENTS_GOAL_PCT,
-            factPct=0.0,
-            factRub=0.0,
-        ),
-        inventory=TargetsInventory(
-            goalPct=DEFAULT_INVENTORY_GOAL_PCT,
-            note="факта нет — домен фазы 2",
-        ),
+        writeoffs=_empty_writeoffs(),
+        compliments=TargetsCompliments(goalPct=0.0, factPct=0.0, factRub=0.0),
+        inventory=TargetsInventory(goalPct=0.0, note="факта нет — домен фазы 2"),
+        locked=False,
     )
 
 
-def _default_writeoffs(month_plan: float) -> list[TargetsWriteoffUnit]:
-    kitchen_pct, bar_pct = 1.2, 0.8
+def _empty_writeoffs() -> list[TargetsWriteoffUnit]:
     return [
-        TargetsWriteoffUnit(
-            key="k",
-            name="Кухня",
-            mode="pct",
-            pct=kitchen_pct,
-            rub=round(month_plan * kitchen_pct / 100.0),
-        ),
-        TargetsWriteoffUnit(
-            key="b",
-            name="Бар",
-            mode="pct",
-            pct=bar_pct,
-            rub=round(month_plan * bar_pct / 100.0),
-        ),
+        TargetsWriteoffUnit(key="k", name="Кухня", mode="pct", pct=0.0, rub=0.0),
+        TargetsWriteoffUnit(key="b", name="Бар", mode="pct", pct=0.0, rub=0.0),
     ]
 
 

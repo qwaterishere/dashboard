@@ -98,11 +98,28 @@ def _migrate_restaurant_sync_columns(engine: Engine) -> None:
         logger.info("Migrated restaurants table: added %s", name)
 
 
+def _migrate_monthly_targets_locked(engine: Engine) -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("monthly_targets"):
+        return
+    existing = {col["name"] for col in inspector.get_columns("monthly_targets")}
+    if "locked" in existing:
+        return
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "ALTER TABLE monthly_targets ADD COLUMN locked BOOLEAN NOT NULL DEFAULT FALSE"
+            )
+        )
+    logger.info("Migrated monthly_targets table: added locked")
+
+
 def upgrade_schema(engine: Engine) -> None:
     from src.db.session import Base
 
     Base.metadata.create_all(engine)
     _migrate_restaurant_sync_columns(engine)
+    _migrate_monthly_targets_locked(engine)
 
     inspector = inspect(engine)
     if not inspector.has_table("orders"):

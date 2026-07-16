@@ -77,8 +77,7 @@ def test_rule3_blocks_and_lfl(session, restaurant):
     assert page.totals.prevRevenue == 400
     assert page.totals.prevCost == 100
     assert page.totals.prevRevenueWithCost == 400
-    # шаблон целей: взвешенный FC% (k=30 / b=24) по выручке юнитов
-    assert page.totals.goal == pytest.approx(29.06, abs=0.01)
+    assert page.totals.goal is None
     assert page.dirty is None
 
     # юниты: всегда 4 ключа в порядке k/b/w/o, тоталы = их сумма
@@ -86,9 +85,9 @@ def test_rule3_blocks_and_lfl(session, restaurant):
     by_key = {u.key: u for u in page.units}
     assert by_key['k'].revenue == 1500 and by_key['k'].cost == 300
     assert by_key['k'].revenueWithCost == 1000    # ланч выпал из знаменателя
-    assert by_key['k'].goal == 30
+    assert by_key['k'].goal is None
     assert by_key['b'].revenue == 280 and by_key['b'].cost == 48
-    assert by_key['b'].goal == 24
+    assert by_key['b'].goal is None
     assert by_key['w'].revenue == 0
     assert page.totals.revenue == sum(u.revenue for u in page.units)
 

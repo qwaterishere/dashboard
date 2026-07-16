@@ -16,7 +16,7 @@ from src.services.targets import targets_version_token
 
 # Bump when response semantics change without data/sync change
 # (e.g. forecast horizon fix) — invalidates client If-None-Match.
-ETAG_SCHEMA_VERSION = "v7"
+ETAG_SCHEMA_VERSION = "v8"
 
 
 def _sync_version(restaurant: Restaurant | None) -> int:

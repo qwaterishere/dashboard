@@ -55,6 +55,18 @@ export interface TargetsData {
   writeoffs: TargetsWriteoffUnit[];
   compliments: TargetsCompliments;
   inventory: TargetsInventory;
+  /** Редактирование заблокировано — снятие только в Настройках. */
+  locked: boolean;
+}
+
+export interface TargetsLockedPeriod {
+  year: number;
+  month: number;
+  label: string;
+}
+
+export interface TargetsLockedList {
+  items: TargetsLockedPeriod[];
 }
 
 export interface TargetsUpsertRequest {

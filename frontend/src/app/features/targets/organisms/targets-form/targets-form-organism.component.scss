@@ -22,6 +22,67 @@
     flex: none;
   }
 
+  &__lock {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 99px;
+    border: 1px solid var(--line);
+    background: var(--card2);
+    color: var(--mut);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  &__lock:hover:not(:disabled) {
+    color: var(--txt);
+    border-color: var(--border-strong, var(--line));
+  }
+
+  &__lock:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &--locked &__lock {
+    color: var(--red);
+    border-color: rgba(255, 107, 107, 0.45);
+    background: rgba(255, 107, 107, 0.1);
+    cursor: default;
+  }
+
+  &__settings-link {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent, #6e6bff);
+    text-decoration: none;
+  }
+
+  &__settings-link:hover {
+    text-decoration: underline;
+  }
+
+  &__locked-note {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--mut);
+    line-height: 1.4;
+  }
+
+  &__locked-note a {
+    color: var(--accent, #6e6bff);
+    text-decoration: none;
+  }
+
+  &__locked-note a:hover {
+    text-decoration: underline;
+  }
+
   &__toolbar app-button {
     flex: none;
     width: auto;
@@ -33,7 +94,8 @@
     padding-inline: 22px;
   }
 
-  &__toolbar ::ng-deep button.btn--pill {
+  &__toolbar ::ng-deep button.btn--pill,
+  &__toolbar ::ng-deep button.btn--danger {
     min-width: 7.5rem;
   }
 

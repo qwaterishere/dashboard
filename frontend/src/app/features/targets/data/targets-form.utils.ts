@@ -62,6 +62,75 @@ export function complimentsAmountFromPlan(monthPlan: number, goalPct: number): n
   return Math.round((monthPlan * goalPct) / 100);
 }
 
+/** Месяц считается настроенным, если сохранён положительный план выручки. */
+export function isTargetsMonthConfigured(data: TargetsData): boolean {
+  return isFilledPositive(data.revenue.monthPlan);
+}
+
+/** Поле считается заполненным, если это конечное число > 0. */
+export function isFilledPositive(value: number | null | undefined): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+export interface TargetsFormValidation {
+  ok: boolean;
+  message: string | null;
+  missing: string[];
+}
+
+/**
+ * Все обязательные поля формы должны быть > 0.
+ * Дневные overrides необязательны.
+ */
+export function validateTargetsFormState(form: TargetsFormState): TargetsFormValidation {
+  const missing: string[] = [];
+
+  if (!isFilledPositive(form.revenueMonthPlan)) {
+    missing.push('план выручки на месяц');
+  }
+
+  if (form.weekProfile.length !== 7 || form.weekProfile.some((w) => !isFilledPositive(w))) {
+    missing.push('профиль недели (все 7 дней)');
+  }
+
+  const foodcostKeys = Object.keys(form.foodcostGoals);
+  if (
+    foodcostKeys.length === 0 ||
+    foodcostKeys.some((key) => !isFilledPositive(form.foodcostGoals[key]))
+  ) {
+    missing.push('цели фудкоста по юнитам');
+  }
+
+  if (form.writeoffs.length === 0) {
+    missing.push('списания');
+  } else {
+    for (const unit of form.writeoffs) {
+      const amount = unit.mode === 'pct' ? unit.pct : unit.rub;
+      if (!isFilledPositive(amount)) {
+        missing.push(`списания: ${unit.name}`);
+      }
+    }
+  }
+
+  if (!isFilledPositive(form.complimentsGoalPct)) {
+    missing.push('комплименты');
+  }
+
+  if (!isFilledPositive(form.inventoryGoalPct)) {
+    missing.push('инвентаризация');
+  }
+
+  if (missing.length === 0) {
+    return { ok: true, message: null, missing: [] };
+  }
+
+  return {
+    ok: false,
+    missing,
+    message: `Заполните все поля: ${missing.join(', ')}.`,
+  };
+}
+
 export function cloneTargetsFormState(state: TargetsFormState): TargetsFormState {
   return {
     revenueMonthPlan: state.revenueMonthPlan,

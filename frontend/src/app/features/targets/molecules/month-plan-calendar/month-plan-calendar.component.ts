@@ -53,6 +53,7 @@ const WEEKDAY_HEADERS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
             class="month-plan-calendar__day"
             [class.month-plan-calendar__day--override]="plan.isOverride"
             [class.month-plan-calendar__day--weekend]="isWeekend(plan.day)"
+            [disabled]="disabled()"
             role="gridcell"
             [attr.aria-label]="dayAriaLabel(plan)"
             (click)="startEdit(plan)"
@@ -88,6 +89,7 @@ export class MonthPlanCalendarComponent {
   readonly monthPlan = input.required<number>();
   readonly weekProfile = input.required<number[]>();
   readonly overrides = input<Record<number, number>>({});
+  readonly disabled = input(false);
 
   readonly overrideChange = output<{ day: number; amount: number | null }>();
 
@@ -122,6 +124,7 @@ export class MonthPlanCalendarComponent {
   }
 
   startEdit(plan: MonthDayPlan): void {
+    if (this.disabled()) return;
     this.editingDay.set(plan.day);
     this.editValue.set(String(plan.amount));
     queueMicrotask(() => document.getElementById(this.inputId(plan.day))?.focus());

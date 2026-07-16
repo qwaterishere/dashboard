@@ -66,12 +66,42 @@ export class TargetsDataStore {
     const saved = await firstValueFrom(this.repository.save(payload));
     this.rawData.set(saved);
     this.loadError.set(null);
-    // Планы/цели влияют на dashboard + foodcost — сбрасываем кэш и сразу refetch.
+    this.invalidateAnalyticsCaches();
+    return saved;
+  }
+
+  async clearMonth(year: number, month: number): Promise<TargetsData> {
+    const cleared = await firstValueFrom(this.repository.clear({ year, month }));
+    this.rawData.set(cleared);
+    this.loadError.set(null);
+    this.invalidateAnalyticsCaches();
+    return cleared;
+  }
+
+  async lockMonth(year: number, month: number): Promise<TargetsData> {
+    const locked = await firstValueFrom(this.repository.lock({ year, month }));
+    this.rawData.set(locked);
+    this.loadError.set(null);
+    return locked;
+  }
+
+  async unlockMonth(year: number, month: number): Promise<TargetsData> {
+    const unlocked = await firstValueFrom(this.repository.unlock({ year, month }));
+    if (
+      this.rawData()?.period.year === unlocked.period.year &&
+      this.rawData()?.period.month === unlocked.period.month
+    ) {
+      this.rawData.set(unlocked);
+    }
+    this.loadError.set(null);
+    return unlocked;
+  }
+
+  private invalidateAnalyticsCaches(): void {
     this.dashboardCache.clearAll();
     this.compareCache.clearAll();
     this.foodcostCache.clearAll();
     this.sync.forceReload(['dashboard', 'foodcost']);
-    return saved;
   }
 
   private resolveQuery(

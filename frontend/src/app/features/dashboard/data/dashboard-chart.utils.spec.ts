@@ -37,8 +37,8 @@ const basePayload = {
 describe('dashboard-chart.utils', () => {
   it('dashboardChartCacheKey encodes year and month modes with tenant scope', () => {
     const selection: ChartPeriodSelection = { year: 2026, month: 5 };
-    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v10:m:2026-5');
-    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v10:y:2026');
+    expect(dashboardChartCacheKey('user-1', selection, 'month')).toBe('user-1:v11:m:2026-5');
+    expect(dashboardChartCacheKey('user-1', selection, 'year')).toBe('user-1:v11:y:2026');
   });
 
   it('chartFetchNeeded is false when selection matches base period in month mode', () => {
@@ -184,7 +184,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       null,
-      'user-1:v10:m:2026-5',
+      'user-1:v11:m:2026-5',
     );
     expect(loading.revenueByDay).toEqual([]);
     expect(loading.kpis.revenue.value).toBe(0);
@@ -211,7 +211,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 5 },
       'month',
       maySlice,
-      'user-1:v10:m:2026-5',
+      'user-1:v11:m:2026-5',
     );
     expect(ready.revenueByDay[0].revenue).toBe(5);
     expect(ready.kpis.revenue.value).toBe(50);
@@ -287,7 +287,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2026, month: 1 },
       'year',
       null,
-      'user-1:v10:y:2026',
+      'user-1:v11:y:2026',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual(basePayload.revenueByMonth);
@@ -299,7 +299,7 @@ describe('dashboard-chart.utils', () => {
       { year: 2025, month: 1 },
       'year',
       null,
-      'user-1:v10:y:2025',
+      'user-1:v11:y:2025',
     );
     expect(result.revenueByDay).toEqual([]);
     expect(result.revenueByMonth).toEqual([]);
