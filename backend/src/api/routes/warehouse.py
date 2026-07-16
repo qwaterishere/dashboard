@@ -1,57 +1,19 @@
-"""Роутер страницы «Склад».
+"""Роутер страницы «Склад» (контракт v2, карточка №13).
 
-ЗАГЛУШКА (фаза 1, в разработке): возвращает фикстуру, пока не написан
-сервис build_warehouse. Нужна, чтобы контракт Warehouse отрисовался
-в Swagger и фронтендер видел форму ответа. Точки интеграции и deps —
-как у боевых роутеров (dashboard/foodcost).
-TODO(warehouse): заменить _FIXTURE на build_warehouse(db, restaurant.id, as_of).
+Живёт на /api/warehouse/snapshot: старый /api/warehouse продолжает
+отдавать legacy-стаб (STUB_PAGES) до миграции фронта — регистрация
+этого роутера его не задевает (handoff §2).
 """
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 
 from src.api.deps import CurrentRestaurant, CurrentUser, get_db
 from src.core.config import get_settings
 from src.schemas.warehouse import Warehouse
-
-_FIXTURE = Warehouse.model_validate({
-    "asOf": "2026-07-14",
-    "dataBounds": {
-        "earliest": "2025-07-13",
-        "latest": "2026-07-14",
-        "availableDates": ["2025-07-13", "2026-07-13", "2026-07-14"],
-    },
-    "totals": [
-        {"key": "k", "value": 138189269},
-        {"key": "b", "value": 183589685},
-        {"key": "w", "value": 0},
-    ],
-    "positions": [
-        {"productId": "d21e8560-d277-4dfc-b9e7-10fecf759e33",
-         "name": "Мясо Вырезка говяжья", "category": "Мясо",
-         "store": "k", "qty": 21.1, "unit": "кг", "value": 5486000},
-        {"productId": "3f691fa9-699f-49f6-9ab9-5c1db164ab9a",
-         "name": "Кокосовое молоко", "category": "Бакалея",
-         "store": "k", "qty": 12.0, "unit": "л", "value": 966000},
-        # минусовая строка: в totals не входит, но в positions есть
-        {"productId": "21fbb693-ad8c-0624-018d-5a87fdd50161",
-         "name": "Лимон", "category": "Фрукты",
-         "store": "b", "qty": -2.5, "unit": "кг", "value": -87500},
-    ],
-    "negativeStock": {"count": 1, "valueAbs": 87500},
-    "dynamics": [
-        {"date": "2026-07-13", "byStore": [
-            {"key": "k", "value": 137000000},
-            {"key": "b", "value": 182000000},
-            {"key": "w", "value": 0}]},
-        {"date": "2026-07-14", "byStore": [
-            {"key": "k", "value": 138189269},
-            {"key": "b", "value": 183589685},
-            {"key": "w", "value": 0}]},
-    ],
-})
+from src.services.warehouse import SnapshotNotFound, build_warehouse
 
 
 def create_warehouse_router(limiter: Limiter) -> APIRouter:
@@ -59,12 +21,24 @@ def create_warehouse_router(limiter: Limiter) -> APIRouter:
     settings = get_settings()
 
     @router.get(
-        "/api/warehouse",
+        "/api/warehouse/snapshot",
         response_model=Warehouse,
-        summary="Склад: слепок остатков на день + динамика (фаза 1, заглушка)",
+        summary="Склад: слепок остатков на день + динамика стоимости",
+        description=(
+            "Ежедневные слепки остатков из БД (конец закрытого дня), "
+            "не живой iiko. Производные — зона фронтенда: цена = value/qty, "
+            "доля склада = value/Σtotals, тренд — из dynamics.\n\n"
+            "Правило «минус не в тотал»: totals и dynamics считают только "
+            "положительные строки (qty > 0); positions содержит слепок "
+            "целиком, включая минусовые (qty < 0) — их сводка в negativeStock.\n\n"
+            "404: слепков нет вовсе (склад ещё не синковался) или ?date "
+            "вне dataBounds.availableDates — корректный day-picker гасит "
+            "такие даты сам."
+        ),
+        responses={404: {"description": "Нет слепка на запрошенную дату"}},
     )
     @limiter.limit(settings.rate_limit)
-    def get_warehouse(
+    def get_warehouse_snapshot(
         request: Request,
         _user: CurrentUser,
         restaurant: CurrentRestaurant,
@@ -74,8 +48,23 @@ def create_warehouse_router(limiter: Limiter) -> APIRouter:
             description="День слепка из dataBounds.availableDates; "
             "дефолт — latest",
         ),
+        dyn_from: date | None = Query(
+            default=None, alias="from",
+            description="Начало окна графика dynamics; "
+            "дефолт — 30 дней до asOf",
+        ),
+        dyn_to: date | None = Query(
+            default=None, alias="to",
+            description="Конец окна графика dynamics; дефолт — asOf",
+        ),
     ) -> Warehouse:
-        # TODO(warehouse): build_warehouse(db, restaurant.id, as_of)
-        return _FIXTURE
+        try:
+            return build_warehouse(db, restaurant.id, on_date=as_of,
+                                   dyn_from=dyn_from, dyn_to=dyn_to)
+        except SnapshotNotFound as exc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(exc),
+            ) from exc
 
     return router
