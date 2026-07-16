@@ -220,6 +220,19 @@ describe('dashboard.mapper', () => {
     expect(yearVm.details['rev-goal'].rows[2]?.[0]).toBe('Прогноз на конец года');
   });
 
+  it('switches revenue KPI labels to plan when day plans present', () => {
+    const withPlan: DashboardApi = {
+      ...sample,
+      revenueByDay: sample.revenueByDay.map((day, index) =>
+        index === 0 ? { ...day, plan: 100_000 } : day,
+      ),
+    };
+    const vm = buildDashboardViewModel(withPlan, { granularity: 'month' });
+    expect(vm.kpis.revenue.forecast.label).toBe('План на конец месяца');
+    expect(vm.details['rev-goal'].title).toBe('План — выручка');
+    expect(vm.details['rev-goal'].rows[2]?.[0]).toBe('План на конец месяца');
+  });
+
   it('marks planPct from forecastToday and risks when behind pace by >2%', () => {
     const vm = buildDashboardViewModel(sample, { granularity: 'month' });
     // 1200/5000 = 24%

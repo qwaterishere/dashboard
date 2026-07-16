@@ -17,6 +17,7 @@ from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
 from src.api.routes.internal import create_internal_router
 from src.api.routes.sales import create_sales_router
+from src.api.routes.targets import create_targets_router
 from src.api.routes.stubs import create_stub_router
 from src.core.config import get_settings
 from src.core.logging import configure_logging
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
             {"name": "Health", "description": "Liveness / load balancer probes"},
             {"name": "Авторизация", "description": "JWT, профиль, настройки iiko"},
             {"name": "Дашборд", "description": "Главная (v2, БД)"},
+            {"name": "Цели", "description": "Месячные планы и цели (БД)"},
             {"name": "Internal", "description": "Worker/cron (bearer token)"},
             {"name": "Продажи", "description": "Продажи (БД)"},
             {"name": "Заглушки", "description": "warehouse/foodcost из data/*.json"},
@@ -99,7 +101,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
-        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
         allow_credentials=True,
     )
@@ -109,6 +111,7 @@ def create_app() -> FastAPI:
     app.include_router(create_auth_router(limiter))
     app.include_router(create_sales_router(limiter))
     app.include_router(create_dashboard_router(limiter))
+    app.include_router(create_targets_router(limiter))
     # до стабов: /api/{page} — катч-олл, маршруты матчятся в порядке регистрации
     app.include_router(create_foodcost_router(limiter))
     app.include_router(create_stub_router(limiter))

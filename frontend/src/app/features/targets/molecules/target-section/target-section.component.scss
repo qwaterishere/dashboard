@@ -32,6 +32,13 @@
     display: grid;
     gap: 6px;
     min-width: 0;
+    flex: 1;
+  }
+
+  &__reset {
+    flex: none;
+    margin-left: auto;
+    margin-top: 1px;
   }
 
   &__body {

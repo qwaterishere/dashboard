@@ -55,8 +55,18 @@ function formatSignedMoney(delta: number): string {
   return `${sign}${formatMoney(Math.abs(delta))}`;
 }
 
-export function forecastLabelForGranularity(granularity: PeriodGranularity): string {
-  return granularity === 'year' ? 'Прогноз на конец года' : 'Прогноз на конец месяца';
+export function forecastLabelForGranularity(
+  granularity: PeriodGranularity,
+  fromPlan = false,
+): string {
+  if (fromPlan) {
+    if (granularity === 'year') return 'План на конец года';
+    if (granularity === 'week') return 'План на конец недели';
+    return 'План на конец месяца';
+  }
+  if (granularity === 'year') return 'Прогноз на конец года';
+  if (granularity === 'week') return 'Прогноз на конец недели';
+  return 'Прогноз на конец месяца';
 }
 
 /** Отставание факта от pace (forecastToday) больше 2% → risk на progress bar. */
@@ -66,8 +76,9 @@ function forecastBlock(
   metric: KpiMetric,
   formatValue: (n: number) => string,
   granularity: PeriodGranularity = 'month',
+  fromPlan = false,
 ) {
-  const label = forecastLabelForGranularity(granularity);
+  const label = forecastLabelForGranularity(granularity, fromPlan);
   const forecast = metric.forecast;
   const pace = metric.forecastToday;
   if (forecast === null) {
@@ -121,8 +132,9 @@ function buildGoalPopover(
   metric: KpiMetric,
   format: (n: number) => string,
   granularity: PeriodGranularity = 'month',
+  fromPlan = false,
 ): DetailPopover {
-  const fc = forecastBlock(metric, format, granularity);
+  const fc = forecastBlock(metric, format, granularity, fromPlan);
   const rows: DetailPopover['rows'] = [
     ['Сейчас', format(metric.value)],
   ];
@@ -133,9 +145,19 @@ function buildGoalPopover(
   return {
     title,
     rows,
-    footnote:
-      'Run-rate по средним рабочим дням недели. Красный трек — факт ниже ожидания к текущему дню более чем на 2%.',
+    footnote: fromPlan
+      ? 'Ожидание и план месяца — из раздела «Цели» (профиль недели и ручные дни). Красный трек — факт ниже ожидания к текущему дню более чем на 2%.'
+      : 'Run-rate по средним рабочим дням недели. Красный трек — факт ниже ожидания к текущему дню более чем на 2%.',
   };
+}
+
+function hasRevenuePlan(
+  data: Pick<DashboardApi, 'revenueByDay' | 'revenueByMonth'> | object,
+): boolean {
+  const days = 'revenueByDay' in data ? (data as DashboardApi).revenueByDay : null;
+  if (days?.some((day) => day.plan != null)) return true;
+  const months = 'revenueByMonth' in data ? (data as DashboardApi).revenueByMonth : null;
+  return Boolean(months?.some((month) => month.plan != null));
 }
 
 function buildFoodcostMini(units: UnitSums[]): DashboardData['foodcostMini'] {
@@ -258,7 +280,8 @@ export function buildDashboardChartCore(
 
 /** KPI-слой — зависит от compare overlay. */
 export function buildDashboardKpiLayer(
-  data: Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi' | 'period'>,
+  data: Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi' | 'period'> &
+    Partial<Pick<DashboardApi, 'revenueByDay' | 'revenueByMonth'>>,
   options: DashboardViewModelOptions = {},
 ): Pick<DashboardData, 'kpis' | 'details' | 'period'> {
   const { kpis, compare, period } = data;
@@ -267,6 +290,7 @@ export function buildDashboardKpiLayer(
   const isWeekMode = granularity === 'week' && weekKpi != null;
   const weekFooters = isWeekMode ? buildWeekKpiFooters(data as DashboardApi, weekKpi) : null;
   const showLfl = granularity !== 'year';
+  const revenueFromPlan = hasRevenuePlan(data);
 
   const revLfl = lfl(kpis.revenue.value, kpis.revenue.prevValue);
   const checkLfl = lfl(kpis.avgCheck.value, kpis.avgCheck.prevValue);
@@ -300,7 +324,13 @@ export function buildDashboardKpiLayer(
       (n) => Math.round(n).toLocaleString('ru-RU'),
       `Сравнение с предыдущим периодом: ${formatPeriodRange(compare)}.`,
     ),
-    'rev-goal': buildGoalPopover('Прогноз — выручка', kpis.revenue, formatMoney, granularity),
+    'rev-goal': buildGoalPopover(
+      revenueFromPlan ? 'План — выручка' : 'Прогноз — выручка',
+      kpis.revenue,
+      formatMoney,
+      granularity,
+      revenueFromPlan,
+    ),
     'check-goal': buildGoalPopover('Прогноз — средний чек', kpis.avgCheck, formatMoney, granularity),
     'guests-goal': buildGoalPopover(
       'Прогноз — чеки',
@@ -328,7 +358,12 @@ export function buildDashboardKpiLayer(
         guests: kpis.guests.value,
         weekFooter: weekFooters?.revenueWeekFooter,
         forecast: {
-          ...forecastBlock(kpis.revenue, (n) => `${(n / 1e6).toFixed(1).replace('.', ',')} млн`, granularity),
+          ...forecastBlock(
+            kpis.revenue,
+            (n) => `${(n / 1e6).toFixed(1).replace('.', ',')} млн`,
+            granularity,
+            revenueFromPlan,
+          ),
         },
       },
       avgCheck: {

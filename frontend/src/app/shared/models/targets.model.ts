@@ -49,10 +49,23 @@ export interface TargetsData {
   period: TargetsPeriod;
   reference: TargetsReference;
   revenue: TargetsRevenue;
+  /** Дневные override: ключ — день месяца ("1"…"31"). */
+  dailyOverrides: Record<string, number>;
   foodcost: TargetsFoodcostUnit[];
   writeoffs: TargetsWriteoffUnit[];
   compliments: TargetsCompliments;
   inventory: TargetsInventory;
+}
+
+export interface TargetsUpsertRequest {
+  year: number;
+  month: number;
+  revenue: TargetsRevenue;
+  dailyOverrides: Record<string, number>;
+  foodcost: TargetsFoodcostUnit[];
+  writeoffs: TargetsWriteoffUnit[];
+  complimentsGoalPct: number;
+  inventoryGoalPct: number;
 }
 
 export interface TargetsFormState {

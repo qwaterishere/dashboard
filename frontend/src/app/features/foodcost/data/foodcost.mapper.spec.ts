@@ -23,6 +23,7 @@ const sample: FoodcostApi = {
       prevRevenue: 400,
       prevCost: 100,
       prevRevenueWithCost: 400,
+      goal: 28,
     },
     {
       key: 'b',
@@ -32,6 +33,7 @@ const sample: FoodcostApi = {
       prevRevenue: 0,
       prevCost: 0,
       prevRevenueWithCost: 0,
+      goal: 22,
     },
     {
       key: 'w',
@@ -41,6 +43,7 @@ const sample: FoodcostApi = {
       prevRevenue: 0,
       prevCost: 0,
       prevRevenueWithCost: 0,
+      goal: null,
     },
     {
       key: 'o',
@@ -50,6 +53,7 @@ const sample: FoodcostApi = {
       prevRevenue: 0,
       prevCost: 0,
       prevRevenueWithCost: 0,
+      goal: null,
     },
   ],
   groups: [
@@ -85,6 +89,8 @@ const sample: FoodcostApi = {
     compliments: { cost: 150, priceValue: 520, qty: 1 },
     staff: { cost: 0, paidSum: 0, qty: 0 },
     writeoffs: null,
+    writeoffsGoal: 12000,
+    complimentsGoal: 4000,
   },
 };
 
@@ -120,5 +126,14 @@ describe('foodcost.mapper', () => {
     expect(mini.items).toHaveLength(3);
     expect(mini.items[0].pct).toBeCloseTo(30, 0);
     expect(mini.items[1].pct).toBeCloseTo(17.1, 0);
+    expect(mini.items[0].goal).toBe(28);
+    expect(mini.items[1].goal).toBe(22);
+  });
+
+  it('uses targets goals for units and losses', () => {
+    const vm = buildFoodcostViewModel(sample);
+    expect(vm.units[0].goal).toBe(28);
+    expect(vm.losses.rows[0].goal).toBe(12000);
+    expect(vm.losses.rows[2].goal).toBe(4000);
   });
 });

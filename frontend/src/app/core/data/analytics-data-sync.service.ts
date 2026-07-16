@@ -72,6 +72,19 @@ export class AnalyticsDataSyncService {
     return now - last >= this.config.staleAfterMs;
   }
 
+  /**
+   * Принудительно перезагружает зарегистрированные ресурсы (после мутаций вроде Целей).
+   * Игнорирует TTL: кэш должен быть очищен/протухшим до вызова.
+   */
+  forceReload(pages: readonly PageName[]): void {
+    for (const page of pages) {
+      const entry = this.registered.get(page);
+      if (!entry) continue;
+      this.lastFetchedAt.delete(page);
+      entry.resource.reload();
+    }
+  }
+
   private onNavigation(): void {
     const segment = readPrimaryNavSegment(this.router.url);
     if (!isAnalyticsRoute(segment)) {

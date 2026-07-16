@@ -13,6 +13,7 @@
     "monthPlan": 11800000,
     "weekProfile": [1.0, 1.0, 1.0, 1.05, 1.1, 1.2, 1.15]
   },
+  "dailyOverrides": {},
   "foodcost": [
     {
       "key": "k",

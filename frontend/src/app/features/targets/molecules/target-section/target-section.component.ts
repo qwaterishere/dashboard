@@ -1,12 +1,13 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
+import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
 
 @Component({
   selector: 'app-target-section',
   standalone: true,
-  imports: [HeadingComponent, TextComponent],
+  imports: [ButtonComponent, HeadingComponent, TextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'region',
@@ -22,6 +23,15 @@ import { TextComponent } from '../../../../ui/atoms/text/text.component';
             <app-text tone="muted">{{ description() }}</app-text>
           }
         </div>
+        @if (canReset()) {
+          <app-button
+            class="target-section__reset"
+            variant="pill"
+            (pressed)="resetRequested.emit()"
+          >
+            Сбросить
+          </app-button>
+        }
       </header>
       <div class="target-section__body">
         <ng-content />
@@ -34,4 +44,7 @@ export class TargetSectionComponent {
   readonly badge = input.required<string>();
   readonly title = input.required<string>();
   readonly description = input<string | undefined>(undefined);
+  readonly canReset = input(false);
+
+  readonly resetRequested = output<void>();
 }

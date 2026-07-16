@@ -17,11 +17,13 @@ export interface CostTotals extends BaseCost {
 
 export interface UnitCost extends BaseCost {
   key: 'k' | 'b' | 'w' | 'o';
+  goal?: number | null;
 }
 
 export interface GroupCost extends BaseCost {
   unit: 'k' | 'b' | 'w' | 'o';
   group: string;
+  goal?: number | null;
 }
 
 export interface DiscountFacts {
@@ -48,6 +50,8 @@ export interface LossFacts {
   compliments: Compliments;
   staff: StaffMeals;
   writeoffs: null;
+  writeoffsGoal?: number | null;
+  complimentsGoal?: number | null;
 }
 
 export interface FoodcostApi {

@@ -53,11 +53,18 @@ function sumDays(days: RevenueDayFact[]): {
   revenue: number;
   checks: number;
   guests: number;
+  plan: number | null;
   forecast: number | null;
 } {
+  let planSum = 0;
+  let hasPlan = false;
   let forecastSum = 0;
   let hasForecast = false;
   for (const day of days) {
+    if (day.plan !== null && day.plan > 0) {
+      planSum += day.plan;
+      hasPlan = true;
+    }
     if (day.forecast !== null && day.forecast > 0) {
       forecastSum += day.forecast;
       hasForecast = true;
@@ -72,6 +79,7 @@ function sumDays(days: RevenueDayFact[]): {
       }),
       { revenue: 0, checks: 0, guests: 0 },
     ),
+    plan: hasPlan ? planSum : null,
     forecast: hasForecast ? forecastSum : null,
   };
 }
@@ -80,11 +88,18 @@ function sumMonths(months: RevenueMonthFact[]): {
   revenue: number;
   checks: number;
   guests: number;
+  plan: number | null;
   forecast: number | null;
 } {
+  let planSum = 0;
+  let hasPlan = false;
   let forecastSum = 0;
   let hasForecast = false;
   for (const month of months) {
+    if (month.plan !== null && month.plan > 0) {
+      planSum += month.plan;
+      hasPlan = true;
+    }
     if (month.forecast !== null && month.forecast > 0) {
       forecastSum += month.forecast;
       hasForecast = true;
@@ -99,6 +114,7 @@ function sumMonths(months: RevenueMonthFact[]): {
       }),
       { revenue: 0, checks: 0, guests: 0 },
     ),
+    plan: hasPlan ? planSum : null,
     forecast: hasForecast ? forecastSum : null,
   };
 }
@@ -210,7 +226,7 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
         totals.revenue,
         totals.checks,
         totals.guests,
-        null,
+        totals.plan,
         totals.forecast,
         label,
       ),
@@ -236,7 +252,7 @@ function buildWeekSeries(input: ChartSeriesInput): RevenueDay[] {
       totals.revenue,
       totals.checks,
       totals.guests,
-      null,
+      totals.plan,
       totals.forecast,
       week.label,
     );
@@ -281,7 +297,7 @@ function buildMonthSeries(input: ChartSeriesInput): RevenueDay[] {
       totals.revenue,
       totals.checks,
       totals.guests,
-      null,
+      totals.plan,
       totals.forecast,
       MONTHS_SHORT[input.period.month - 1] ?? String(input.period.month),
     ),
@@ -321,14 +337,14 @@ function buildQuarterSeries(input: ChartSeriesInput): RevenueDay[] {
   }
 
   return quarters.map((q, index) => {
-    const forecast = sumMonths(q.months).forecast;
+    const totals = sumMonths(q.months);
     return toRevenueDay(
       index + 1,
       q.revenue,
       q.checks,
       q.guests,
-      null,
-      forecast,
+      totals.plan,
+      totals.forecast,
       `Q${index + 1}`,
     );
   });
