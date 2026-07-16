@@ -3,6 +3,7 @@ import type { CategoryKey, FoodcostProduct } from '../../../shared/models';
 export type ProductChartGroup = CategoryKey | 'all';
 
 export interface ProductChartItem {
+  id: string | null;
   name: string;
   group: CategoryKey;
   price: number;
@@ -12,6 +13,7 @@ export interface ProductChartItem {
 }
 
 export interface ProductChartBar {
+  id: string | null;
   name: string;
   price: number;
   cost: number;
@@ -22,16 +24,21 @@ export interface ProductChartBar {
   tone: 'good' | 'bad';
 }
 
-/** Метрики продукта для чарта выгодности (legacy foodcost.js PRODUCTS). */
+/** Метрики продукта для чарта выгодности.
+ * price/cost уже за порцию; fc% = cost/price (= period cost/revenue).
+ */
 export function computeProductChartItems(products: FoodcostProduct[]): ProductChartItem[] {
-  return products.map((p) => ({
-    name: p.name,
-    group: p.group,
-    price: p.price,
-    cost: p.cost,
-    fc: p.cost / p.price * 100,
-    margin: p.price - p.cost,
-  }));
+  return products
+    .filter((p) => p.price > 0)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      group: p.group,
+      price: p.price,
+      cost: p.cost,
+      fc: (p.cost / p.price) * 100,
+      margin: p.price - p.cost,
+    }));
 }
 
 export function buildProductChartBars(
@@ -46,8 +53,9 @@ export function buildProductChartBars(
 
   const toBar = (p: ProductChartItem, tone: 'good' | 'bad'): ProductChartBar => {
     const columnHeight = Math.max((p.price / maxPrice) * 250, 4);
-    const costHeight = (p.cost / p.price) * columnHeight;
+    const costHeight = p.price > 0 ? (p.cost / p.price) * columnHeight : 0;
     return {
+      id: p.id,
       name: p.name,
       price: p.price,
       cost: p.cost,

@@ -78,6 +78,24 @@ const sample: FoodcostApi = {
       prevRevenueWithCost: 0,
     },
   ],
+  products: [
+    {
+      id: '11111111-1111-1111-1111-111111111111',
+      name: 'Стейк',
+      unit: 'k',
+      qty: 10,
+      revenue: 1000,
+      cost: 300,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222222',
+      name: 'Лимонад',
+      unit: 'b',
+      qty: 20,
+      revenue: 280,
+      cost: 180,
+    },
+  ],
   discounts: {
     discountSum: 70,
     discountedRevenue: 280,
@@ -116,7 +134,11 @@ describe('foodcost.mapper', () => {
     expect(vm.categories.k[0].name).toBe('Горячее');
     expect(vm.losses.rows).toHaveLength(3);
     expect(vm.losses.rows[2].fact).toBe(150);
-    expect(vm.products).toEqual([]);
+    expect(vm.products).toHaveLength(2);
+    expect(vm.products[0].name).toBe('Стейк');
+    expect(vm.products[0].price).toBe(100);
+    expect(vm.products[0].cost).toBe(30);
+    expect(vm.products[1].group).toBe('b');
   });
 
   it('formats discount impact cells', () => {

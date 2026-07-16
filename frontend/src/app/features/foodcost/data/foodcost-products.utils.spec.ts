@@ -5,9 +5,9 @@ import {
 } from './foodcost-products.utils';
 
 const sample: FoodcostProduct[] = [
-  { name: 'A', group: 'k', price: 100, cost: 30 },
-  { name: 'B', group: 'k', price: 200, cost: 120 },
-  { name: 'C', group: 'b', price: 150, cost: 60 },
+  { id: 'a', name: 'A', group: 'k', price: 100, cost: 30 },
+  { id: 'b', name: 'B', group: 'k', price: 200, cost: 120 },
+  { id: 'c', name: 'C', group: 'b', price: 150, cost: 60 },
 ];
 
 describe('foodcost-products.utils', () => {

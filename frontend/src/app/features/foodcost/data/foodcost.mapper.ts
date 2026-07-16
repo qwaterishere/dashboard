@@ -6,6 +6,7 @@ import type {
   BaseCost,
   FoodcostApi,
   GroupCost,
+  ProductCost,
   UnitCost,
 } from '../../../shared/models/foodcost-api.model';
 import {
@@ -242,6 +243,18 @@ export function buildDashboardRevenueCategories(units: UnitCost[]): DashboardDat
   }));
 }
 
+function buildProducts(products: ProductCost[]): FoodcostData['products'] {
+  return products
+    .filter((product) => product.qty > 0 && product.revenue > 0)
+    .map((product) => ({
+      id: product.id,
+      name: product.name,
+      group: product.unit as CategoryKey,
+      price: product.revenue / product.qty,
+      cost: product.cost / product.qty,
+    }));
+}
+
 /** Преобразует контракт API в view-model для organism-компонентов. */
 export function buildFoodcostViewModel(
   data: FoodcostApi,
@@ -267,7 +280,7 @@ export function buildFoodcostViewModel(
     losses: buildLosses(data.losses),
     discounts: buildDiscounts(data),
     categories: buildCategories(data.groups),
-    products: [],
+    products: buildProducts(data.products ?? []),
   };
 }
 

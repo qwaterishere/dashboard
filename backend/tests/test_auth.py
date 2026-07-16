@@ -3,7 +3,7 @@
 import pytest
 
 from src.core.config import get_settings
-from tests.conftest import DEV_ORIGIN, TEST_USER
+from tests.conftest import DEV_ORIGIN, register_payload
 
 
 def _auth_headers() -> dict[str, str]:
@@ -12,10 +12,7 @@ def _auth_headers() -> dict[str, str]:
 
 @pytest.mark.no_auth
 def test_register_login_and_me(client):
-    creds = {
-        **TEST_USER,
-        "email": "auth-flow@example.com",
-    }
+    creds = register_payload(email="auth-flow@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
     body = register.json()
@@ -45,7 +42,7 @@ def test_register_login_and_me(client):
 def test_login_rejects_invalid_password(client):
     client.post(
         "/api/auth/register",
-        json={**TEST_USER, "email": "bad-login@example.com"},
+        json=register_payload(email="bad-login@example.com"),
         headers=_auth_headers(),
     )
     response = client.post(
@@ -59,16 +56,20 @@ def test_login_rejects_invalid_password(client):
 
 @pytest.mark.no_auth
 def test_register_rejects_duplicate_email_without_enumeration(client):
-    creds = {**TEST_USER, "email": "dup@example.com"}
+    creds = register_payload(email="dup@example.com")
     assert client.post("/api/auth/register", json=creds, headers=_auth_headers()).status_code == 201
-    duplicate = client.post("/api/auth/register", json=creds, headers=_auth_headers())
+    duplicate = client.post(
+        "/api/auth/register",
+        json=register_payload(email="dup@example.com"),
+        headers=_auth_headers(),
+    )
     assert duplicate.status_code == 400
     assert duplicate.json()["detail"] == "Registration failed"
 
 
 @pytest.mark.no_auth
 def test_refresh_rotates_token(client):
-    creds = {**TEST_USER, "email": "refresh@example.com"}
+    creds = register_payload(email="refresh@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
     old_cookie = register.cookies.get("refresh_token")
@@ -90,7 +91,7 @@ def test_refresh_rotates_token(client):
 
 @pytest.mark.no_auth
 def test_refresh_ignores_json_body(client):
-    creds = {**TEST_USER, "email": "cookie-only@example.com"}
+    creds = register_payload(email="cookie-only@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
     cookie = register.cookies.get("refresh_token")
@@ -108,7 +109,7 @@ def test_refresh_ignores_json_body(client):
 
 @pytest.mark.no_auth
 def test_logout_revokes_refresh_and_access(client):
-    creds = {**TEST_USER, "email": "logout@example.com"}
+    creds = register_payload(email="logout@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     access_cookie = register.cookies.get("access_token")
     refresh_cookie = register.cookies.get("refresh_token")
@@ -137,7 +138,7 @@ def test_logout_revokes_refresh_and_access(client):
 
 @pytest.mark.no_auth
 def test_bearer_token_still_supported_for_api_clients(client):
-    creds = {**TEST_USER, "email": "bearer@example.com"}
+    creds = register_payload(email="bearer@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
 

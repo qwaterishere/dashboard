@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.conftest import DEV_ORIGIN, TEST_USER
+from tests.conftest import DEV_ORIGIN, register_payload
 
 
 def _headers() -> dict[str, str]:
@@ -11,7 +11,7 @@ def _headers() -> dict[str, str]:
 
 @pytest.mark.no_auth
 def test_update_profile(client):
-    creds = {**TEST_USER, "email": "profile@example.com"}
+    creds = register_payload(email="profile@example.com")
     client.post("/api/auth/register", json=creds, headers=_headers())
 
     response = client.patch(
@@ -36,7 +36,7 @@ def test_update_profile(client):
 
 @pytest.mark.no_auth
 def test_change_password_rotates_session(client):
-    creds = {**TEST_USER, "email": "pwd@example.com"}
+    creds = register_payload(email="pwd@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_headers())
     old_access = register.cookies.get("access_token")
     old_refresh = register.cookies.get("refresh_token")
@@ -70,7 +70,7 @@ def test_change_password_rotates_session(client):
 
 @pytest.mark.no_auth
 def test_change_password_rejects_wrong_current(client):
-    creds = {**TEST_USER, "email": "pwd-bad@example.com"}
+    creds = register_payload(email="pwd-bad@example.com")
     client.post("/api/auth/register", json=creds, headers=_headers())
 
     response = client.post(
@@ -87,7 +87,7 @@ def test_change_password_rejects_wrong_current(client):
 
 @pytest.mark.no_auth
 def test_change_password_rejects_same_password(client):
-    creds = {**TEST_USER, "email": "pwd-same@example.com"}
+    creds = register_payload(email="pwd-same@example.com")
     client.post("/api/auth/register", json=creds, headers=_headers())
 
     response = client.post(

@@ -23,6 +23,7 @@ export interface RegisterRequest extends LoginRequest {
   first_name: string;
   last_name: string;
   position: string;
+  invite_key: string;
 }
 
 export interface UpdateProfileRequest {

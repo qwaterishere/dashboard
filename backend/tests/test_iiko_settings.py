@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from tests.conftest import DEV_ORIGIN, TEST_USER
+from tests.conftest import DEV_ORIGIN, register_payload
 
 
 def _auth_headers() -> dict[str, str]:
@@ -13,7 +13,7 @@ def _auth_headers() -> dict[str, str]:
 
 @pytest.mark.no_auth
 def test_iiko_settings_initially_unconfigured(client):
-    creds = {**TEST_USER, "email": "iiko-settings@example.com"}
+    creds = register_payload(email="iiko-settings@example.com")
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
 
@@ -28,7 +28,7 @@ def test_iiko_settings_initially_unconfigured(client):
 
 @pytest.mark.no_auth
 def test_save_iiko_requires_password_on_first_setup(client, monkeypatch):
-    creds = {**TEST_USER, "email": "iiko-save@example.com"}
+    creds = register_payload(email="iiko-save@example.com")
     client.post("/api/auth/register", json=creds, headers=_auth_headers())
 
     class FakeClient:
@@ -85,7 +85,7 @@ def test_save_iiko_requires_password_on_first_setup(client, monkeypatch):
     ],
 )
 def test_save_iiko_rejects_unsafe_url(client, iiko_url: str):
-    creds = {**TEST_USER, "email": f"iiko-url-{uuid.uuid4()}@example.com"}
+    creds = register_payload(email=f"iiko-url-{uuid.uuid4()}@example.com")
     client.post("/api/auth/register", json=creds, headers=_auth_headers())
 
     response = client.put(

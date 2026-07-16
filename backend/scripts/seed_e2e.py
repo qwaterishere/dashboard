@@ -14,6 +14,7 @@ from src.db.models.warehouse import StockBalance
 from src.db.session import Base, DataBaseManager
 from src.schemas.auth import RegisterRequest
 from src.services.auth import register_user
+from src.services.invites import create_invite
 from src.services.restaurant import get_or_create_restaurant
 from src.services.sales import ingest_records, parse_records
 
@@ -28,6 +29,8 @@ def _sale(day: str, order: int, paid: float) -> dict:
         'DishCategory': 'Прочее',
         'DishGroup': 'Прочее',
         'DishGroup.TopParent': 'Кухня',
+        'DishId': str(uuid.uuid4()),
+        'DishGroup.Id': str(uuid.uuid4()),
         'DishName': 'E2E dish',
         'DishSumInt': paid,
         'DishDiscountSumInt': paid,
@@ -53,6 +56,7 @@ def main() -> None:
     try:
         user = session.scalar(select(User).where(User.email == E2E_EMAIL))
         if user is None:
+            raw_invite, _ = create_invite(session, note='e2e seed')
             register_user(
                 session,
                 RegisterRequest(
@@ -61,6 +65,7 @@ def main() -> None:
                     first_name='E2E',
                     last_name='Тест',
                     position='Управляющий',
+                    invite_key=raw_invite,
                 ),
             )
             session.commit()

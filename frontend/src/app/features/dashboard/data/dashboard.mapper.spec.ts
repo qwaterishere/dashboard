@@ -79,6 +79,7 @@ const foodcostSample: FoodcostApi = {
     },
   ],
   groups: [],
+  products: [],
   discounts: {
     discountSum: 0,
     discountedRevenue: 0,

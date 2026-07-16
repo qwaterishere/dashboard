@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from src.db.session import db_manager
 from src.main import app
+from src.services.invites import create_invite
 
 TEST_USER = {
     "email": "test@example.com",
@@ -24,6 +25,25 @@ TEST_USER = {
 }
 
 DEV_ORIGIN = "http://localhost:4200"
+
+
+def issue_invite_key(*, ttl_days: int = 14, note: str | None = None) -> str:
+    """Одноразовый ключ для тестов регистрации."""
+    session = db_manager.get_session()
+    try:
+        raw, _invite = create_invite(session, ttl_days=ttl_days, note=note)
+        session.commit()
+        return raw
+    finally:
+        session.close()
+
+
+def register_payload(**overrides) -> dict:
+    """Тело POST /api/auth/register с свежим invite_key."""
+    data = {**TEST_USER, **overrides}
+    if "invite_key" not in overrides:
+        data["invite_key"] = issue_invite_key()
+    return data
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +59,7 @@ def auth_cookies(client):
     """HttpOnly session cookies для защищённых эндпоинтов в тестах."""
     response = client.post(
         "/api/auth/register",
-        json=TEST_USER,
+        json=register_payload(),
         headers={"Origin": DEV_ORIGIN},
     )
     if response.status_code == 400:

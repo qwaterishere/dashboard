@@ -26,6 +26,15 @@ export interface GroupCost extends BaseCost {
   goal?: number | null;
 }
 
+export interface ProductCost {
+  id: string | null;
+  name: string;
+  unit: 'k' | 'b' | 'w' | 'o';
+  qty: number;
+  revenue: number;
+  cost: number;
+}
+
 export interface DiscountFacts {
   discountSum: number;
   discountedRevenue: number;
@@ -61,6 +70,7 @@ export interface FoodcostApi {
   dirty: null;
   units: UnitCost[];
   groups: GroupCost[];
+  products: ProductCost[];
   discounts: DiscountFacts;
   losses: LossFacts;
 }

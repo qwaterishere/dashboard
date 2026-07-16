@@ -31,7 +31,13 @@ export class RegisterPageComponent {
   onSubmit(value: RegisterFormValue): void {
     this.error.set(null);
 
-    if (!value.firstName || !value.lastName || !value.position || !value.email) {
+    if (
+      !value.inviteKey ||
+      !value.firstName ||
+      !value.lastName ||
+      !value.position ||
+      !value.email
+    ) {
       this.error.set('Заполните все поля');
       return;
     }
@@ -48,6 +54,7 @@ export class RegisterPageComponent {
         first_name: value.firstName,
         last_name: value.lastName,
         position: value.position,
+        invite_key: value.inviteKey,
       })
       .subscribe({
         next: () => {

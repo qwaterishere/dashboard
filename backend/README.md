@@ -56,11 +56,16 @@ uvicorn src.main:app --reload --port 8000
 
 ```bash
 cd backend
+# одноразовый ключ регистрации (plaintext печатается один раз)
+PYTHONPATH=. python -m src.cli.create_invite
+PYTHONPATH=. python -m src.cli.create_invite --ttl-days 7 --note "Ташкент"
+
 python -m src.cli.sales_loader --restaurant-id <uuid>
 python -m src.cli.sales_loader --restaurant-id <uuid> --from 2026-01-01 --to 2026-01-31
 ```
 
 `restaurant_id` возвращается в `GET /api/auth/me/iiko` после регистрации.
+Регистрация требует `invite_key` из `create_invite`.
 iiko credentials задаются пользователем в настройках (`PUT /api/auth/me/iiko`).
 Загрузка продаж из UI: `POST /api/auth/me/iiko/sync` (фоновая задача, статус в `GET /api/auth/me/iiko`).
 Переменные `IIKO_*` в `.env` — опциональный fallback для аудита/onboarding-тестов.

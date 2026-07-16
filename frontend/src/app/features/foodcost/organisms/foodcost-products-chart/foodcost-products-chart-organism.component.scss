@@ -13,7 +13,7 @@
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: 14px;
 }
 
 .losses-sub {
@@ -30,53 +30,63 @@
   align-items: center;
 }
 
-.pc-side-label {
-  display: flex;
-  gap: 18px;
-  font-size: 0.74rem;
-  margin: 6px 0 14px;
-}
-
-.pcs.ok {
-  color: var(--grn);
-}
-
-.pcs.bad {
-  color: var(--red);
-}
-
 .pc-chart-wrap {
   position: relative;
 }
 
 .pc-chart {
-  white-space: nowrap;
-  height: 330px;
-  padding-top: 10px;
-  overflow-x: auto;
-  font-size: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  width: 100%;
+  height: 300px;
+  padding: 8px 0 4px;
+  overflow: hidden;
+}
+
+.pc-empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mut2);
 }
 
 .pc-bar {
-  display: inline-block;
-  vertical-align: bottom;
-  width: 42px;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   text-align: center;
   cursor: pointer;
-  white-space: normal;
+  transition: opacity 0.15s ease;
+}
+
+.pc-bar.is-dimmed {
+  opacity: 0.35;
+}
+
+.pc-bar.is-active .pc-col {
+  outline: 2px solid color-mix(in srgb, var(--txt) 35%, transparent);
+  outline-offset: 1px;
 }
 
 .pc-col {
-  display: inline-block;
-  width: 34px;
-  border-radius: 5px 5px 0 0;
+  width: 82%;
+  max-width: 36px;
+  border-radius: 4px 4px 0 0;
   position: relative;
   overflow: hidden;
-  vertical-align: bottom;
 }
 
-.pc-bar:hover .pc-col {
-  opacity: 0.82;
+.pc-bar:hover .pc-col,
+.pc-bar.is-active .pc-col {
+  opacity: 0.92;
 }
 
 .pc-cost {
@@ -105,9 +115,12 @@
 
 .pc-fc {
   display: block;
-  font-size: 0.66rem;
+  width: 100%;
+  font-size: 0.58rem;
   font-weight: 800;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pc-bar.good .pc-fc {
@@ -118,28 +131,97 @@
   color: var(--red);
 }
 
-.pc-name {
-  display: block;
-  font-size: 0.6rem;
-  color: var(--mut);
-  margin-top: 7px;
-  line-height: 1.2;
-  height: 30px;
-  overflow: hidden;
-}
-
 .pc-divider {
-  display: inline-block;
-  vertical-align: bottom;
+  flex: 0 0 1px;
   width: 1px;
   height: 250px;
+  margin: 0 2px;
   background: repeating-linear-gradient(180deg, var(--line) 0 6px, transparent 6px 12px);
-  margin: 0 9px;
+}
+
+.pc-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 28px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.pc-legend__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+
+  &.ok {
+    color: var(--grn);
+  }
+
+  &.bad {
+    color: var(--red);
+  }
+}
+
+.pc-legend__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pc-legend__row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: default;
+  transition: background 0.12s ease;
+}
+
+.pc-legend__row:hover,
+.pc-legend__row.is-active {
+  background: color-mix(in srgb, var(--txt) 6%, transparent);
+}
+
+.pc-legend__rank {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--mut2);
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-legend__name {
+  font-size: 0.8rem;
+  color: var(--txt);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-legend__fc {
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-legend__row.good .pc-legend__fc {
+  color: var(--grn);
+}
+
+.pc-legend__row.bad .pc-legend__fc {
+  color: var(--red);
 }
 
 .pc-tip {
   position: absolute;
-  pointer-events: none;
+  pointer-events: auto;
   background: #0a0e18;
   border: 1px solid #2b3554;
   border-radius: 10px;
@@ -149,6 +231,16 @@
   z-index: 5;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, -110%);
+
+  /* Мост к столбику: курсор не «проваливается» в пустоту между tip и bar. */
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 20px;
+  }
 
   b {
     font-weight: 800;
@@ -164,5 +256,11 @@
     b {
       color: var(--txt);
     }
+  }
+}
+
+@media (max-width: 720px) {
+  .pc-legend {
+    grid-template-columns: 1fr;
   }
 }

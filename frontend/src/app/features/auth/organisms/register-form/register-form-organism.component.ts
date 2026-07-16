@@ -10,6 +10,7 @@ import { FormBannerComponent } from '../../../../ui/molecules/form-banner/form-b
 import { FormFieldComponent } from '../../../../ui/molecules/form-field/form-field.component';
 
 export interface RegisterFormValue {
+  inviteKey: string;
   firstName: string;
   lastName: string;
   position: string;
@@ -31,13 +32,21 @@ export interface RegisterFormValue {
   ],
   template: `
     <app-heading [level]="2" text="Регистрация" />
-    <app-text tone="muted" class="lead">Имя, должность и рабочий email</app-text>
+    <app-text tone="muted" class="lead">Ключ доступа, имя, должность и рабочий email</app-text>
 
     @if (error()) {
       <app-form-banner variant="error" [message]="error()!" />
     }
 
     <form class="form" (ngSubmit)="onSubmit()">
+      <app-form-field
+        label="Ключ доступа"
+        inputId="register-invite-key"
+        name="invite_key"
+        autocomplete="off"
+        [required]="true"
+        [(value)]="inviteKey"
+      />
       <div class="row2">
         <app-form-field
           label="Имя"
@@ -140,6 +149,7 @@ export class RegisterFormOrganismComponent {
   readonly error = input<string | null>(null);
   readonly submitted = output<RegisterFormValue>();
 
+  protected inviteKey = '';
   protected firstName = '';
   protected lastName = '';
   protected position = '';
@@ -149,6 +159,7 @@ export class RegisterFormOrganismComponent {
 
   onSubmit(): void {
     this.submitted.emit({
+      inviteKey: this.inviteKey.trim(),
       firstName: this.firstName.trim(),
       lastName: this.lastName.trim(),
       position: this.position.trim(),

@@ -171,9 +171,10 @@
 
 ## 1б. Фудкост: блок products для диаграммы «Выгодность позиций» (16.07.2026)
 
-`GET /api/foodcost` теперь отдаёт `products` — аддитивное поле,
-остальной контракт не тронут. Маппер может заменить `products: []`
-на данные (`foodcost.mapper.ts:236` + spec-ожидание пустого списка).
+`GET /api/foodcost` отдаёт `products`. Фронт мапит в view-model
+(`buildProducts` в `foodcost.mapper.ts`): цена/себестоимость порции =
+revenue/qty и cost/qty; диаграмма «Выгодность позиций» рендерит топ-10/
+худшие-10 по fc%.
 
 ```json
 "products": [

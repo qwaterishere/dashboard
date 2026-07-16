@@ -22,6 +22,7 @@ from src.core.security import (
 )
 from src.db.models.user import RefreshToken, User
 from src.schemas.auth import RegisterRequest, TokenResponse, UserPublic, UpdateProfileRequest, ChangePasswordRequest
+from src.services.invites import INVALID_INVITE, consume_invite
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,13 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse,
     )
     db.add(user)
     db.flush()
+
+    try:
+        consume_invite(db, payload.invite_key, user_id=user.id)
+    except ValueError:
+        db.rollback()
+        raise AuthError(status.HTTP_400_BAD_REQUEST, INVALID_INVITE) from None
+
     tokens, raw_refresh, access_token = _issue_token_pair(db, user)
     return tokens, raw_refresh, access_token, user_to_public(user)
 

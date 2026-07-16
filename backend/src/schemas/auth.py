@@ -19,13 +19,14 @@ class RegisterRequest(StrictModel):
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
     position: str = Field(min_length=1, max_length=100)
+    invite_key: str = Field(min_length=8, max_length=128)
 
     @field_validator("email", mode="before")
     @classmethod
     def strip_email(cls, value: str) -> str:
         return value.strip().lower()
 
-    @field_validator("first_name", "last_name", "position", mode="before")
+    @field_validator("first_name", "last_name", "position", "invite_key", mode="before")
     @classmethod
     def strip_text(cls, value: str) -> str:
         return value.strip()

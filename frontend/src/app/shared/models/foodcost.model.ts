@@ -30,9 +30,12 @@ export interface FoodcostCategoryRow {
 }
 
 export interface FoodcostProduct {
+  id: string | null;
   name: string;
   group: CategoryKey;
+  /** Цена порции = revenue / qty. */
   price: number;
+  /** Себестоимость порции = cost / qty. */
   cost: number;
 }
 

@@ -58,6 +58,7 @@ describe('AuthService', () => {
         first_name: 'Новый',
         last_name: 'Пользователь',
         position: 'Управляющий',
+        invite_key: 'test-invite-key-value',
       })
       .subscribe((user) => {
         expect(user.email).toBe('new@example.com');

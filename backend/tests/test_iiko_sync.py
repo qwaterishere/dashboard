@@ -6,7 +6,7 @@ import pytest
 
 from src.db.models.restaurant import Restaurant
 from src.services.iiko_sync import sync_plan_day_count, sync_progress_percent
-from tests.conftest import DEV_ORIGIN, TEST_USER
+from tests.conftest import DEV_ORIGIN, register_payload
 
 
 def _auth_headers() -> dict[str, str]:
@@ -15,7 +15,7 @@ def _auth_headers() -> dict[str, str]:
 
 @pytest.mark.no_auth
 def test_sync_requires_configured_iiko(client):
-    creds = {**TEST_USER, "email": "iiko-sync-unconfigured@example.com"}
+    creds = register_payload(email="iiko-sync-unconfigured@example.com")
     client.post("/api/auth/register", json=creds, headers=_auth_headers())
 
     response = client.post("/api/auth/me/iiko/sync", headers=_auth_headers())
@@ -25,7 +25,7 @@ def test_sync_requires_configured_iiko(client):
 
 @pytest.mark.no_auth
 def test_sync_starts_background_job(client, monkeypatch):
-    creds = {**TEST_USER, "email": "iiko-sync@example.com"}
+    creds = register_payload(email="iiko-sync@example.com")
     client.post("/api/auth/register", json=creds, headers=_auth_headers())
 
     class FakeClient:
