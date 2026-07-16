@@ -24,5 +24,7 @@ Thumbs.db
 .env
 /raw_june.json
 
-# Песочница iiko-экспериментов — локальная, в репозиторий не идёт
-backend/scripts/
+# Песочница iiko-экспериментов — локальная, в репозиторий не идёт.
+# seed_e2e.py нужен Playwright CI — оставляем в треке.
+backend/scripts/*
+!backend/scripts/seed_e2e.py
