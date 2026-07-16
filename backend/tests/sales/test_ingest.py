@@ -1,6 +1,8 @@
 """Тесты загрузки продаж: валидация схемой, find-or-create заказа,
 схлопывание сплит-оплат."""
 
+import uuid
+
 import pytest
 from pydantic import ValidationError
 
@@ -21,6 +23,8 @@ RAW = {
     'DishAmountInt': 1,
     'GuestNum': 2,
     'ItemSaleEvent.Id': '918f62e8-71dc-4a3b-86c0-3bc3699b985a',
+    'DishId': 'aaaaaaaa-0000-5000-8000-000000000001',
+    'DishGroup.Id': 'bbbbbbbb-0000-5000-8000-000000000001',
     'OpenDate.Typed': '2026-06-22',
     'OrderNum': 15,
     'PayTypes.Group': 'CARD',
@@ -47,7 +51,15 @@ def restaurant(session):
 
 
 def make_raw(**overrides) -> dict:
-    return {**RAW, **overrides}
+    raw = {**RAW, **overrides}
+    # Идентичность зеркалит прод: другое имя блюда/папки -> другой id
+    # (детерминированно из имени), если id не задан явно. Тесты
+    # переименований задают DishId сами и меняют только имя.
+    if 'DishName' in overrides and 'DishId' not in overrides:
+        raw['DishId'] = str(uuid.uuid5(uuid.NAMESPACE_URL, f'dish:{raw["DishName"]}'))
+    if 'DishGroup' in overrides and 'DishGroup.Id' not in overrides:
+        raw['DishGroup.Id'] = str(uuid.uuid5(uuid.NAMESPACE_URL, f'group:{raw["DishGroup"]}'))
+    return raw
 
 
 def test_parse_converts_types():
