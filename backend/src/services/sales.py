@@ -134,6 +134,9 @@ def ingest_records(
             dish_category=rec.dish_category,
             dish_group=rec.dish_group,
             top_group=rec.top_group,
+            dish_id=rec.dish_id,
+            group_id=rec.group_id,
+            category_id=rec.category_id,
         )
         # ORM-способ: присваиваем объект, а не order_id.
         # SQLAlchemy сам проставит внешний ключ при flush/commit.

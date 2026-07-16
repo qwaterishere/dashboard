@@ -38,6 +38,18 @@ class SaleRecord(BaseModel):
     # (встречается в истории 2024 г.) — тоже 'вне подразделений'.
     top_group: str | None = Field(alias="DishGroup.TopParent")
 
+    # --- идентичность справочников (17.07.2026) ---
+    # Склейка переименований: имя — снапшот на момент продажи, id вечен.
+    # Читающая сторона группирует по id и берёт имя последней продажи.
+    dish_id: UUID = Field(alias="DishId")
+    group_id: UUID = Field(alias="DishGroup.Id")
+    # None — у блюда нет категории (справочник полузаброшен, заполнен
+    # не у всех строк). Назначение категорий в продукте ПОКА НЕ
+    # ОПРЕДЕЛЕНО — id копим впрок: добавить колонку потом = ещё одна
+    # полная перезаливка, а гигиена онбординга (переименование
+    # категорий-опечаток типа ',fh') с id переживается бесшовно.
+    category_id: UUID | None = Field(default=None, alias="DishCategory.Id")
+
     # --- чек, к которому оно относится ---
     order_number: int = Field(alias="OrderNum")
     session_number: int = Field(alias="SessionNum")

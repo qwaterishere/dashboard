@@ -100,6 +100,7 @@ class IikoClient:
             "buildSummary": False,
             "groupByRowFields": ["ItemSaleEvent.Id", "DishName", "DishCategory", "DishGroup",
                                  "DishGroup.TopParent",
+                                 "DishId", "DishGroup.Id", "DishCategory.Id",
                                  "OrderNum", "SessionNum", "OpenDate.Typed", "GuestNum",
                                  "PayTypes.Group", "PayTypes", "OrderType"],
             "aggregateFields": ["DishSumInt", "DiscountSum", "ProductCostBase.ProductCost",

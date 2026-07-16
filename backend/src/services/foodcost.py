@@ -77,16 +77,33 @@ def _unit_cost_sums(session: Session, restaurant_id: UUID,
 
 
 def _group_cost_sums(session: Session, restaurant_id: UUID,
-                     d_from: date, d_to: date) -> dict[tuple, dict]:
-    """Факты по группам (живой разрез): ключ (unit, имя группы)."""
-    sums: dict[tuple, dict] = {}
-    rows = _cost_rows(session, restaurant_id, d_from, d_to,
-                      DishSale.top_group, DishSale.dish_group)
-    for top_group, group, revenue, cost, rwc in rows:
-        entry = sums.setdefault((resolve_unit(top_group), group), _zero_sums())
+                     d_from: date, d_to: date) -> dict[str, dict]:
+    """Факты по группам (живой разрез). Ключ — group_id: склейка
+    переименований папки (имя и юнит — из последней продажи периода);
+    prev-период матчится тем же ключом — LfL группы переживает
+    переименование. Строки без group_id (история до пересоздания
+    базы) живут по имени."""
+    rows = session.query(
+        DishSale.group_id, DishSale.top_group, DishSale.dish_group,
+        *_sum_columns(), func.max(Order.day),
+    ).join(Order).filter(
+        Order.restaurant_id == restaurant_id,
+        Order.day.between(d_from, d_to),
+    ).group_by(DishSale.group_id, DishSale.top_group,
+               DishSale.dish_group).all()
+
+    sums: dict[str, dict] = {}
+    for group_id, top_group, group, revenue, cost, rwc, last_day in rows:
+        entry = sums.setdefault(group_id.hex if group_id else f'name:{group}', {
+            **_zero_sums(), 'unit': resolve_unit(top_group),
+            'group': group, 'last_day': last_day,
+        })
         entry['revenue'] += float(revenue)
         entry['cost'] += float(cost)
         entry['revenueWithCost'] += float(rwc)
+        if last_day >= entry['last_day']:   # имя/юнит — из последней продажи
+            entry.update(group=group, unit=resolve_unit(top_group),
+                         last_day=last_day)
     return sums
 
 
@@ -130,6 +147,48 @@ def _compliment_sums(session: Session, restaurant_id: UUID,
     return {'cost': round(float(cost)),
             'priceValue': round(float(price_value)),
             'qty': round(float(qty), 2)}       # порций, дробное у весовых
+
+
+def _product_sums(session: Session, restaurant_id: UUID,
+                  d_from: date, d_to: date) -> list[dict]:
+    """Позиции диаграммы выгодности: ТОЛЬКО фудкост-строки (правило №3),
+    поэтому revenue позиции здесь = её revenueWithCost. Идентичность —
+    dish_id (склейка переименований: имя и юнит — из последней продажи
+    периода);"""
+    in_foodcost = (DishSale.paid_sum > 0) & (func.coalesce(DishSale.cost, 0) > 0)
+    rows = session.query(
+        DishSale.dish_id, DishSale.top_group, DishSale.name,
+        func.sum(DishSale.paid_sum),
+        func.sum(DishSale.cost),
+        func.sum(DishSale.amount),
+        func.max(Order.day),
+    ).join(Order).filter(
+        Order.restaurant_id == restaurant_id,
+        Order.day.between(d_from, d_to),
+        in_foodcost,
+    ).group_by(DishSale.dish_id, DishSale.top_group, DishSale.name).all()
+
+    sums: dict[str, dict] = {}
+    for dish_id, top_group, name, revenue, cost, qty, last_day in rows:
+        entry = sums.setdefault(dish_id.hex if dish_id else f'name:{name}', {
+            'id': dish_id, 'name': name, 'unit': resolve_unit(top_group),
+            'revenue': 0.0, 'cost': 0.0, 'qty': 0.0, 'last_day': last_day,
+        })
+        entry['revenue'] += float(revenue)
+        entry['cost'] += float(cost)
+        entry['qty'] += float(qty)
+        if last_day >= entry['last_day']:   # имя/юнит — из последней продажи
+            entry.update(name=name, unit=resolve_unit(top_group),
+                         last_day=last_day)
+
+    return [
+        {'id': str(entry['id']) if entry['id'] else None,
+         'name': entry['name'], 'unit': entry['unit'],
+         'qty': round(entry['qty'], 2),
+         'revenue': round(entry['revenue']),
+         'cost': round(entry['cost'])}
+        for entry in sorted(sums.values(), key=lambda e: -e['revenue'])
+    ]
 
 
 def _staff_sums() -> dict:
@@ -197,13 +256,13 @@ def build_food_cost(session: Session, restaurant_id: UUID,
     )
 
     groups_payload = [
-        {'unit': unit, 'group': group,
+        {'unit': cur['unit'], 'group': cur['group'],
          **_facts(cur,
-                  (prev_groups.get((unit, group), _zero_sums())
+                  (prev_groups.get(key, _zero_sums())
                    if has_prev else None)),
-         'goal': goals.unit_goal_pct.get(unit)}
-        for (unit, group), cur in sorted(groups.items(),
-                                         key=lambda kv: -kv[1]['revenue'])
+         'goal': goals.unit_goal_pct.get(cur['unit'])}
+        for key, cur in sorted(groups.items(),
+                               key=lambda kv: -kv[1]['revenue'])
         if cur['revenue'] > 0
     ]
 
@@ -219,6 +278,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
                    'goal': goals.unit_goal_pct.get(key)}
                   for key in UNIT_KEYS],
         'groups': groups_payload,
+        'products': _product_sums(session, restaurant_id, d_from, d_to),
         'discounts': _discount_sums(session, restaurant_id, d_from, d_to),
         'losses': {
             'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),

@@ -62,6 +62,37 @@ class GroupCost(BaseCost):
     )
 
 
+class ProductCost(StrictModel):
+    """Позиция диаграммы «Выгодность позиций по фудкосту».
+
+    Только фудкост-строки (правило №3: paid > 0 и cost > 0) — позиция
+    без техкарты в рейтинге выгодности лгала бы (fc 0%). Производные —
+    зона фронтенда: цена порции = revenue / qty, себестоимость порции =
+    cost / qty, fc = cost / revenue; топ-N и порог шума — представление.
+    """
+
+    id: str | None = Field(
+        description="UUID блюда в iiko — стабильная идентичность позиции "
+        "(имя меняется, id — никогда; как productId на складе). "
+        "null — историческая строка без dish_id (база до пересоздания)"
+    )
+    name: str = Field(
+        description="Актуальное имя: из ПОСЛЕДНЕЙ продажи периода — "
+        "переименованное блюдо не двоится, отдаётся одной строкой "
+        "под новым именем (идентичность по id)"
+    )
+    unit: Literal['k', 'b', 'w', 'o'] = Field(
+        description="Юнит позиции; 'o' — вне подразделений (в фильтрах "
+        "юнитов на фронте не участвует, в режиме «Всё» — да)"
+    )
+    qty: float = Field(description="Порций за период; дробное у весовых")
+    revenue: float = Field(
+        description="Выручка фудкост-строк позиции (= её revenueWithCost: "
+        "множество строк одно)"
+    )
+    cost: float = Field(description="Себестоимость фудкост-строк позиции")
+
+
 class Discounts(StrictModel):
     """Скидки — легитимный инструмент (не потери): что они делают с фудкостом.
     Фронт считает: фудкост скидочных = discountedCost / discountedRevenueWithCost;
@@ -142,6 +173,11 @@ class Foodcost(StrictModel):
     groups: list[GroupCost] = Field(
         description="Группы с продажами в period, по убыванию выручки; "
         "группа без продаж в этом периоде не отдаётся"
+    )
+    products: list[ProductCost] = Field(
+        description="ВСЕ позиции с техкартами за period (без топ-N "
+        "и порога шума — рейтинг и фильтры строит фронт), "
+        "по убыванию выручки. Кормит диаграмму «Выгодность позиций»"
     )
     discounts: Discounts
     losses: Losses

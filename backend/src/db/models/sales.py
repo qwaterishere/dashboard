@@ -60,6 +60,14 @@ class DishSale(Base):
     dish_group = Column(String, nullable=False)
     top_group = Column(String, nullable=True) # папка 1-го уровня -> юнит; None = блюдо без группы
 
+    # Идентичность справочников iiko: склейка переименований (имя — снапшот
+    # на момент продажи, id вечен; читатель группирует по id и берёт имя
+    # последней продажи). У category_id назначения в продукте
+    # пока нет — копим впрок.
+    dish_id = Column(Uuid, nullable=True)
+    group_id = Column(Uuid, nullable=True)
+    category_id = Column(Uuid, nullable=True)
+
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
 
     order = relationship("Order", back_populates="dish_sales")
