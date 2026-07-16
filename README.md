@@ -27,7 +27,7 @@ npm install && npm start    # http://localhost:4200
 |----------|----------|
 | `/api/dashboard` | БД (v2) |
 | `/api/sales` | БД |
-| `/api/warehouse`, `/api/foodcost` | `backend/data/*.json` (до миграции) |
+| `/api/warehouse`, `/api/foodcost` | БД |
 | `/health` | liveness probe |
 
 Подробности бэкенда — [backend/README.md](backend/README.md).  

@@ -72,6 +72,40 @@ function buildOverviewClean(totals: FoodcostApi['totals']): FoodcostData['overvi
   };
 }
 
+/** Сумма потерь в себестоимости (комплименты + стафф; writeoffs — фаза 2). */
+function lossCostTotal(losses: FoodcostApi['losses']): number {
+  return losses.compliments.cost + losses.staff.cost;
+}
+
+/**
+ * Грязный фудкост: чистый cost + потери.
+ * Знаменатель тот же (revenueWithCost). LfL по prev* без истории потерь —
+ * приближение до фазы 2 API.
+ */
+function buildOverviewDirty(
+  totals: FoodcostApi['totals'],
+  losses: FoodcostApi['losses'],
+): FoodcostData['overview']['dirty'] {
+  const overSales = lossCostTotal(losses);
+  const dirtyCost = totals.cost + overSales;
+  const pct = fcPct(dirtyCost, totals.revenueWithCost);
+  const prevPct = prevFcPct(totals);
+  const writeoffsPending = losses.writeoffs === null;
+
+  return {
+    title: 'Фудкост с учётом потерь',
+    tag: 'потери',
+    subtitle: writeoffsPending
+      ? 'чистый + стафф + представительские · списания появятся позже'
+      : 'себестоимость продаж и потери / выручка с техкартами',
+    pct,
+    lfl: fcLfl(pct, prevPct),
+    goal: resolveGoal(totals.goal, prevPct),
+    cost: dirtyCost,
+    overSales,
+  };
+}
+
 function buildUnits(units: UnitCost[]): FoodcostData['units'] {
   const kbwUnits = units.filter((unit) => KBW.includes(unit.key as CategoryKey));
   const totalCost = kbwUnits.reduce((sum, unit) => sum + unit.cost, 0);
@@ -227,7 +261,7 @@ export function buildFoodcostViewModel(
         : periodInfo,
     overview: {
       clean: buildOverviewClean(data.totals),
-      dirty: null,
+      dirty: buildOverviewDirty(data.totals, data.losses),
     },
     units: buildUnits(data.units),
     losses: buildLosses(data.losses),

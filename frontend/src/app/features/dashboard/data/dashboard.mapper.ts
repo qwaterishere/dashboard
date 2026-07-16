@@ -191,7 +191,7 @@ function buildCategories(units: UnitSums[]): DashboardData['categories'] {
   }));
 }
 
-/** Собирает stock panel из stub GET /api/warehouse. */
+/** Собирает «Остаток на складе» из view-model GET /api/warehouse. */
 export function buildStockFromWarehouse(data: WarehouseData): NonNullable<DashboardData['stock']> {
   return {
     total: data.totals.value,

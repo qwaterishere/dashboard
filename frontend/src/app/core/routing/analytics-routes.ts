@@ -16,9 +16,19 @@ export function isCachedRoutePath(path: string | undefined): path is AnalyticsRo
   return !!path && isAnalyticsRoute(path);
 }
 
-/** Страницы API, которые нужно освежить при активном маршруте. */
+/** Страницы API, которые нужно освежить при активном маршруте.
+ *
+ * Правая панель (категории + остаток) общая для shell — всегда
+ * держим dashboard и warehouse в актуальном TTL вместе с текущей страницей.
+ */
 export function pagesToSyncForRoute(
   segment: AnalyticsRouteSegment,
 ): readonly AnalyticsRouteSegment[] {
-  return segment === 'dashboard' ? ['dashboard', 'warehouse'] : [segment];
+  if (segment === 'dashboard') {
+    return ['dashboard', 'warehouse'];
+  }
+  if (segment === 'warehouse') {
+    return ['warehouse', 'dashboard'];
+  }
+  return [segment, 'dashboard', 'warehouse'];
 }

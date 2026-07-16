@@ -1,14 +1,16 @@
-"""Minimal sales seed for Playwright e2e (fresh sqlite from e2e-backend.sh)."""
+"""Minimal sales + warehouse seed for Playwright e2e (fresh sqlite from e2e-backend.sh)."""
 
 from __future__ import annotations
 
 import os
 import uuid
-from datetime import date
+from datetime import date, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 
 from src.db.models.user import User
+from src.db.models.warehouse import StockBalance
 from src.db.session import Base, DataBaseManager
 from src.schemas.auth import RegisterRequest
 from src.services.auth import register_user
@@ -78,6 +80,40 @@ def main() -> None:
             ]),
             restaurant_id=restaurant.id,
         )
+
+        store_k = uuid.uuid4()
+        store_b = uuid.uuid4()
+        product_meat = uuid.uuid4()
+        product_wine = uuid.uuid4()
+        for offset in range(3):
+            day = today - timedelta(days=2 - offset)
+            session.add_all([
+                StockBalance(
+                    restaurant_id=restaurant.id,
+                    day=day,
+                    store_id=store_k,
+                    store_unit='k',
+                    product_id=product_meat,
+                    product_name='E2E говядина',
+                    category='Мясо',
+                    unit_name='кг',
+                    qty=Decimal('12.5'),
+                    value=Decimal('45000.00'),
+                ),
+                StockBalance(
+                    restaurant_id=restaurant.id,
+                    day=day,
+                    store_id=store_b,
+                    store_unit='b',
+                    product_id=product_wine,
+                    product_name='E2E вино',
+                    category='Красное',
+                    unit_name='бут',
+                    qty=Decimal('20'),
+                    value=Decimal('30000.00'),
+                ),
+            ])
+
         session.commit()
     finally:
         session.close()

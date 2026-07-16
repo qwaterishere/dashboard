@@ -19,7 +19,6 @@ from src.api.routes.internal import create_internal_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.targets import create_targets_router
 from src.api.routes.warehouse import create_warehouse_router
-from src.api.routes.stubs import create_stub_router
 from src.core.config import get_settings
 from src.core.logging import configure_logging
 from src.db.session import db_manager
@@ -85,7 +84,8 @@ def create_app() -> FastAPI:
             {"name": "Цели", "description": "Месячные планы и цели (БД)"},
             {"name": "Internal", "description": "Worker/cron (bearer token)"},
             {"name": "Продажи", "description": "Продажи (БД)"},
-            {"name": "Заглушки", "description": "warehouse/foodcost из data/*.json"},
+            {"name": "Склад", "description": "Остатки и динамика запасов (БД)"},
+            {"name": "Фудкост", "description": "Фудкост (БД)"},
         ],
         lifespan=lifespan,
     )
@@ -113,11 +113,9 @@ def create_app() -> FastAPI:
     app.include_router(create_sales_router(limiter))
     app.include_router(create_dashboard_router(limiter))
     app.include_router(create_targets_router(limiter))
-    # до стабов: /api/{page} — катч-олл, маршруты матчятся в порядке регистрации
     app.include_router(create_foodcost_router(limiter))
     # /api/warehouse/snapshot; legacy /api/warehouse остаётся в стабе до миграции фронта
     app.include_router(create_warehouse_router(limiter))
-    app.include_router(create_stub_router(limiter))
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(

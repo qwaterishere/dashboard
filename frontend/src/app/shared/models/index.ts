@@ -5,6 +5,7 @@ export * from './dashboard.model';
 export * from './dashboard-api.model';
 export * from './sales.model';
 export * from './warehouse.model';
+export * from './warehouse-api.model';
 export * from './foodcost.model';
 export * from './foodcost-api.model';
 export * from './data-freshness.model';
