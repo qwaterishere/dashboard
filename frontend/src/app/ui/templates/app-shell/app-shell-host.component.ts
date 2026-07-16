@@ -15,6 +15,17 @@ import { AppShellTemplateComponent } from './app-shell-template.component';
 
 const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcost', 'targets']);
 
+/** Правая панель (профиль + категории + остаток) — общий chrome всех страниц shell. */
+const RIGHT_PANEL_SEGMENTS = new Set([
+  'dashboard',
+  'sales',
+  'warehouse',
+  'foodcost',
+  'targets',
+  'settings',
+  'support',
+]);
+
 @Component({
   selector: 'app-shell-host',
   standalone: true,
@@ -80,7 +91,9 @@ export class AppShellHostComponent {
     return pageTitleForSegment(segment) !== null;
   });
 
-  protected readonly showRightPanel = computed(() => this.navActive.segment() === 'dashboard');
+  protected readonly showRightPanel = computed(() =>
+    RIGHT_PANEL_SEGMENTS.has(this.navActive.segment() ?? ''),
+  );
 
   protected readonly showPeriodBar = computed(() =>
     PERIOD_BAR_SEGMENTS.has(this.navActive.segment() ?? ''),

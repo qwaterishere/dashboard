@@ -7,6 +7,41 @@
   font-size: 0.9rem;
 }
 
+.as-of {
+  margin: 0 0 12px;
+  color: var(--mut2);
+  font-size: 0.85rem;
+}
+
+.neg-banner {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #c7466f 14%, transparent);
+  color: #e8a0b4;
+  font-size: 0.85rem;
+}
+
+.empty {
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.empty-title {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--txt);
+}
+
+.empty-note {
+  margin: 0;
+  color: var(--mut2);
+  font-size: 0.9rem;
+  max-width: 36rem;
+  margin-inline: auto;
+}
+
 .row2 {
   display: grid;
   grid-template-columns: 1fr 1.4fr;

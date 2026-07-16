@@ -94,7 +94,12 @@ const foodcostSample: FoodcostApi = {
 };
 
 const warehouseSample: WarehouseData = {
-  asOf: { label: '11 июня', note: '' },
+  asOf: { label: '11 июня', note: 'слепок на конец дня', iso: '2026-06-11' },
+  dataBounds: {
+    earliest: '2026-06-01',
+    latest: '2026-06-11',
+    availableDates: ['2026-06-11'],
+  },
   totals: {
     value: 799970,
     stores: 3,
@@ -105,6 +110,7 @@ const warehouseSample: WarehouseData = {
     ],
   },
   positions: [],
+  negativeStock: { count: 0, valueAbs: 0 },
   dynamics: {
     all: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
     k: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
@@ -251,7 +257,7 @@ describe('dashboard.mapper', () => {
     expect(ok.kpis.revenue.forecast.risk).toBe(false);
   });
 
-  it('builds stock panel from warehouse stub', () => {
+  it('builds stock panel from warehouse view-model', () => {
     const stock = buildStockFromWarehouse(warehouseSample);
     expect(stock.total).toBe(799970);
     expect(stock.items).toHaveLength(3);

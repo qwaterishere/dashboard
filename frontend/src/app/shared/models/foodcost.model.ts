@@ -40,8 +40,7 @@ export interface FoodcostData {
   period: PeriodInfo;
   overview: {
     clean: FoodcostOverviewCard;
-    /** null — фаза 2 (writeoffs / dirty foodcost). */
-    dirty: FoodcostOverviewCard | null;
+    dirty: FoodcostOverviewCard;
   };
   units: FoodcostUnit[];
   losses: {

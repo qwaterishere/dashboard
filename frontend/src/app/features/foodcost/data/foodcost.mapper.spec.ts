@@ -95,12 +95,17 @@ const sample: FoodcostApi = {
 };
 
 describe('foodcost.mapper', () => {
-  it('builds clean overview from cost / revenueWithCost', () => {
+  it('builds clean and dirty overview from totals + losses', () => {
     const vm = buildFoodcostViewModel(sample);
     expect(vm.overview.clean.pct).toBeCloseTo(27.19, 1);
     expect(vm.overview.clean.cost).toBe(348);
     expect(vm.overview.clean.revenue).toBe(1780);
-    expect(vm.overview.dirty).toBeNull();
+
+    // dirty = (348 + 150 compliments) / 1280
+    expect(vm.overview.dirty.title).toBe('Фудкост с учётом потерь');
+    expect(vm.overview.dirty.overSales).toBe(150);
+    expect(vm.overview.dirty.cost).toBe(498);
+    expect(vm.overview.dirty.pct).toBeCloseTo(38.91, 1);
   });
 
   it('maps units, categories and losses for phase 1', () => {

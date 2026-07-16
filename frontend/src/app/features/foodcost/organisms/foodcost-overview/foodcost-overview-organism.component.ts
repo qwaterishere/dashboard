@@ -8,11 +8,9 @@ import type { FoodcostData } from '../../../../shared/models';
   standalone: true,
   imports: [FoodcostOverviewCardOrganismComponent],
   template: `
-    <div class="fc-overview" [class.fc-overview--single]="!overview().dirty">
+    <div class="fc-overview">
       <app-foodcost-overview-card-organism tone="clean" [card]="overview().clean" />
-      @if (overview().dirty; as dirtyCard) {
-        <app-foodcost-overview-card-organism tone="dirty" [card]="dirtyCard" />
-      }
+      <app-foodcost-overview-card-organism tone="dirty" [card]="overview().dirty" />
     </div>
   `,
   styles: `
@@ -22,11 +20,6 @@ import type { FoodcostData } from '../../../../shared/models';
       gap: 16px;
       margin-bottom: 16px;
       align-items: stretch;
-    }
-
-    .fc-overview--single {
-      grid-template-columns: 1fr;
-      max-width: 480px;
     }
 
     .fc-overview > * {

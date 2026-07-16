@@ -22,7 +22,7 @@ import {
       </div>
 
       <div class="top-bars">
-        @for (row of rows(); track row.name; let i = $index) {
+        @for (row of rows(); track row.productId; let i = $index) {
           <div class="top-row">
             <span class="top-rank">{{ i + 1 }}</span>
             <span class="top-name">{{ row.name }}</span>

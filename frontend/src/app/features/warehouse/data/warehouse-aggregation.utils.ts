@@ -5,6 +5,7 @@ export type WarehouseStructureLevel = 'cat' | 'sub';
 export type TopPositionsMetric = 'money' | 'qty';
 
 export interface WarehouseStockRow {
+  productId: string;
   name: string;
   sub: string;
   store: CategoryKey;
@@ -31,16 +32,19 @@ export interface WarehouseSubBarGroup {
   rows: WarehouseSubBarRow[];
 }
 
-/** Сумма по позиции = кол-во × цена (как legacy warehouse.js STOCK). */
+/** Положительные остатки: sum = value из API (не qty × price). */
 export function computeWarehouseStock(positions: WarehousePosition[]): WarehouseStockRow[] {
-  return positions.map((p) => ({
-    name: p.name,
-    sub: p.sub,
-    store: p.store,
-    qty: p.qty,
-    unit: p.unit,
-    sum: p.qty * p.price,
-  }));
+  return positions
+    .filter((p) => p.qty > 0)
+    .map((p) => ({
+      productId: p.productId,
+      name: p.name,
+      sub: p.category,
+      store: p.store,
+      qty: p.qty,
+      unit: p.unit,
+      sum: p.value,
+    }));
 }
 
 export function buildWarehouseDonutSlices(stock: WarehouseStockRow[]): WarehouseDonutSlice[] {

@@ -1,12 +1,18 @@
 import type { CategoryKey } from './common.model';
+import type { WarehouseNegativeStock } from './warehouse-api.model';
+
+/** View-model страницы «Склад» (после маппера из WarehouseApi). */
 
 export interface WarehousePosition {
+  productId: string;
   name: string;
-  sub: string;
+  /** Категория номенклатуры (папка) — для баров «по подкатегориям». */
+  category: string;
   store: CategoryKey;
   qty: number;
   unit: string;
-  price: number;
+  /** Стоимость остатка (как в API), не qty × price. */
+  value: number;
 }
 
 export interface DynamicsSeries {
@@ -14,16 +20,21 @@ export interface DynamicsSeries {
   values: number[];
 }
 
+export interface WarehouseTotals {
+  value: number;
+  stores: number;
+  byStore: { key: CategoryKey; name: string; value: number }[];
+}
+
 export interface WarehouseData {
-  asOf: { label: string; note: string };
-  totals: {
-    value: number;
-    stores: number;
-    byStore: { key: CategoryKey; name: string; value: number }[];
+  asOf: { label: string; note: string; iso: string };
+  dataBounds: {
+    earliest: string | null;
+    latest: string | null;
+    availableDates: string[];
   };
+  totals: WarehouseTotals;
   positions: WarehousePosition[];
-  dynamics: Record<
-    CategoryKey | 'all',
-    Record<'week' | 'month', DynamicsSeries>
-  >;
+  negativeStock: WarehouseNegativeStock;
+  dynamics: Record<CategoryKey | 'all', Record<'week' | 'month', DynamicsSeries>>;
 }

@@ -189,7 +189,7 @@ def build_sales(
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> SalesPage:
-    """Страница «Продажи»: агрегат по позициям в структуре data/sales.json.
+    """Страница «Продажи»: агрегат по позициям (контракт SalesPage).
 
     Без параметров берётся весь период, что есть в БД.
     qty = сумма порций (дробное у весовых блюд), price/unitCost — средняя
