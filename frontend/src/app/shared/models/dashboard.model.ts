@@ -43,8 +43,9 @@ export interface RevenueDay {
   day: number;
   weekday: number;
   revenue: number;
+  /** План дня из «Целей» — засечка на графике с вертикалью до нуля. */
   plan: number | null;
-  /** Ожидаемая выручка на конец дня — засечка на графике. */
+  /** Статистический прогноз дня (KPI/popover); на графике засечкой не рисуется. */
   forecast: number | null;
   checks: number;
   guests: number;

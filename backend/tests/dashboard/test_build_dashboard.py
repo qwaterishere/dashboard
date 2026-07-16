@@ -61,19 +61,14 @@ def test_lfl_and_calendar(session, restaurant):
     assert len(page.revenueByDay) == 30
     assert [d.day for d in page.revenueByDay[:3]] == [1, 2, 3]
     assert page.revenueByDay[1].revenue == 0
-    assert page.revenueByDay[0].plan is not None  # шаблон целей на месяц
-    assert page.revenueByDay[0].plan > 0
+    assert page.revenueByDay[0].plan is None
     assert page.revenueByDay[0].forecast is None  # прогноз не готов (< 7 дней)
     assert len(page.revenueByMonth) == 2
     assert page.revenueByMonth[0].month == 5
     assert page.revenueByMonth[1].month == 6
     assert page.revenueByMonth[0].revenue == 400
     assert page.revenueByMonth[1].revenue == 1200
-    # шаблон целей: план месяца → KPI forecast / pace
-    from src.services.targets import DEFAULT_REVENUE_MONTH_PLAN
-    assert page.kpis.revenue.forecast == DEFAULT_REVENUE_MONTH_PLAN
-    assert page.kpis.revenue.forecastToday is not None
-    assert page.kpis.revenue.forecastToday > 0
+    assert page.kpis.revenue.forecast is None
 
 
 def test_free_order_not_in_checks_but_in_data(session, restaurant):
@@ -211,10 +206,8 @@ def test_year_forecast_equals_fact_when_year_complete(session, restaurant):
     page = build_dashboard(session, restaurant.id, year=2025)
     assert page.period.dayTo == 31
     assert page.kpis.revenue.value == 3500
-    from src.services.targets import DEFAULT_REVENUE_MONTH_PLAN
-    # год: сумма планов 12 месяцев; закрытый год — без pace
-    assert page.kpis.revenue.forecast == DEFAULT_REVENUE_MONTH_PLAN * 12
-    assert page.kpis.revenue.forecastToday is None
+    assert page.kpis.revenue.forecast == 3500
+    assert page.kpis.revenue.forecastToday is None  # период закрыт — без pace
 
 
 def test_forecast_today_pace_below_end_forecast(session, restaurant):
@@ -231,10 +224,9 @@ def test_forecast_today_pace_below_end_forecast(session, restaurant):
     session.commit()
 
     page = build_dashboard(session, restaurant.id)
-    from src.services.targets import DEFAULT_REVENUE_MONTH_PLAN
-    assert page.kpis.revenue.forecast == DEFAULT_REVENUE_MONTH_PLAN
+    assert page.kpis.revenue.forecast is not None
     assert page.kpis.revenue.forecastToday is not None
-    assert page.kpis.revenue.forecastToday > 0
+    assert page.kpis.revenue.forecastToday == 8000  # 8 × 1000 avg
     assert page.kpis.revenue.forecast > page.kpis.revenue.forecastToday
     assert page.kpis.avgCheck.forecastToday is not None
 

@@ -55,6 +55,19 @@ import { Component, input, output } from '@angular/core';
       color: #0a0e18;
       filter: brightness(1.05);
     }
+    button.btn--danger {
+      background: rgba(255, 107, 107, 0.12);
+      border: 1px solid rgba(255, 107, 107, 0.45);
+      color: var(--red);
+      font-size: 0.74rem;
+      border-radius: 99px;
+      padding: 6px 13px;
+    }
+    button.btn--danger:hover:not(:disabled) {
+      background: rgba(255, 107, 107, 0.22);
+      border-color: rgba(255, 107, 107, 0.7);
+      color: var(--red);
+    }
     button.btn--block {
       width: 100%;
       border-radius: 10px;
@@ -64,7 +77,7 @@ import { Component, input, output } from '@angular/core';
   `,
 })
 export class ButtonComponent {
-  readonly variant = input<'default' | 'segment-on' | 'pill' | 'primary'>('default');
+  readonly variant = input<'default' | 'segment-on' | 'pill' | 'primary' | 'danger'>('default');
   readonly type = input<'button' | 'submit'>('button');
   readonly disabled = input(false);
   readonly block = input(false);
@@ -76,6 +89,7 @@ export class ButtonComponent {
     if (v === 'segment-on') base.push('btn--segment-on');
     else if (v === 'pill') base.push('btn--pill');
     else if (v === 'primary') base.push('btn--primary');
+    else if (v === 'danger') base.push('btn--danger');
     if (this.block()) base.push('btn--block');
     return base.join(' ');
   }

@@ -5,8 +5,8 @@ import { ProgressFillComponent } from '../../../../ui/atoms/progress-fill/progre
 import { ProgressTrackComponent } from '../../../../ui/atoms/progress-track/progress-track.component';
 import { MarkLineComponent } from '../../../../ui/atoms/mark-line/mark-line.component';
 import { PctPipe, SignedPpPipe } from '../../../../shared/pipes/format.pipes';
-import { round1 } from '../../../../shared/utils/revenue-days-chart.utils';
 import type { DashboardData } from '../../../../shared/models';
+import { foodcostBarWidth } from './foodcost-bar-scale.utils';
 
 @Component({
   selector: 'app-foodcost-mini-organism',
@@ -53,7 +53,7 @@ export class FoodcostMiniOrganismComponent {
   readonly foodcost = input.required<DashboardData['foodcostMini']>();
 
   barWidth(pct: number): number {
-    return round1(pct * 2.5);
+    return foodcostBarWidth(pct);
   }
 
   goalLabel(goal: number): string {

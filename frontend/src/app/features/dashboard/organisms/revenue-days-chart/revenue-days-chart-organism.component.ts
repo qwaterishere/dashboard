@@ -69,6 +69,19 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
           }
 
           @for (bar of layout().bars; track bar.index) {
+            @if (bar.hasMark) {
+              <line
+                class="dbar-plan-stem"
+                [attr.x1]="bar.markX"
+                [attr.y1]="bar.markY"
+                [attr.x2]="bar.markX"
+                [attr.y2]="bar.baselineY"
+                stroke="var(--mark-plan)"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                pointer-events="none"
+              />
+            }
             <rect
               class="dbar dbar--interactive"
               [attr.data-i]="bar.index"
@@ -82,6 +95,7 @@ import { buildRevenueDaysChartLayout } from '../../../../shared/utils/revenue-da
             />
             @if (bar.hasMark) {
               <line
+                class="dbar-plan-mark"
                 [attr.x1]="bar.x - 3"
                 [attr.y1]="bar.markY"
                 [attr.x2]="bar.x + bar.w + 3"

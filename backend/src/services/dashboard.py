@@ -64,6 +64,8 @@ def _targets_day_and_month_plans(
 
     for year, month in months:
         plans = load_revenue_plans(session, restaurant_id, year, month)
+        if plans is None:
+            continue
         month_plans[month] = plans.month_plan or 0.0
         last_day = calendar.monthrange(year, month)[1]
         for day_num, amount in plans.day_plans.items():

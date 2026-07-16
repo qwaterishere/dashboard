@@ -9,7 +9,7 @@ import {
 } from './chart-period.utils';
 import { MONTHS_SHORT } from '../constants/month-labels.constants';
 import { buildWeekRevenueDays, formatIsoWeekRangeLabel } from './period-format.utils';
-import { barMarkValue } from './revenue-days-chart.utils';
+import { barPlanValue } from './revenue-days-chart.utils';
 
 export interface ChartSeriesInput {
   daily: RevenueDayFact[];
@@ -392,7 +392,7 @@ export function chartDisplayLegend(displayMode: ChartDisplayMode): string {
   }
 }
 
-/** Максимум шкалы графика с учётом факта и засечек прогноза. */
+/** Максимум шкалы графика с учётом факта и засечек плана (Цели). */
 export function chartSeriesMaxValue(days: RevenueDay[]): number {
-  return days.reduce((max, d) => Math.max(max, d.revenue, barMarkValue(d) ?? 0), 1);
+  return days.reduce((max, d) => Math.max(max, d.revenue, barPlanValue(d) ?? 0), 1);
 }

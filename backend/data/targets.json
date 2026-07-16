@@ -52,5 +52,6 @@
   "inventory": {
     "goalPct": 0.15,
     "note": "факта нет — домен фазы 2"
-  }
+  },
+  "locked": false
 }

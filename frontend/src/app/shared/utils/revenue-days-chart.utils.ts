@@ -1,11 +1,14 @@
 import type { ChartDisplayMode, PeriodGranularity } from '../models/common.model';
 import type { RevenueDay } from '../models';
 
-/** Значение горизонтальной засечки: план из Целей, иначе статистический прогноз. */
-export function barMarkValue(day: RevenueDay): number | null {
-  const mark = day.plan ?? day.forecast;
-  return mark !== null && mark > 0 ? mark : null;
+/** Значение горизонтальной засечки: только план из раздела «Цели» (не статистический прогноз). */
+export function barPlanValue(day: RevenueDay): number | null {
+  const plan = day.plan;
+  return plan !== null && plan > 0 ? plan : null;
 }
+
+/** @deprecated Используйте barPlanValue */
+export const barMarkValue = barPlanValue;
 
 export interface RevenueDayBarLayout {
   index: number;
@@ -13,7 +16,12 @@ export interface RevenueDayBarLayout {
   y: number;
   w: number;
   h: number;
+  /** Y горизонтальной засечки плана; 0 если плана нет. */
   markY: number;
+  /** Центр столбца по X — для вертикали от засечки к нулю. */
+  markX: number;
+  /** Y нулевой линии (база столбцов). */
+  baselineY: number;
   hasMark: boolean;
   labelX: number;
   label: string;
@@ -66,6 +74,7 @@ export function buildRevenueDaysChartLayout(
   const iw = CHART_WIDTH - PADDING.left - PADDING.right;
   const ih = CHART_HEIGHT - PADDING.top - PADDING.bottom;
   const slot = iw / days.length;
+  const baselineY = PADDING.top + ih;
 
   const gridLines = Array.from({ length: 5 }, (_, i) => {
     const y = PADDING.top + ih - (ih * i) / 4;
@@ -77,10 +86,12 @@ export function buildRevenueDaysChartLayout(
     const h = (day.revenue / max) * ih;
     const x = PADDING.left + slot * index + slot * 0.2;
     const w = slot * 0.6;
-    const y = PADDING.top + ih - h;
-    const mark = barMarkValue(day);
-    const hasMark = mark !== null;
-    const markY = hasMark ? PADDING.top + ih - (mark / max) * ih : 0;
+    const y = baselineY - h;
+    const mark = barPlanValue(day);
+    // Пустые будущие столбцы (нет факта) — без засечек и вертикали плана.
+    const hasMark = mark !== null && day.revenue > 0;
+    const markY = hasMark ? baselineY - (mark / max) * ih : 0;
+    const markX = x + w / 2;
     const labelX = PADDING.left + slot * index + slot / 2;
     const weekend = displayMode === 'day' && (day.weekday === 0 || day.weekday === 6);
 
@@ -91,6 +102,8 @@ export function buildRevenueDaysChartLayout(
       w: round1(w),
       h: round1(h),
       markY: round1(markY),
+      markX: round1(markX),
+      baselineY: round1(baselineY),
       hasMark,
       labelX: round1(labelX),
       label: formatBarLabel(day, displayMode, timeframe),

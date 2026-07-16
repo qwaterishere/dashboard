@@ -8,8 +8,17 @@ from slowapi import Limiter
 
 from src.api.deps import CurrentRestaurant, CurrentUser, get_db
 from src.core.config import get_settings
-from src.schemas.targets import TargetsData, TargetsUpsertRequest
-from src.services.targets import build_targets, save_targets
+from src.schemas.targets import TargetsData, TargetsLockedList, TargetsUpsertRequest
+from src.services.targets import (
+    TARGETS_LOCKED_DETAIL,
+    TargetsLockedError,
+    build_targets,
+    clear_targets,
+    list_locked_targets,
+    lock_targets,
+    save_targets,
+    unlock_targets,
+)
 
 
 def create_targets_router(limiter: Limiter) -> APIRouter:
@@ -37,6 +46,20 @@ def create_targets_router(limiter: Limiter) -> APIRouter:
             )
         return build_targets(db, restaurant.id, year=year, month=month)
 
+    @router.get(
+        "/api/targets/locks",
+        response_model=TargetsLockedList,
+        summary="Список заблокированных месяцев",
+    )
+    @limiter.limit(settings.rate_limit)
+    def get_locked_targets(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+    ) -> TargetsLockedList:
+        return list_locked_targets(db, restaurant.id)
+
     @router.put(
         "/api/targets",
         response_model=TargetsData,
@@ -50,6 +73,72 @@ def create_targets_router(limiter: Limiter) -> APIRouter:
         restaurant: CurrentRestaurant,
         db: Session = Depends(get_db),
     ) -> TargetsData:
-        return save_targets(db, restaurant.id, payload)
+        try:
+            return save_targets(db, restaurant.id, payload)
+        except TargetsLockedError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=TARGETS_LOCKED_DETAIL,
+            ) from None
+
+    @router.post(
+        "/api/targets/lock",
+        response_model=TargetsData,
+        summary="Заблокировать цели месяца",
+    )
+    @limiter.limit(settings.rate_limit)
+    def post_lock_targets(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+        year: int = Query(ge=2000, le=2100),
+        month: int = Query(ge=1, le=12),
+    ) -> TargetsData:
+        try:
+            return lock_targets(db, restaurant.id, year=year, month=month)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Cannot lock empty targets",
+            ) from None
+
+    @router.post(
+        "/api/targets/unlock",
+        response_model=TargetsData,
+        summary="Разблокировать цели месяца",
+    )
+    @limiter.limit(settings.rate_limit)
+    def post_unlock_targets(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+        year: int = Query(ge=2000, le=2100),
+        month: int = Query(ge=1, le=12),
+    ) -> TargetsData:
+        return unlock_targets(db, restaurant.id, year=year, month=month)
+
+    @router.delete(
+        "/api/targets",
+        response_model=TargetsData,
+        summary="Сбросить цели месяца (удалить настройку)",
+    )
+    @limiter.limit(settings.rate_limit)
+    def delete_targets(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+        year: int = Query(ge=2000, le=2100),
+        month: int = Query(ge=1, le=12),
+    ) -> TargetsData:
+        try:
+            return clear_targets(db, restaurant.id, year=year, month=month)
+        except TargetsLockedError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=TARGETS_LOCKED_DETAIL,
+            ) from None
 
     return router

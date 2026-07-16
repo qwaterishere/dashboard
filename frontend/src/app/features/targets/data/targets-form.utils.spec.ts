@@ -6,6 +6,8 @@ import {
   isTargetsFormDirty,
   isTargetsSectionDirty,
   restoreTargetsSection,
+  validateTargetsFormState,
+  isTargetsMonthConfigured,
 } from './targets-form.utils';
 import type { TargetsData, TargetsFormState } from '../../../shared/models/targets.model';
 
@@ -24,6 +26,7 @@ const SAMPLE: TargetsData = {
   ],
   compliments: { goalPct: 0.4, factPct: 0.4, factRub: 46_000 },
   inventory: { goalPct: 0.15, note: 'факта нет — домен фазы 2' },
+  locked: false,
 };
 
 describe('targets-form.utils', () => {
@@ -75,5 +78,41 @@ describe('targets-form.utils', () => {
     const restored = restoreTargetsSection(dirty, saved, 'revenue');
     expect(restored.revenueMonthPlan).toBe(saved.revenueMonthPlan);
     expect(restored.inventoryGoalPct).toBe(9);
+  });
+
+  it('rejects incomplete form until all required fields are > 0', () => {
+    const empty = buildTargetsFormState({
+      ...SAMPLE,
+      revenue: { monthPlan: 0, weekProfile: [1, 1, 1, 1, 1, 1, 1] },
+      foodcost: SAMPLE.foodcost.map((unit) => ({ ...unit, goalPct: 0 })),
+      writeoffs: SAMPLE.writeoffs.map((unit) => ({ ...unit, pct: 0, rub: 0 })),
+      compliments: { ...SAMPLE.compliments, goalPct: 0 },
+      inventory: { ...SAMPLE.inventory, goalPct: 0 },
+    });
+    const incomplete = validateTargetsFormState(empty);
+    expect(incomplete.ok).toBe(false);
+    expect(incomplete.message).toContain('Заполните все поля');
+
+    const complete = validateTargetsFormState(buildTargetsFormState(SAMPLE));
+    expect(complete.ok).toBe(true);
+    expect(complete.message).toBeNull();
+  });
+
+  it('requires every weekday weight in week profile', () => {
+    const form = buildTargetsFormState(SAMPLE);
+    form.weekProfile = [1, 1, 0, 1, 1, 1, 1];
+    const result = validateTargetsFormState(form);
+    expect(result.ok).toBe(false);
+    expect(result.missing.some((item) => item.includes('профиль недели'))).toBe(true);
+  });
+
+  it('detects configured month by positive revenue plan', () => {
+    expect(isTargetsMonthConfigured(SAMPLE)).toBe(true);
+    expect(
+      isTargetsMonthConfigured({
+        ...SAMPLE,
+        revenue: { ...SAMPLE.revenue, monthPlan: 0 },
+      }),
+    ).toBe(false);
   });
 });
