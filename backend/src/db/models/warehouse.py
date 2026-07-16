@@ -1,11 +1,43 @@
 import uuid
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import UniqueConstraint, CheckConstraint, Uuid, ForeignKey, Date, String, DECIMAL
+from sqlalchemy import (
+    CheckConstraint, DECIMAL, Date, DateTime, ForeignKey, String,
+    UniqueConstraint, Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.session import Base
+
+
+class SyncDomainStatus(Base):
+    """Статус синка одного домена ресторана (частичный успех, №13).
+
+    Продажи ПОКА живут в полях Restaurant (их читает Settings-UI коллеги,
+    не трогаем); склад и будущие домены (закупки, writeoffs) — здесь.
+    UI подключится к доменам позже, аддитивным полем в /me/iiko.
+    """
+
+    __tablename__ = "restaurant_sync_domains"
+    __table_args__ = (
+        UniqueConstraint("restaurant_id", "domain", name="uq_sync_domain"),
+        CheckConstraint("status IN ('idle', 'running', 'success', 'error', 'skipped')",
+                        name="ck_sync_domain_status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("restaurants.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+    )
+    domain: Mapped[str] = mapped_column(String(20), nullable=False)   # 'stock' | 'purchases' | ...
+    status: Mapped[str] = mapped_column(String(10), nullable=False, default="idle")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_day: Mapped[date | None] = mapped_column(Date, nullable=True)     # последний слепок
+    days_done: Mapped[int | None] = mapped_column(nullable=True)           # прогресс бэкфила
+    error: Mapped[str | None] = mapped_column(String(500), nullable=True)  # generic, без internals
 
 
 class StockBalance(Base):

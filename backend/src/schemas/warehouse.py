@@ -26,7 +26,8 @@ class StoreValue(StrictModel):
     )
     value: float = Field(
         description="Стоимость ПОЛОЖИТЕЛЬНЫХ остатков; минусовые строки "
-        "сюда не входят (см. negativeStock)"
+        "сюда не входят (см. negativeStock). Округлено до целой "
+        "единицы валюты (агрегатные деньги)"
     )
 
 
@@ -50,11 +51,14 @@ class StockPosition(StrictModel):
     store: Literal['k', 'b', 'w'] = Field(description="Юнит склада")
     qty: float = Field(
         description="Остаток; дробное у весовых (4.5 кг); может быть "
-        "ОТРИЦАТЕЛЬНЫМ — грязный складской учёт (см. negativeStock)"
+        "ОТРИЦАТЕЛЬНЫМ — грязный складской учёт (см. negativeStock). "
+        "Округлено до 3 знаков (точность весовых)"
     )
     unit: str = Field(description="Единица измерения: кг / л / шт / уп / …")
     value: float = Field(
-        description="Стоимость остатка; цена за единицу = value / qty (фронт)"
+        description="Стоимость остатка; цена за единицу = value / qty (фронт). "
+        "Округлено до 2 знаков — чтобы производная цена за единицу "
+        "не теряла точность"
     )
 
 
@@ -69,7 +73,7 @@ class NegativeStock(StrictModel):
     count: int = Field(description="Позиций с отрицательным остатком")
     valueAbs: float = Field(
         description="Суммарная «дыра» по модулю (сколько списано сверх "
-        "оприходованного в деньгах)"
+        "оприходованного в деньгах). Округлено до 2 знаков"
     )
 
 
