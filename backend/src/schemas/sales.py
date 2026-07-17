@@ -85,7 +85,7 @@ class Period(BaseModel):
 class SalesPosition(BaseModel):
     """Строка таблицы позиций. Производные считает фронт:
     price = rev/qty, unitCost= cost/qty, gp = rev-cost, fc = cost/rev."""
-п
+
     name: str = Field(description="Название блюда (как в iiko, пробелы подстрижены)")
     sub: str = Field(
         description="Подкатегория для второго уровня детализации (категория блюда из iiko)",
