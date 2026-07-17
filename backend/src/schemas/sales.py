@@ -84,8 +84,8 @@ class Period(BaseModel):
 
 class SalesPosition(BaseModel):
     """Строка таблицы позиций. Производные считает фронт:
-    rev = qty*price, cost = qty*unitCost, gp = rev-cost, fc = cost/rev."""
-
+    price = rev/qty, unitCost= cost/qty, gp = rev-cost, fc = cost/rev."""
+п
     name: str = Field(description="Название блюда (как в iiko, пробелы подстрижены)")
     sub: str = Field(
         description="Подкатегория для второго уровня детализации (категория блюда из iiko)",
@@ -97,6 +97,17 @@ class SalesPosition(BaseModel):
     qty: float = Field(
         description="Продано порций за период; дробное у весовых блюд (4.5 кг)",
     )
+    revenue: float = Field(
+        description="Выручка позиции за период — СУММА фактических оплат "
+                    "(не произведение qty*price: точность не теряется на округлении)",
+    )
+    cost: float = Field(
+        description="Суммарная себестоимость проданного за период; "
+                    "0 = техкарты нет (fc и gp позиции показывать «—», не 0%)",
+    )
+    # --- legacy v1 (переходный период) ---------------------------------
+    # Средние на порцию; фронт восстанавливает из них выручку с потерей
+    # копеек. Удаляются после миграции фронта на revenue/cost.
     price: float = Field(
         description="Средняя фактическая цена порции (со скидками, = выручка/qty)",
     )

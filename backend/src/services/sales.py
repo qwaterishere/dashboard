@@ -23,6 +23,8 @@ from sqlalchemy.orm import Session
 from src.domain.constants import CAT_OTHER, resolve_unit
 from src.db.models.sales import Order, DishSale
 from src.schemas.sales import SaleRecord, SalesPage, SalesPosition, Period
+# TODO(№12): периодные правила просятся в общий src/services/periods.py
+from src.services.dashboard import _data_bounds
 
 def parse_records(raw_records: list[dict]) -> list[SaleRecord]:
     """Валидирует сырые записи выгрузки. Кривая запись -> ValidationError."""
@@ -194,21 +196,26 @@ def build_sales(
 ) -> SalesPage:
     """Страница «Продажи»: агрегат по позициям (контракт SalesPage).
 
-    Без параметров берётся весь период, что есть в БД.
-    qty = сумма порций (дробное у весовых блюд), price/unitCost — средняя
-    фактическая цена и себестоимость ПОРЦИИ; фронтенд восстанавливает
-    rev = qty*price = фактическая выручка.
+    Период: канон — явные date_from/date_to от фронта (во всех режимах);
+    дефолт без параметров — месяц последнего закрытого дня (страховка:
+    «вся история» без дат не отдаётся никогда, v2-такт 2). Явные даты
+    усекаются краями данных, эффективные границы видны в period.
+    qty/revenue/cost — суммы-факты; price/unitCost — legacy-средние
+    до миграции фронта.
     """
-    if date_from is None:
-        date_from = session.query(func.min(Order.day)).filter(
-            Order.restaurant_id == restaurant_id,
-        ).scalar()
-    if date_to is None:
-        date_to = session.query(func.max(Order.day)).filter(
-            Order.restaurant_id == restaurant_id,
-        ).scalar()
-    if date_from is None:   # пустая база
+    earliest, latest = _data_bounds(session, restaurant_id)
+    if latest is None:      # пустая база
         return SalesPage(period=Period(label='Нет данных', note=''), positions=[])
+
+    # дефолт: текущий месяц (месяц последнего закрытого дня)
+    date_from = date_from or latest.replace(day=1)
+    date_to = date_to or latest
+    # усечение краями данных: будущее и «глубже истории» не запрашиваются
+    date_from = max(date_from, earliest)
+    date_to = min(date_to, latest)
+    if date_from > date_to:  # запрошенный период целиком вне данных
+        return SalesPage(period=Period(label='Нет данных за период', note=''),
+                         positions=[])
 
     rows = (
         session.query(
@@ -240,8 +247,10 @@ def build_sales(
             sub=category,
             # юнит = папка 1-го уровня в iiko; вне папок -> «вне подразделений»
             cat=resolve_unit(top_group),
-            # UNIT_BY_TOP_GROUP.get(top_group, CAT_OTHER),
             qty=round(float(qty), 2),
+            revenue=round(float(paid), 2),
+            cost=round(float(cost), 2),
+            # legacy: средние для фронта до миграции на v2 (revenue/cost)
             price=round(float(paid) / float(qty), 2),
             unitCost=round(float(cost) / float(qty), 2),
         )
