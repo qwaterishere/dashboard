@@ -1,8 +1,8 @@
 """Роутер страницы «Склад» (контракт v2, карточка №13).
 
-Живёт на /api/warehouse/snapshot: старый /api/warehouse продолжает
-отдавать legacy-стаб (STUB_PAGES) до миграции фронта — регистрация
-этого роутера его не задевает (handoff §2).
+Живёт на /api/warehouse: legacy-стаб снесён вместе со стаб-механикой
+(17.07.2026, коллега), фронт мигрировал на v2 — двухпроекционная
+развязка больше не нужна (handoff §2).
 """
 from datetime import date
 
@@ -21,7 +21,7 @@ def create_warehouse_router(limiter: Limiter) -> APIRouter:
     settings = get_settings()
 
     @router.get(
-        "/api/warehouse/snapshot",
+        "/api/warehouse",
         response_model=Warehouse,
         summary="Склад: слепок остатков на день + динамика стоимости",
         description=(

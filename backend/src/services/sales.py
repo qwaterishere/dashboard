@@ -259,5 +259,7 @@ def build_sales(
     period = Period(
         label=f'{date_from:%d.%m} — {date_to:%d.%m.%Y}',
         note='реальные данные iiko',
+        dateFrom=date_from,      # уже после дефолта и усечения —
+        dateTo=date_to,          # ответ описывает фактически покрытый период
     )
     return SalesPage(period=period, positions=positions)

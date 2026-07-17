@@ -114,7 +114,6 @@ def create_app() -> FastAPI:
     app.include_router(create_dashboard_router(limiter))
     app.include_router(create_targets_router(limiter))
     app.include_router(create_foodcost_router(limiter))
-    # /api/warehouse/snapshot; legacy /api/warehouse остаётся в стабе до миграции фронта
     app.include_router(create_warehouse_router(limiter))
 
     @app.exception_handler(Exception)

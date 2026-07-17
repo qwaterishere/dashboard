@@ -43,6 +43,8 @@ def test_default_period_is_month_of_last_closed_day(session, restaurant):
     page = build_sales(session, restaurant.id)
     assert [p.name for p in page.positions] == ['Июньская']   # май не протёк
     assert page.period.label == '01.06 — 10.06.2026'          # эффективные границы
+    assert page.period.dateFrom == date(2026, 6, 1)           # факты периода (такт 4):
+    assert page.period.dateTo == date(2026, 6, 10)            # ответ самоописан и при дефолте
 
 
 def test_dates_are_clamped_to_data_bounds(session, restaurant):
@@ -54,6 +56,8 @@ def test_dates_are_clamped_to_data_bounds(session, restaurant):
                        date(2020, 1, 1), date(2030, 1, 1))
     assert [p.name for p in page.positions] == ['Контейнер']
     assert page.period.label == '22.06 — 22.06.2026'
+    assert page.period.dateFrom == date(2026, 6, 22)          # эхо УСЕЧЁННЫХ границ,
+    assert page.period.dateTo == date(2026, 6, 22)            # не запрошенных
 
 
 def test_period_outside_data_gives_empty_page(session, restaurant):

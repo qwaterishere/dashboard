@@ -76,16 +76,27 @@ class SaleRecord(BaseModel):
 
 class Period(BaseModel):
     label: str = Field(
-        description='Готовая подпись периода, например "02.06 — 01.07.2026" '
-        "(v1-стиль; в контрактах v2 период отдаётся числами)",
+        description='LEGACY: готовая подпись периода ("02.06 — 01.07.2026"); '
+        "умирает в такте 5 — фронт будет форматировать сам из dateFrom/dateTo",
     )
-    note: str = Field(description="Подстрока-пояснение под подписью периода")
+    note: str = Field(description="LEGACY: подстрока-пояснение, умирает вместе с label")
+    # --- v2: факты периода --------------------------------------
+    dateFrom: date | None = Field(
+        default=None,
+        description="Начало ФАКТИЧЕСКИ покрытого периода — после дефолта "
+        "и усечения краями данных (кейс: запросили по 31-е, закрыто по 16-е). "
+        "null — данных нет вовсе",
+    )
+    dateTo: date | None = Field(
+        default=None,
+        description="Конец фактически покрытого периода (последний закрытый "
+        "день при усечении); null — данных нет",
+    )
 
 
 class SalesPosition(BaseModel):
     """Строка таблицы позиций. Производные считает фронт:
     price = rev/qty, unitCost= cost/qty, gp = rev-cost, fc = cost/rev."""
-п
     name: str = Field(description="Название блюда (как в iiko, пробелы подстрижены)")
     sub: str = Field(
         description="Подкатегория для второго уровня детализации (категория блюда из iiko)",
