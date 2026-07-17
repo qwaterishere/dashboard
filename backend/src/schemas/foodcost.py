@@ -90,6 +90,13 @@ class ProductCost(StrictModel):
         description="Выручка фудкост-строк позиции (= её revenueWithCost: "
         "множество строк одно)"
     )
+    listValue: float = Field(
+        description="Прейскурантная выручка тех же строк (Σ цен меню, "
+        "БЕЗ скидок). Цена меню порции = listValue / qty — её показывать "
+        "«Ценой» в тултипе (решение 17.07); скидки позиции = "
+        "listValue − revenue. fc считать от revenue (фактическая "
+        "экономика), НЕ от listValue"
+    )
     cost: float = Field(description="Себестоимость фудкост-строк позиции")
 
 

@@ -39,3 +39,21 @@ def resolve_unit(top_group: str | None) -> str:
     if top_group is None:
         return CAT_OTHER
     return _UNIT_BY_NORMALIZED.get(top_group.strip().lower(), CAT_OTHER)
+
+
+# Канонические имена СКЛАДОВ -> юнит склада (паспорт §9): стандарт
+# именования и есть настройка — как resolve_unit у папок номенклатуры,
+# никакого маппинга/конфигурации. Склады с другими именами («Хозка»,
+# «Посуда», «Основной склад») в аналитику склада не попадают.
+STORE_UNIT_BY_NAME = {
+    "кухня": "k",
+    "бар": "b",
+    "вино": "w",
+}
+
+
+def resolve_store_unit(name: str | None) -> str | None:
+    """Юнит склада по каноническому имени; None — склад вне аналитики."""
+    if name is None:
+        return None
+    return STORE_UNIT_BY_NAME.get(name.strip().lower())

@@ -224,6 +224,7 @@ def build_sales(
             func.max(DishSale.top_group),
             func.sum(DishSale.amount),
             func.sum(DishSale.paid_sum),
+            func.sum(DishSale.price),
             func.sum(func.coalesce(DishSale.cost, 0)),
         )
         .join(Order)
@@ -249,12 +250,13 @@ def build_sales(
             cat=resolve_unit(top_group),
             qty=round(float(qty), 2),
             revenue=round(float(paid), 2),
+            listValue=round(float(list_value), 2),
             cost=round(float(cost), 2),
             # legacy: средние для фронта до миграции на v2 (revenue/cost)
             price=round(float(paid) / float(qty), 2),
             unitCost=round(float(cost) / float(qty), 2),
         )
-        for name, category, top_group, qty, paid, cost in rows
+        for name, category, top_group, qty, paid, list_value, cost in rows
     ]
     period = Period(
         label=f'{date_from:%d.%m} — {date_to:%d.%m.%Y}',

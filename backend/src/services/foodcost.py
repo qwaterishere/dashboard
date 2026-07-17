@@ -159,6 +159,7 @@ def _product_sums(session: Session, restaurant_id: UUID,
     rows = session.query(
         DishSale.dish_id, DishSale.top_group, DishSale.name,
         func.sum(DishSale.paid_sum),
+        func.sum(DishSale.price),
         func.sum(DishSale.cost),
         func.sum(DishSale.amount),
         func.max(Order.day),
@@ -169,12 +170,14 @@ def _product_sums(session: Session, restaurant_id: UUID,
     ).group_by(DishSale.dish_id, DishSale.top_group, DishSale.name).all()
 
     sums: dict[str, dict] = {}
-    for dish_id, top_group, name, revenue, cost, qty, last_day in rows:
+    for dish_id, top_group, name, revenue, list_value, cost, qty, last_day in rows:
         entry = sums.setdefault(dish_id.hex if dish_id else f'name:{name}', {
             'id': dish_id, 'name': name, 'unit': resolve_unit(top_group),
-            'revenue': 0.0, 'cost': 0.0, 'qty': 0.0, 'last_day': last_day,
+            'revenue': 0.0, 'listValue': 0.0, 'cost': 0.0, 'qty': 0.0,
+            'last_day': last_day,
         })
         entry['revenue'] += float(revenue)
+        entry['listValue'] += float(list_value)
         entry['cost'] += float(cost)
         entry['qty'] += float(qty)
         if last_day >= entry['last_day']:   # имя/юнит — из последней продажи
@@ -186,6 +189,7 @@ def _product_sums(session: Session, restaurant_id: UUID,
          'name': entry['name'], 'unit': entry['unit'],
          'qty': round(entry['qty'], 2),
          'revenue': round(entry['revenue']),
+         'listValue': round(entry['listValue']),
          'cost': round(entry['cost'])}
         for entry in sorted(sums.values(), key=lambda e: -e['revenue'])
     ]

@@ -138,3 +138,48 @@ class IikoClient:
         raise IikoRequestError(
             f'olap failed after {_MAX_RETRIES} attempts: {last_error}'
         ) from last_error
+
+    # ------------------------------------------------------------------
+    # Домен «склад» (карточка №13). Аддитивно: продажный синк не задет.
+    # ------------------------------------------------------------------
+
+    def _get(self, path: str, params: dict | None = None):
+        self._ensure_safe_outbound()
+        response = self._http.get(path, params={'key': self._token, **(params or {})})
+        if response.status_code != 200:
+            raise IikoRequestError(
+                f'{path} failed: {response.status_code} {response.text[:200]}'
+            )
+        return response
+
+    def fetch_stores(self) -> list[tuple[str, str]]:
+        """Склады заведения: [(id, name)] (corporation/stores, XML)."""
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(self._get('resto/api/corporation/stores').text)
+        return [(el.findtext('id'), (el.findtext('name') or '').strip())
+                for el in root if el.findtext('id')]
+
+    def fetch_measure_units(self) -> dict[str, str]:
+        """Единицы измерения: {id: имя} (л/кг/шт/уп/...)."""
+        rows = self._get('resto/api/v2/entities/list',
+                         params={'rootType': 'MeasureUnit'}).json()
+        return {u['id']: u['name'] for u in rows}
+
+    def fetch_product_groups(self) -> dict[str, str]:
+        """Папки номенклатуры: {id: имя} (категория позиции = ближайшая папка)."""
+        rows = self._get('resto/api/v2/entities/products/group/list',
+                         params={'includeDeleted': 'true'}).json()
+        return {g['id']: g['name'] for g in rows}
+
+    def fetch_products_catalog(self) -> dict[str, tuple[str, str | None, str | None]]:
+        """Продукты: {id: (имя, id папки, id единицы измерения)}."""
+        rows = self._get('resto/api/v2/entities/products/list',
+                         params={'includeDeleted': 'true'}).json()
+        return {p['id']: (p['name'], p.get('parent'), p.get('mainUnit'))
+                for p in rows}
+
+    def fetch_stock_balances(self, timestamp: str) -> list[dict]:
+        """Остатки всех складов на момент времени (iiko считает из документов
+        задним числом): [{store, product, amount, sum}]."""
+        return self._get('resto/api/v2/reports/balance/stores',
+                         params={'timestamp': timestamp}).json()
