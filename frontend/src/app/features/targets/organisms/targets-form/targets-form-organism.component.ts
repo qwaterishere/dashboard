@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   effect,
+  inject,
   input,
   model,
   output,
@@ -11,6 +12,7 @@ import {
   untracked,
 } from '@angular/core';
 
+import { CurrencyService } from '../../../../core/state/currency.service';
 import type {
   TargetsData,
   TargetsFormState,
@@ -35,11 +37,6 @@ import { TargetNumericFieldComponent } from '../../molecules/target-numeric-fiel
 import { TargetSectionComponent } from '../../molecules/target-section/target-section.component';
 import { WeekProfileGridComponent } from '../../molecules/week-profile-grid/week-profile-grid.component';
 import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target-fact-hint.component';
-
-const WRITEOFF_MODE_OPTIONS = [
-  { value: 'pct' as const, label: '%' },
-  { value: 'rub' as const, label: '₽' },
-];
 
 @Component({
   selector: 'app-targets-form-organism',
@@ -144,10 +141,10 @@ const WRITEOFF_MODE_OPTIONS = [
         (resetRequested)="onResetSection('revenue')"
       >
         <app-target-numeric-field
-          label="План на месяц, ₽"
+          label="План на месяц, {{ currencySymbol() }}"
           inputId="targets-revenue-plan"
           name="targets-revenue-plan"
-          suffix="₽"
+          [suffix]="currencySymbol()"
           [disabled]="isLocked()"
           [hintPrefix]="'факт ' + data().reference.label + ':'"
           [hintFactMoney]="data().reference.revenueFact"
@@ -211,7 +208,7 @@ const WRITEOFF_MODE_OPTIONS = [
                 <app-segment-control
                   size="sm"
                   [disabled]="isLocked()"
-                  [options]="writeoffModeOptions"
+                  [options]="writeoffModeOptions()"
                   [value]="unit.mode"
                   (valueChange)="setWriteoffMode(unit.key, $event)"
                 />
@@ -228,10 +225,10 @@ const WRITEOFF_MODE_OPTIONS = [
                 />
               } @else {
                 <app-target-numeric-field
-                  label="План, ₽"
+                  label="План, {{ currencySymbol() }}"
                   [inputId]="'targets-writeoff-rub-' + unit.key"
                   [name]="'targets-writeoff-rub-' + unit.key"
-                  suffix="₽"
+                  [suffix]="currencySymbol()"
                   [disabled]="isLocked()"
                   [value]="unit.rub"
                   (valueChange)="updateWriteoffRub(unit.key, $event)"
@@ -290,6 +287,8 @@ const WRITEOFF_MODE_OPTIONS = [
   styleUrl: './targets-form-organism.component.scss',
 })
 export class TargetsFormOrganismComponent {
+  private readonly currency = inject(CurrencyService);
+
   readonly data = input.required<TargetsData>();
   readonly form = model.required<TargetsFormState>();
 
@@ -304,7 +303,16 @@ export class TargetsFormOrganismComponent {
   protected readonly saveSuccess = signal(false);
   protected readonly successMessage = signal('Цели сохранены');
   protected readonly saveError = signal<string | null>(null);
-  protected readonly writeoffModeOptions = WRITEOFF_MODE_OPTIONS;
+
+  protected readonly currencySymbol = computed(() => {
+    this.currency.code();
+    return this.currency.symbol();
+  });
+
+  protected readonly writeoffModeOptions = computed(() => [
+    { value: 'pct' as const, label: '%' },
+    { value: 'rub' as const, label: this.currencySymbol() },
+  ]);
 
   private readonly savedState = signal<TargetsFormState | null>(null);
   private syncedPeriodKey = '';

@@ -100,6 +100,7 @@ test.describe('smoke', () => {
     await page.goto('/settings');
     await expect(page.locator('app-page-greeting')).toContainText('Настройки');
     await expect(page.getByRole('heading', { name: 'Профиль' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Валюта' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Подключение iiko' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Смена пароля' })).toBeVisible();
     await expect(page.locator('app-period-bar')).toHaveCount(0);

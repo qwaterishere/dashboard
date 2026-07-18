@@ -1,12 +1,14 @@
-import { Component, computed, input, model } from '@angular/core';
+import { Component, computed, inject, input, model } from '@angular/core';
 
 import { CAT_COLOR } from '../../../../shared/constants/category.constants';
+import { formatMoney } from '../../../../shared/utils/money-format.utils';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
 import { LegendRowComponent } from '../../../../ui/molecules/legend-row/legend-row.component';
 import { DonutChartOrganismComponent } from '../../../../ui/organisms/donut-chart/donut-chart-organism.component';
 import { BarChartGroupsOrganismComponent } from '../../../../ui/organisms/bar-chart-groups/bar-chart-groups-organism.component';
 import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
+import { CurrencyService } from '../../../../core/state/currency.service';
 import {
   barChartScale,
   buildBarGroups,
@@ -43,7 +45,7 @@ import {
             [(highlightKey)]="highlightKey"
             centerLabel="Выручка"
             [centerValue]="donutTotals().rev | money"
-            [centerSub]="centerSubText()"
+            [centerSub]="centerSub()"
           />
 
           <div class="legend-side">
@@ -78,6 +80,8 @@ import {
   styleUrl: './sales-structure-organism.component.scss',
 })
 export class SalesStructureOrganismComponent {
+  private readonly currency = inject(CurrencyService);
+
   readonly positions = input.required<SalesPositionComputed[]>();
   readonly level = model<SalesStructureLevel>('cat');
   readonly highlightKey = model<string | null>(null);
@@ -104,10 +108,10 @@ export class SalesStructureOrganismComponent {
     gp: this.donutData().reduce((sum, slice) => sum + slice.gp, 0),
   }));
 
-  protected centerSubText(): string {
-    const gp = this.donutTotals().gp;
-    return `прибыль ${Math.round(gp).toLocaleString('ru-RU')} ₽`;
-  }
+  protected readonly centerSub = computed(() => {
+    this.currency.code();
+    return `прибыль ${formatMoney(this.donutTotals().gp)}`;
+  });
 
   protected readonly barGroups = computed(() =>
     buildBarGroups(this.positions(), this.level()),

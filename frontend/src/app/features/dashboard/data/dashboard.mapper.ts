@@ -25,6 +25,7 @@ import {
   formatPeriodRange,
   monthRangeFromSeries,
 } from '../../../shared/utils/period-format.utils';
+import { formatMoney } from '../../../shared/utils/money-format.utils';
 
 export interface DashboardViewModelOptions {
   granularity?: PeriodGranularity;
@@ -44,10 +45,6 @@ function lfl(value: number, prev: number | null): LflMetric | null {
   if (prev === null || prev === 0) return null;
   const pct = ((value - prev) / prev) * 100;
   return { pct, dir: (pct >= 0 ? 'up' : 'dn') as LflDirection };
-}
-
-function formatMoney(value: number): string {
-  return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
 }
 
 function formatSignedMoney(delta: number): string {

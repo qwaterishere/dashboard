@@ -4,7 +4,7 @@ import { Component, computed, ElementRef, input, model, signal, viewChild } from
 import { CAT_NAME } from '../../../../shared/constants/category.constants';
 import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
-import { FmtPipe } from '../../../../shared/pipes/format.pipes';
+import { CurrencySymbolPipe, FmtPipe } from '../../../../shared/pipes/format.pipes';
 import type { FoodcostProduct } from '../../../../shared/models';
 import {
   buildProductChartBars,
@@ -32,7 +32,7 @@ interface TooltipState {
 @Component({
   selector: 'app-foodcost-products-chart-organism',
   standalone: true,
-  imports: [HeadingComponent, SegmentControlComponent, FmtPipe, DecimalPipe],
+  imports: [HeadingComponent, SegmentControlComponent, FmtPipe, CurrencySymbolPipe, DecimalPipe],
   template: `
     <div class="prodchart">
       <div class="catfc-head">
@@ -95,9 +95,9 @@ interface TooltipState {
             (mouseleave)="deactivate($event)"
           >
             <b>{{ t.name }}</b>
-            <div class="row"><span>Цена</span><b>{{ t.price | fmt }} ₽</b></div>
-            <div class="row"><span>Себестоимость</span><b>{{ t.cost | fmt }} ₽</b></div>
-            <div class="row"><span>Наценка</span><b>{{ t.margin | fmt }} ₽</b></div>
+            <div class="row"><span>Цена</span><b>{{ t.price | fmt }} {{ '' | currencySymbol }}</b></div>
+            <div class="row"><span>Себестоимость</span><b>{{ t.cost | fmt }} {{ '' | currencySymbol }}</b></div>
+            <div class="row"><span>Наценка</span><b>{{ t.margin | fmt }} {{ '' | currencySymbol }}</b></div>
             <div class="row">
               <span>Фудкост</span><b>{{ t.fc | number: '1.1-1' }} %</b>
             </div>

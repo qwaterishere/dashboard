@@ -2,6 +2,7 @@ import { WEEKDAYS_FULL } from '../constants/category.constants';
 import type { DetailPopover } from '../models/common.model';
 import type { ApiPeriod } from '../models/dashboard-api.model';
 import type { RevenueDay } from '../models/dashboard.model';
+import { formatMoney } from './money-format.utils';
 
 const MONTHS_GENITIVE = [
   'января',
@@ -32,10 +33,6 @@ const MONTHS_NOMINATIVE = [
   'Ноябрь',
   'Декабрь',
 ] as const;
-
-function formatMoney(value: number): string {
-  return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
-}
 
 function formatSignedPct(value: number): string {
   const sign = value >= 0 ? '+' : '−';

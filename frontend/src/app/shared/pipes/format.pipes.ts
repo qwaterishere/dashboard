@@ -1,4 +1,7 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+
+import { CurrencyService } from '../../core/state/currency.service';
+import { formatMoney } from '../utils/money-format.utils';
 
 @Pipe({ name: 'fmt', standalone: true })
 export class FmtPipe implements PipeTransform {
@@ -7,10 +10,24 @@ export class FmtPipe implements PipeTransform {
   }
 }
 
-@Pipe({ name: 'money', standalone: true })
+/** Impure: пересчитывается при смене валюты в настройках. */
+@Pipe({ name: 'money', standalone: true, pure: false })
 export class MoneyPipe implements PipeTransform {
+  private readonly currency = inject(CurrencyService);
+
   transform(n: number): string {
-    return `${Math.round(n).toLocaleString('ru-RU')} ₽`;
+    // Читаем signal, чтобы pipe зависел от смены валюты при impure-проверке.
+    this.currency.code();
+    return formatMoney(n);
+  }
+}
+
+@Pipe({ name: 'currencySymbol', standalone: true, pure: false })
+export class CurrencySymbolPipe implements PipeTransform {
+  private readonly currency = inject(CurrencyService);
+
+  transform(_trigger?: unknown): string {
+    return this.currency.symbol();
   }
 }
 
@@ -68,6 +85,7 @@ export class SignedPpPipe implements PipeTransform {
 export const FORMAT_PIPES = [
   FmtPipe,
   MoneyPipe,
+  CurrencySymbolPipe,
   KFormatPipe,
   MillionsPipe,
   PctPipe,

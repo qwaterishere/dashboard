@@ -9,6 +9,7 @@ import type { UpdateIikoSettingsRequest } from '../../../../shared/models/iiko-s
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
 import { SettingsLayoutTemplateComponent } from '../../../../ui/templates/settings-layout/settings-layout-template.component';
 import { AccountInfoOrganismComponent } from '../../organisms/account-info/account-info-organism.component';
+import { CurrencySettingsOrganismComponent } from '../../organisms/currency-settings/currency-settings-organism.component';
 import { IikoSettingsOrganismComponent } from '../../organisms/iiko-settings/iiko-settings-organism.component';
 import { PasswordSettingsOrganismComponent } from '../../organisms/password-settings/password-settings-organism.component';
 import { ProfileSettingsOrganismComponent } from '../../organisms/profile-settings/profile-settings-organism.component';
@@ -28,6 +29,7 @@ import {
     LoadErrorComponent,
     SettingsLayoutTemplateComponent,
     ProfileSettingsOrganismComponent,
+    CurrencySettingsOrganismComponent,
     PasswordSettingsOrganismComponent,
     IikoSettingsOrganismComponent,
     TargetsLockSettingsOrganismComponent,
@@ -43,6 +45,7 @@ import {
           [success]="profileSuccess()"
           (saved)="onProfileSave($event)"
         />
+        <app-currency-settings-organism />
         <app-iiko-settings-organism
           [settings]="iikoSettings()"
           [settingsLoading]="iikoSettingsLoading()"

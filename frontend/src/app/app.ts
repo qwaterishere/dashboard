@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { CurrencyService } from './core/state/currency.service';
 import { ThemeService } from './core/state/theme.service';
 
 @Component({
@@ -12,5 +13,6 @@ import { ThemeService } from './core/state/theme.service';
 export class App {
   constructor() {
     inject(ThemeService);
+    inject(CurrencyService);
   }
 }

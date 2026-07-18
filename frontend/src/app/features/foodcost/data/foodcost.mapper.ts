@@ -14,6 +14,7 @@ import {
   formatPeriodRange,
   formatYearPeriodLabel,
 } from '../../../shared/utils/period-format.utils';
+import { formatMoney } from '../../../shared/utils/money-format.utils';
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
 
@@ -43,10 +44,6 @@ function fcLfl(currentPct: number, prevPct: number | null): LflMetric {
 function resolveGoal(explicit: number | null, fallbackPrevPct: number | null): number {
   if (explicit !== null) return explicit;
   return fallbackPrevPct ?? 0;
-}
-
-function formatMoney(value: number): string {
-  return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
 }
 
 function formatPct(value: number): string {

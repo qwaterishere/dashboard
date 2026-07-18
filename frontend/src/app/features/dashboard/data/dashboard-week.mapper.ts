@@ -2,10 +2,7 @@ import { WEEKDAYS_SHORT } from '../../../shared/constants/category.constants';
 import type { DetailPopover } from '../../../shared/models/common.model';
 import type { DashboardData } from '../../../shared/models/dashboard.model';
 import type { DashboardApi, WeekKpiContext } from '../../../shared/models/dashboard-api.model';
-
-function formatMoney(value: number): string {
-  return `${Math.round(value).toLocaleString('ru-RU')} ₽`;
-}
+import { formatMoney } from '../../../shared/utils/money-format.utils';
 
 function formatCount(value: number): string {
   return Math.round(value).toLocaleString('ru-RU');
