@@ -15,7 +15,6 @@ import { DashboardDataStore } from '../../data/dashboard-data.store';
       @if (picker(); as config) {
         <app-chart-period-picker
           periodDate
-          class="period-bar__date"
           [label]="config.label"
           [note]="config.note"
           [granularity]="config.granularity"
@@ -32,7 +31,6 @@ import { DashboardDataStore } from '../../data/dashboard-data.store';
       @if (comparePicker(); as config) {
         <app-chart-period-picker
           comparePeriod
-          class="period-bar__compare"
           triggerKind="compare"
           [compareWith]="config.compareWith"
           [granularity]="config.granularity"

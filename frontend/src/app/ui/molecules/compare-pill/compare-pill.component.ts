@@ -79,6 +79,32 @@ import { Component, input, output } from '@angular/core';
       opacity: 0.7;
       flex: none;
     }
+
+    @media (max-width: 1180px) {
+      .cmp-pill {
+        gap: 5px;
+        padding: 7px 10px;
+        font-size: 0.72rem;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .cmp-pill {
+        gap: 4px;
+        padding: 7px 8px;
+        font-size: 0.7rem;
+      }
+
+      .cmp-pill__prefix {
+        /* «LfL: сравнение с» → коротко на узких экранах */
+        font-size: 0;
+      }
+
+      .cmp-pill__prefix::after {
+        content: 'LfL';
+        font-size: 0.7rem;
+      }
+    }
   `,
 })
 export class ComparePillComponent {

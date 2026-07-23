@@ -104,6 +104,34 @@ import { Component, input, output } from '@angular/core';
       color: var(--mut);
       flex: none;
     }
+
+    @media (max-width: 1180px) {
+      .date-pill {
+        gap: 6px;
+        padding: 7px 10px;
+      }
+
+      .date-pill__note {
+        max-width: 36%;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .date-pill {
+        gap: 5px;
+        padding: 7px 8px;
+        font-size: 0.72rem;
+      }
+
+      .date-pill__note {
+        display: none;
+      }
+
+      svg {
+        width: 12px;
+        height: 12px;
+      }
+    }
   `,
 })
 export class DatePillComponent {

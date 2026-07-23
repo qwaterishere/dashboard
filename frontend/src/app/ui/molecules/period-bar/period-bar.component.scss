@@ -4,34 +4,37 @@
   gap: 10px;
   flex-wrap: nowrap;
   margin-bottom: 18px;
+  width: 100%;
   min-width: 0;
 
   app-segment-control {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  /* Равная доля оставшегося места, не шире --period-pill-slot-width. */
+  .period-bar__date,
+  .period-bar__compare {
+    flex: 1 1 0;
+    width: 0;
+    max-width: var(--period-pill-slot-width);
+    min-width: 0;
+    min-height: var(--period-pill-height);
+    position: relative;
   }
 
   .period-bar__date {
-    flex: 0 0 var(--period-date-slot-width);
-    width: var(--period-date-slot-width);
-    max-width: var(--period-date-slot-width);
-    min-width: 0;
-    position: relative;
     z-index: 20;
   }
 
   .period-bar__compare {
-    flex: 0 0 var(--period-compare-slot-width);
-    width: var(--period-compare-slot-width);
-    max-width: var(--period-compare-slot-width);
-    min-width: 0;
-    min-height: var(--period-pill-height);
-    position: relative;
     z-index: 30;
   }
 
   .period-bar__compare--empty:not(.period-bar__compare--reserved) {
     flex: 0 0 0;
     width: 0;
+    max-width: 0;
     min-width: 0;
     min-height: 0;
     overflow: hidden;
@@ -40,5 +43,17 @@
 
   .period-bar__compare--empty.period-bar__compare--reserved {
     visibility: hidden;
+  }
+}
+
+@media (max-width: 1180px) {
+  .period-bar {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .period-bar {
+    gap: 6px;
   }
 }

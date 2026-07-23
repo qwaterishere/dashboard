@@ -59,10 +59,9 @@
       var(--kpi-footer-track-gap) + var(--kpi-footer-track-height)
   );
 
-  /* Period bar — фиксированные слоты date-pill / LfL (month/week/year) */
+  /* Period bar — потолок ширины date/LfL; на узких экранах сжимаются поровну */
   --period-pill-height: 2.125rem;
-  --period-date-slot-width: 18rem;
-  --period-compare-slot-width: 16rem;
+  --period-pill-slot-width: 18rem;
   --lfl-badge-min-width: 5.25rem;
 
   --scrollbar-size: 10px;

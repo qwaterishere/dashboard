@@ -13,9 +13,11 @@ import { ComparePillComponent } from '../compare-pill/compare-pill.component';
   template: `
     <div class="period-bar">
       <app-segment-control [options]="granularityOptions" [(value)]="granularity" />
-      <ng-content select="[periodDate]">
-        <app-date-pill class="period-bar__date" [label]="period().label" [note]="period().note" />
-      </ng-content>
+      <div class="period-bar__date">
+        <ng-content select="[periodDate]">
+          <app-date-pill [label]="period().label" [note]="period().note" />
+        </ng-content>
+      </div>
       <div
         class="period-bar__compare"
         [class.period-bar__compare--empty]="!period().compareWith && !reserveCompareSlot()"
