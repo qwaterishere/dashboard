@@ -31,7 +31,7 @@ type Story = StoryObj<BarRowStoryArgs>;
 
 export const Default: Story = {
   args: {
-    name: 'Салат Цезарь',
+    name: 'Горячие блюда из мяса и птицы',
     variant: 'single',
     widthPct: 72,
     revWidth: 80,
@@ -56,10 +56,10 @@ export const Default: Story = {
             variant="dual-rev-gp"
             [revWidth]="revWidth"
             [gpWidth]="gpWidth"
-          >
-            <span class="br-r">1,2 млн</span>
-            <span class="br-g">48%</span>
-          </app-bar-row>
+            revLabel="1,2 млн"
+            gpLabel="480 тыс"
+            shareLabel="12,4 % от выручки"
+          />
         }
       </div>
     `,

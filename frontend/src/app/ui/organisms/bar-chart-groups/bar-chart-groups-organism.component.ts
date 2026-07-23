@@ -36,11 +36,10 @@ export interface BarChartGroup {
               [name]="row.name"
               [revWidth]="revWidth(row.rev)"
               [gpWidth]="gpWidth(row.gp)"
-            >
-              <b class="br-r">{{ row.rev | money }}</b>
-              <b class="br-g">{{ row.gp | money }}</b>
-              <small>{{ share(row.rev) }} % от выручки</small>
-            </app-bar-row>
+              [revLabel]="row.rev | money"
+              [gpLabel]="row.gp | money"
+              [shareLabel]="share(row.rev) + ' % от выручки'"
+            />
           }
         </div>
       }
