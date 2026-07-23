@@ -12,6 +12,8 @@ import { FormsModule } from '@angular/forms';
       [type]="type()"
       [attr.inputmode]="inputMode()"
       [attr.step]="step()"
+      [attr.min]="min()"
+      [attr.max]="max()"
       [id]="inputId()"
       [name]="name()"
       [placeholder]="placeholder()"
@@ -24,6 +26,7 @@ import { FormsModule } from '@angular/forms';
   styles: `
     .field-input {
       width: 100%;
+      box-sizing: border-box;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--card2);
@@ -32,6 +35,11 @@ import { FormsModule } from '@angular/forms';
       font-size: 0.88rem;
       padding: 11px 13px;
       transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .field-input[type='date'] {
+      font-weight: 600;
+      color-scheme: dark light;
     }
 
     .field-input:focus {
@@ -51,13 +59,15 @@ import { FormsModule } from '@angular/forms';
   `,
 })
 export class FieldInputComponent {
-  readonly type = input<'text' | 'email' | 'password' | 'number'>('text');
+  readonly type = input<'text' | 'email' | 'password' | 'number' | 'date'>('text');
   readonly inputId = input.required<string>();
   readonly name = input.required<string>();
   readonly placeholder = input('');
   readonly autocomplete = input<string | undefined>(undefined);
   readonly step = input<string | undefined>(undefined);
   readonly inputMode = input<string | undefined>(undefined);
+  readonly min = input<string | undefined>(undefined);
+  readonly max = input<string | undefined>(undefined);
   readonly disabled = input(false);
   readonly required = input(false);
   readonly invalid = input(false);

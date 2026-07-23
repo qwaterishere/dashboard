@@ -1,0 +1,50 @@
+<div class="sales-period-bar">
+  <app-segment-control
+    [options]="presetOptions"
+    [value]="preset()"
+    (valueChange)="onPresetChange($event)"
+  />
+  <div class="sales-period-bar__date">
+    <div class="picker" (click)="$event.stopPropagation()">
+      <app-date-pill
+        [label]="label()"
+        [note]="note()"
+        [interactive]="true"
+        [ariaExpanded]="panelOpen()"
+        ariaHasPopup="dialog"
+        (pressed)="togglePanel()"
+      />
+      @if (panelOpen()) {
+        <div class="picker__panel" role="dialog" aria-label="Период продаж">
+          <app-heading [level]="4" text="Период" />
+          <app-text tone="muted2">{{ draftLabel() }}</app-text>
+
+          <app-sales-date-range-calendar
+            [(dateFrom)]="draftFrom"
+            [(dateTo)]="draftTo"
+            [maxDate]="maxDate()"
+          />
+
+          <div class="picker__actions">
+            <app-button
+              variant="primary"
+              type="button"
+              class="picker__apply"
+              [disabled]="!canApply()"
+              (pressed)="applyRange()"
+            >
+              Применить
+            </app-button>
+            <app-button variant="pill" type="button" (pressed)="resetDraft()">
+              Сбросить
+            </app-button>
+          </div>
+
+          @if (hint()) {
+            <app-text tone="caption">{{ hint() }}</app-text>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

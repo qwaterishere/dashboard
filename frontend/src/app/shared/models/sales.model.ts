@@ -1,4 +1,4 @@
-import type { CategoryKey, PeriodInfo } from './common.model';
+import type { CategoryKey } from './common.model';
 
 export interface SalesPosition {
   name: string;
@@ -9,7 +9,15 @@ export interface SalesPosition {
   unitCost: number;
 }
 
+/** Период ответа GET /api/sales (v2 факты + legacy label/note до такта 5). */
+export interface SalesPeriod {
+  dateFrom: string | null;
+  dateTo: string | null;
+  label?: string;
+  note?: string;
+}
+
 export interface SalesData {
-  period: PeriodInfo;
+  period: SalesPeriod;
   positions: SalesPosition[];
 }

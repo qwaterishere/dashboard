@@ -1,0 +1,102 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.cal {
+  display: grid;
+  gap: 10px;
+}
+
+.cal__nav {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.cal__month-label {
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--txt);
+  text-transform: lowercase;
+}
+
+.cal__nav-btn ::ng-deep button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.cal__nav-btn ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.45);
+}
+
+.cal__weekdays,
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.cal__weekday {
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--mut2);
+  text-transform: lowercase;
+  padding: 2px 0;
+}
+
+.cal__day {
+  min-width: 0;
+}
+
+.cal__day ::ng-deep button,
+.cal__day--empty {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cal__day--empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.cal__day ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.35);
+}
+
+.cal__day--in-range ::ng-deep button {
+  color: var(--txt);
+  border-color: transparent;
+  background: rgba(110, 107, 255, 0.14);
+}
+
+.cal__day--start ::ng-deep button,
+.cal__day--end ::ng-deep button {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(90deg, rgba(110, 107, 255, 0.35), rgba(61, 220, 151, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.4);
+}

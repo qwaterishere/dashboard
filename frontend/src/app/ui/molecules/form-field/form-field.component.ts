@@ -17,6 +17,8 @@ import { FieldInputComponent } from '../../atoms/field-input/field-input.compone
         [type]="type()"
         [placeholder]="placeholder()"
         [autocomplete]="autocomplete()"
+        [min]="min()"
+        [max]="max()"
         [disabled]="disabled()"
         [required]="required()"
         [invalid]="!!error()"
@@ -44,9 +46,11 @@ export class FormFieldComponent {
   readonly label = input.required<string>();
   readonly inputId = input.required<string>();
   readonly name = input.required<string>();
-  readonly type = input<'text' | 'email' | 'password'>('text');
+  readonly type = input<'text' | 'email' | 'password' | 'date'>('text');
   readonly placeholder = input('');
   readonly autocomplete = input<string | undefined>(undefined);
+  readonly min = input<string | undefined>(undefined);
+  readonly max = input<string | undefined>(undefined);
   readonly disabled = input(false);
   readonly required = input(false);
   readonly error = input<string | undefined>(undefined);

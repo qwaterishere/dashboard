@@ -1,0 +1,54 @@
+<div class="cal">
+  <div class="cal__nav">
+    <app-button
+      variant="default"
+      type="button"
+      class="cal__nav-btn"
+      [disabled]="!canPrevMonth()"
+      (pressed)="shiftMonth(-1)"
+      aria-label="Предыдущий месяц"
+    >
+      ‹
+    </app-button>
+    <span class="cal__month-label">{{ monthTitle() }}</span>
+    <app-button
+      variant="default"
+      type="button"
+      class="cal__nav-btn"
+      [disabled]="!canNextMonth()"
+      (pressed)="shiftMonth(1)"
+      aria-label="Следующий месяц"
+    >
+      ›
+    </app-button>
+  </div>
+
+  <div class="cal__weekdays" aria-hidden="true">
+    @for (day of weekdayLabels; track day) {
+      <span class="cal__weekday">{{ day }}</span>
+    }
+  </div>
+
+  <div class="cal__grid" role="grid" aria-label="Календарь периода">
+    @for (cell of cells(); track cell.key) {
+      @if (cell.iso) {
+        <app-button
+          variant="default"
+          type="button"
+          class="cal__day"
+          [class.cal__day--in-range]="cell.inRange"
+          [class.cal__day--start]="cell.isStart"
+          [class.cal__day--end]="cell.isEnd"
+          [disabled]="cell.disabled"
+          (pressed)="selectDay(cell)"
+        >
+          {{ cell.label }}
+        </app-button>
+      } @else {
+        <span class="cal__day cal__day--empty" aria-hidden="true"></span>
+      }
+    }
+  </div>
+
+  <app-text tone="caption">{{ pickHint() }}</app-text>
+</div>

@@ -9,6 +9,7 @@ import { pageTitleForSegment } from '../../../shared/constants/nav.constants';
 import { buildGreeting } from '../../../shared/utils/greeting.utils';
 import { DashboardPeriodBarComponent } from '../../../features/dashboard/containers/dashboard-period-bar/dashboard-period-bar.component';
 import { DashboardRightPanelComponent } from '../../../features/dashboard/containers/dashboard-right-panel/dashboard-right-panel.component';
+import { SalesPeriodBarComponent } from '../../../features/sales/containers/sales-period-bar/sales-period-bar.component';
 import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { DataFreshnessBannerComponent } from '../../molecules/data-freshness-banner/data-freshness-banner.component';
 import { AppShellTemplateComponent } from './app-shell-template.component';
@@ -33,6 +34,7 @@ const RIGHT_PANEL_SEGMENTS = new Set([
     AppShellTemplateComponent,
     RouterOutlet,
     DashboardPeriodBarComponent,
+    SalesPeriodBarComponent,
     DashboardRightPanelComponent,
     DataFreshnessBannerComponent,
   ],
@@ -52,7 +54,11 @@ const RIGHT_PANEL_SEGMENTS = new Set([
         <app-data-freshness-banner [freshness]="dataFreshness()" appFreshnessBanner />
       }
       @if (showPeriodBar()) {
-        <app-dashboard-period-bar appPeriodBar />
+        @if (isSales()) {
+          <app-sales-period-bar appPeriodBar />
+        } @else {
+          <app-dashboard-period-bar appPeriodBar />
+        }
       }
       <router-outlet />
       @if (showRightPanel()) {
@@ -70,6 +76,8 @@ export class AppShellHostComponent {
   protected readonly dataFreshness = this.freshnessService.freshness;
 
   protected readonly sidebarOpen = signal(false);
+
+  protected readonly isSales = computed(() => this.navActive.segment() === 'sales');
 
   protected readonly pageHeadline = computed(() => {
     const segment = this.navActive.segment() ?? '';
