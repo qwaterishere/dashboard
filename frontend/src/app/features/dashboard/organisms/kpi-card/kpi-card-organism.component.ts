@@ -16,7 +16,7 @@ export type KpiTone = 'kpi-rev' | 'kpi-check' | 'kpi-guests';
   template: `
     <div class="kpi" [class]="modifierClass()">
       <div class="k-top">
-        <app-label [tone]="tone()">{{ title() }}</app-label>
+        <app-label [tone]="tone()">{{ heading() }}</app-label>
       </div>
       <app-kpi-value
         [value]="value()"
@@ -56,7 +56,8 @@ export type KpiTone = 'kpi-rev' | 'kpi-check' | 'kpi-guests';
   styleUrl: './kpi-card-organism.component.scss',
 })
 export class KpiCardOrganismComponent {
-  readonly title = input.required<string>();
+  /** Не `title`: иначе браузер рисует native tooltip на host. */
+  readonly heading = input.required<string>();
   readonly tone = input<KpiTone>('kpi-rev');
   readonly value = input.required<number>();
   readonly valueFormat = input<'money' | 'number'>('money');

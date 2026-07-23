@@ -10,7 +10,7 @@ describe('KpiCardOrganismComponent', () => {
       imports: [KpiCardOrganismComponent],
     }).compileComponents();
     fixture = TestBed.createComponent(KpiCardOrganismComponent);
-    fixture.componentRef.setInput('title', 'Выручка');
+    fixture.componentRef.setInput('heading', 'Выручка');
     fixture.componentRef.setInput('value', 8144000);
     fixture.componentRef.setInput('lflPct', 8.4);
     fixture.componentRef.setInput('lflDir', 'up');

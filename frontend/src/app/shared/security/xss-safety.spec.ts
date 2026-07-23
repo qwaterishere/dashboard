@@ -16,8 +16,8 @@ describe('XSS safety', () => {
       fixture = TestBed.createComponent(KpiCardOrganismComponent);
     });
 
-    it.each(XSS_TEST_PAYLOADS)('escapes malicious title: %s', (payload) => {
-      fixture.componentRef.setInput('title', payload);
+    it.each(XSS_TEST_PAYLOADS)('escapes malicious heading: %s', (payload) => {
+      fixture.componentRef.setInput('heading', payload);
       fixture.componentRef.setInput('value', 1000);
       fixture.componentRef.setInput('forecastHeadline', '—');
       fixture.componentRef.setInput('trackPct', 50);

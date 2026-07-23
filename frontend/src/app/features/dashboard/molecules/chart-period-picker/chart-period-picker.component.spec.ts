@@ -135,4 +135,54 @@ describe('ChartPeriodPickerComponent', () => {
     expect(juneHost.textContent).not.toContain('датафрейм');
     expect((juneHost.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it('keeps dataframe month selectable in week compare so other weeks remain available', () => {
+    fixture.componentRef.setInput('granularity', 'week');
+    fixture.componentRef.setInput('triggerKind', 'compare');
+    fixture.componentRef.setInput('compareWith', '1–7 июня');
+    fixture.componentRef.setInput('activePeriod', {
+      year: 2026,
+      month: 6,
+      dayFrom: 1,
+      dayTo: 7,
+    });
+    fixture.componentRef.setInput('dataframePeriod', {
+      year: 2026,
+      month: 6,
+      dayFrom: 8,
+      dayTo: 14,
+    });
+    fixture.componentRef.setInput('dataframeWeekRange', {
+      startDate: '2026-06-08',
+      endDate: '2026-06-14',
+    });
+    fixture.componentRef.setInput('dataframePeriodLabel', '8–14 июня 2026');
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.cmp-pill--interactive').click();
+    fixture.detectChanges();
+
+    const juneHost = [...fixture.nativeElement.querySelectorAll('.picker__month')].find(
+      (host: Element) => host.textContent?.includes('июн'),
+    ) as HTMLElement;
+    expect(juneHost.classList.contains('picker__month--dataframe')).toBe(true);
+    expect((juneHost.querySelector('button') as HTMLButtonElement).disabled).toBe(false);
+
+    const mayHost = [...fixture.nativeElement.querySelectorAll('.picker__month')].find(
+      (host: Element) => host.textContent?.includes('май'),
+    ) as HTMLElement;
+    (mayHost.querySelector('button') ?? mayHost).click();
+    fixture.detectChanges();
+
+    (juneHost.querySelector('button') ?? juneHost).click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance['draftMonth']()).toBe(6);
+
+    const dataframeWeek = [...fixture.nativeElement.querySelectorAll('.picker__week')].find(
+      (host: Element) => host.classList.contains('picker__week--dataframe'),
+    ) as HTMLElement;
+    expect(dataframeWeek).toBeTruthy();
+    expect((dataframeWeek.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
+  });
 });

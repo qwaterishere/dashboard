@@ -112,7 +112,40 @@
   font-weight: 800;
 }
 
-.picker__month--dataframe ::ng-deep button,
+/* Месяц/год LfL: месяц датафрейма — заливка (запрещён). */
+.picker:not(.picker--week) .picker__month--dataframe ::ng-deep button {
+  border-color: transparent;
+  background: linear-gradient(90deg, rgba(255, 107, 107, 0.35), rgba(255, 160, 80, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.4);
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* Недельный LfL: месяц датафрейма — только оранжевая обводка, кликабелен. */
+.picker--week.picker--compare .picker__month--dataframe ::ng-deep button {
+  border-color: rgba(255, 107, 107, 0.75);
+  background: var(--card2);
+  box-shadow: inset 0 0 0 1px rgba(255, 160, 80, 0.35);
+  color: var(--txt);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.picker--week.picker--compare .picker__month--dataframe ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(255, 107, 107, 0.95);
+  background: rgba(255, 160, 80, 0.1);
+}
+
+.picker--week.picker--compare .picker__month--active.picker__month--dataframe ::ng-deep button {
+  border-color: rgba(255, 107, 107, 0.95);
+  background: rgba(255, 160, 80, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 107, 107, 0.45);
+  color: var(--txt);
+}
+
+/* Неделя датафрейма — заливка и запрет. */
 .picker__week--dataframe ::ng-deep button {
   border-color: transparent;
   background: linear-gradient(90deg, rgba(255, 107, 107, 0.35), rgba(255, 160, 80, 0.22));
@@ -136,7 +169,7 @@
   border-color: rgba(110, 107, 255, 0.35);
 }
 
-.picker__month--active ::ng-deep button,
+.picker__month--active:not(.picker__month--dataframe) ::ng-deep button,
 .picker__year--active ::ng-deep button {
   color: #fff;
   border-color: transparent;

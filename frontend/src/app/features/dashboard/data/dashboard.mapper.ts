@@ -47,9 +47,9 @@ function lfl(value: number, prev: number | null): LflMetric | null {
   return { pct, dir: (pct >= 0 ? 'up' : 'dn') as LflDirection };
 }
 
-function formatSignedMoney(delta: number): string {
+function formatSignedValue(delta: number, format: (n: number) => string): string {
   const sign = delta >= 0 ? '+' : '−';
-  return `${sign}${formatMoney(Math.abs(delta))}`;
+  return `${sign}${format(Math.abs(delta))}`;
 }
 
 export function forecastLabelForGranularity(
@@ -119,7 +119,7 @@ function buildLflPopover(
     ['Текущий период', format(current)],
   ];
   if (metric && prev !== null) {
-    rows.push(['Разница', formatSignedMoney(current - prev), metric.dir]);
+    rows.push(['Разница', formatSignedValue(current - prev, format), metric.dir]);
   }
   return { title, rows, footnote };
 }

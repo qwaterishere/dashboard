@@ -13,7 +13,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
   template: `
     <div class="kpis" [class.kpis--loading]="loading()">
       <app-kpi-card-organism
-        title="Выручка"
+        heading="Выручка"
         tone="kpi-rev"
         [value]="kpis().revenue.value"
         valueFormat="money"
@@ -38,7 +38,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
       </app-kpi-card-organism>
 
       <app-kpi-card-organism
-        title="Средний чек"
+        heading="Средний чек"
         tone="kpi-check"
         [value]="kpis().avgCheck.value"
         valueFormat="money"
@@ -78,7 +78,7 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
       </app-kpi-card-organism>
 
       <app-kpi-card-organism
-        title="Чеки"
+        heading="Чеки"
         tone="kpi-guests"
         [value]="kpis().guests.value"
         valueFormat="number"

@@ -259,7 +259,11 @@ export class ChartPeriodPickerComponent {
   }
 
   protected isMonthSelectable(month: number): boolean {
-    return this.isMonthAvailable(month) && !this.isDataframeMonthOption(month);
+    if (!this.isMonthAvailable(month)) return false;
+    // На недельном LfL месяц датафрейма оставляем кликабельным —
+    // запрещаем только ту же неделю (см. isWeekSelectable).
+    if (this.granularity() === 'week') return true;
+    return !this.isDataframeMonthOption(month);
   }
 
   protected isDataframeMonthOption(month: number): boolean {
