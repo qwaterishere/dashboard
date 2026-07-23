@@ -91,15 +91,15 @@ function sumMonths(months: RevenueMonthFact[]): {
   plan: number | null;
   forecast: number | null;
 } {
-  let planSum = 0;
-  let hasPlan = false;
+  /** Цель квартала — только если план задан у всех месяцев квартала. */
+  const allHavePlan = months.length > 0 && months.every((month) => month.plan !== null);
+  const planSum = allHavePlan
+    ? months.reduce((sum, month) => sum + (month.plan as number), 0)
+    : 0;
+
   let forecastSum = 0;
   let hasForecast = false;
   for (const month of months) {
-    if (month.plan !== null && month.plan > 0) {
-      planSum += month.plan;
-      hasPlan = true;
-    }
     if (month.forecast !== null && month.forecast > 0) {
       forecastSum += month.forecast;
       hasForecast = true;
@@ -114,7 +114,7 @@ function sumMonths(months: RevenueMonthFact[]): {
       }),
       { revenue: 0, checks: 0, guests: 0 },
     ),
-    plan: hasPlan ? planSum : null,
+    plan: allHavePlan && planSum > 0 ? planSum : null,
     forecast: hasForecast ? forecastSum : null,
   };
 }

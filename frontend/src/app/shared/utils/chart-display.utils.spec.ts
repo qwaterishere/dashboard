@@ -92,6 +92,41 @@ describe('chart-display.utils', () => {
     expect(series[1].revenue).toBe(4000);
   });
 
+  it('hides quarter plan when not all months in the quarter have targets', () => {
+    const series = buildChartDisplaySeries(
+      {
+        daily: [],
+        monthly: [
+          { month: 4, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null },
+          { month: 5, revenue: 200, checks: 1, guests: 1, plan: null, forecast: null },
+          { month: 6, revenue: 300, checks: 1, guests: 1, plan: 1_000_000, forecast: null },
+        ],
+        period: { year: 2026, month: 6, dayFrom: 1, dayTo: 30 },
+        timeframe: 'year',
+      },
+      'quarter',
+    );
+    expect(series[1].barLabel).toBe('Q2');
+    expect(series[1].plan).toBeNull();
+  });
+
+  it('shows quarter plan only when every month in the quarter has a target', () => {
+    const series = buildChartDisplaySeries(
+      {
+        daily: [],
+        monthly: [
+          { month: 4, revenue: 100, checks: 1, guests: 1, plan: 100_000, forecast: null },
+          { month: 5, revenue: 200, checks: 1, guests: 1, plan: 200_000, forecast: null },
+          { month: 6, revenue: 300, checks: 1, guests: 1, plan: 300_000, forecast: null },
+        ],
+        period: { year: 2026, month: 6, dayFrom: 1, dayTo: 30 },
+        timeframe: 'year',
+      },
+      'quarter',
+    );
+    expect(series[1].plan).toBe(600_000);
+  });
+
   it('builds single week bar for week timeframe', () => {
     const weekDaily = daily.slice(0, 7);
     const series = buildChartDisplaySeries(
