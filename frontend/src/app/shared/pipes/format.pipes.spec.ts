@@ -41,6 +41,13 @@ describe('format pipes', () => {
     expect(new SignedPctPipe().transform(8.4)).toBe('+8,4 %');
   });
 
+  it('pct and signedPct render non-finite as explicit zero', () => {
+    expect(new PctPipe().transform(Number.NaN)).toBe('0,0 %');
+    expect(new PctPipe().transform(Number.POSITIVE_INFINITY)).toBe('0,0 %');
+    expect(new SignedPctPipe().transform(Number.NaN)).toBe('+0,0 %');
+    expect(new SignedPctPipe().transform(Number.NEGATIVE_INFINITY)).toBe('+0,0 %');
+  });
+
   it('signedPp formats percentage points', () => {
     expect(new SignedPpPipe().transform(1.2)).toBe('+1,2 п.п.');
   });

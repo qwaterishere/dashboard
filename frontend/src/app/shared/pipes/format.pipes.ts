@@ -48,14 +48,16 @@ export class MillionsPipe implements PipeTransform {
 @Pipe({ name: 'pct', standalone: true })
 export class PctPipe implements PipeTransform {
   transform(n: number): string {
-    return `${n.toFixed(1).replace('.', ',')} %`;
+    const value = Number.isFinite(n) ? n : 0;
+    return `${value.toFixed(1).replace('.', ',')} %`;
   }
 }
 
 @Pipe({ name: 'pctInt', standalone: true })
 export class PctIntPipe implements PipeTransform {
   transform(n: number): string {
-    return `${Math.round(n)} %`;
+    const value = Number.isFinite(n) ? n : 0;
+    return `${Math.round(value)} %`;
   }
 }
 
@@ -69,16 +71,18 @@ export class DecimalPipe implements PipeTransform {
 @Pipe({ name: 'signedPct', standalone: true })
 export class SignedPctPipe implements PipeTransform {
   transform(n: number): string {
-    const sign = n >= 0 ? '+' : '−';
-    return `${sign}${Math.abs(n).toFixed(1).replace('.', ',')} %`;
+    const value = Number.isFinite(n) ? n : 0;
+    const sign = value >= 0 ? '+' : '−';
+    return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} %`;
   }
 }
 
 @Pipe({ name: 'signedPp', standalone: true })
 export class SignedPpPipe implements PipeTransform {
   transform(n: number): string {
-    const sign = n >= 0 ? '+' : '−';
-    return `${sign}${Math.abs(n).toFixed(1).replace('.', ',')} п.п.`;
+    const value = Number.isFinite(n) ? n : 0;
+    const sign = value >= 0 ? '+' : '−';
+    return `${sign}${Math.abs(value).toFixed(1).replace('.', ',')} п.п.`;
   }
 }
 

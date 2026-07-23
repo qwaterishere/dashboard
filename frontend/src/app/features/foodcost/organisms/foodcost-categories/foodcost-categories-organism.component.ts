@@ -70,6 +70,10 @@ export class FoodcostCategoriesOrganismComponent {
   protected readonly rows = computed(() => this.categories()[this.unit()]);
 
   deviation(row: FoodcostCategoryRow): number {
-    return ((row.fact - row.goal) / row.goal) * 100;
+    if (!(row.goal > 0) || !Number.isFinite(row.fact) || !Number.isFinite(row.goal)) {
+      return 0;
+    }
+    const value = ((row.fact - row.goal) / row.goal) * 100;
+    return Number.isFinite(value) ? value : 0;
   }
 }

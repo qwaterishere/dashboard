@@ -52,6 +52,10 @@ export class FoodcostUnitsOrganismComponent {
   readonly units = input.required<FoodcostUnit[]>();
 
   deviation(unit: FoodcostUnit): number {
-    return ((unit.pct - unit.goal) / unit.goal) * 100;
+    if (!(unit.goal > 0) || !Number.isFinite(unit.pct) || !Number.isFinite(unit.goal)) {
+      return 0;
+    }
+    const value = ((unit.pct - unit.goal) / unit.goal) * 100;
+    return Number.isFinite(value) ? value : 0;
   }
 }
