@@ -292,7 +292,7 @@ export class PeriodService {
 
   periodNote(granularity: PeriodGranularity): string {
     if (granularity === 'week') return 'календарная неделя · пн–вс';
-    if (granularity === 'year') return 'YTD · KPI за год';
+    if (granularity === 'year') return 'с начала года · KPI за год';
     return 'закрытые дни';
   }
 
