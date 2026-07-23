@@ -24,8 +24,8 @@ const SAMPLE: TargetsData = {
     { key: 'k', name: 'Кухня', mode: 'pct', pct: 1.2, rub: 138_000 },
     { key: 'b', name: 'Бар', mode: 'pct', pct: 0.8, rub: 92_000 },
   ],
-  compliments: { goalPct: 0.4, factPct: 0.4, factRub: 46_000 },
-  inventory: { goalPct: 0.15, note: 'факта нет — домен фазы 2' },
+  compliments: { mode: 'pct', goalPct: 0.4, goalRub: 47_200, factPct: 0.4, factRub: 46_000 },
+  inventory: { mode: 'pct', goalPct: 0.15, goalRub: 17_700, note: 'пока недоступен' },
   locked: false,
 };
 
@@ -37,6 +37,8 @@ describe('targets-form.utils', () => {
     expect(state.dailyPlanOverrides).toEqual({ 3: 500_000 });
     expect(state.foodcostGoals['k']).toBe(30);
     expect(state.writeoffs).toHaveLength(2);
+    expect(state.compliments).toEqual({ mode: 'pct', pct: 0.4, rub: 47_200 });
+    expect(state.inventory).toEqual({ mode: 'pct', pct: 0.15, rub: 17_700 });
   });
 
   it('computes compliments amount from revenue plan', () => {
@@ -54,14 +56,14 @@ describe('targets-form.utils', () => {
     expect(payload.revenue.monthPlan).toBe(12_000_000);
     expect(payload.dailyOverrides).toEqual({ '3': 500_000, '7': 400_000 });
     expect(payload.foodcost[0].goalPct).toBe(29);
-    expect(payload.complimentsGoalPct).toBe(0.4);
+    expect(payload.compliments).toEqual({ mode: 'pct', pct: 0.4, rub: 47_200 });
   });
 
   it('detects section and form dirtiness against saved snapshot', () => {
     const saved = buildTargetsFormState(SAMPLE);
     const current: TargetsFormState = {
       ...cloneTargetsFormState(saved),
-      inventoryGoalPct: 0.5,
+      inventory: { ...saved.inventory, pct: 0.5 },
     };
 
     expect(isTargetsSectionDirty(current, saved, 'inventory')).toBe(true);
@@ -73,11 +75,11 @@ describe('targets-form.utils', () => {
     const saved = buildTargetsFormState(SAMPLE);
     const dirty = cloneTargetsFormState(saved);
     dirty.revenueMonthPlan = 1;
-    dirty.inventoryGoalPct = 9;
+    dirty.inventory = { ...dirty.inventory, pct: 9 };
 
     const restored = restoreTargetsSection(dirty, saved, 'revenue');
     expect(restored.revenueMonthPlan).toBe(saved.revenueMonthPlan);
-    expect(restored.inventoryGoalPct).toBe(9);
+    expect(restored.inventory.pct).toBe(9);
   });
 
   it('rejects incomplete form until all required fields are > 0', () => {
@@ -86,8 +88,8 @@ describe('targets-form.utils', () => {
       revenue: { monthPlan: 0, weekProfile: [1, 1, 1, 1, 1, 1, 1] },
       foodcost: SAMPLE.foodcost.map((unit) => ({ ...unit, goalPct: 0 })),
       writeoffs: SAMPLE.writeoffs.map((unit) => ({ ...unit, pct: 0, rub: 0 })),
-      compliments: { ...SAMPLE.compliments, goalPct: 0 },
-      inventory: { ...SAMPLE.inventory, goalPct: 0 },
+      compliments: { ...SAMPLE.compliments, goalPct: 0, goalRub: 0 },
+      inventory: { ...SAMPLE.inventory, goalPct: 0, goalRub: 0 },
     });
     const incomplete = validateTargetsFormState(empty);
     expect(incomplete.ok).toBe(false);

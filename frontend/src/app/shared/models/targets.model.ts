@@ -1,6 +1,7 @@
 import type { CategoryKey } from './common.model';
 
 export type TargetsWriteoffMode = 'pct' | 'rub';
+export type TargetsAmountMode = TargetsWriteoffMode;
 
 export interface TargetsPeriod {
   year: number;
@@ -35,14 +36,24 @@ export interface TargetsWriteoffUnit {
 }
 
 export interface TargetsCompliments {
+  mode: TargetsAmountMode;
   goalPct: number;
+  goalRub: number;
   factPct: number;
   factRub: number;
 }
 
 export interface TargetsInventory {
+  mode: TargetsAmountMode;
   goalPct: number;
+  goalRub: number;
   note: string;
+}
+
+export interface TargetsAmountGoal {
+  mode: TargetsAmountMode;
+  pct: number;
+  rub: number;
 }
 
 export interface TargetsData {
@@ -76,8 +87,8 @@ export interface TargetsUpsertRequest {
   dailyOverrides: Record<string, number>;
   foodcost: TargetsFoodcostUnit[];
   writeoffs: TargetsWriteoffUnit[];
-  complimentsGoalPct: number;
-  inventoryGoalPct: number;
+  compliments: TargetsAmountGoal;
+  inventory: TargetsAmountGoal;
 }
 
 export interface TargetsFormState {
@@ -86,6 +97,6 @@ export interface TargetsFormState {
   dailyPlanOverrides: Record<number, number>;
   foodcostGoals: Record<string, number>;
   writeoffs: TargetsWriteoffUnit[];
-  complimentsGoalPct: number;
-  inventoryGoalPct: number;
+  compliments: TargetsAmountGoal;
+  inventory: TargetsAmountGoal;
 }

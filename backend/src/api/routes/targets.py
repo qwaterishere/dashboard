@@ -14,6 +14,7 @@ from src.services.targets import (
     TargetsLockedError,
     build_targets,
     clear_targets,
+    list_configured_targets,
     list_locked_targets,
     lock_targets,
     save_targets,
@@ -59,6 +60,20 @@ def create_targets_router(limiter: Limiter) -> APIRouter:
         db: Session = Depends(get_db),
     ) -> TargetsLockedList:
         return list_locked_targets(db, restaurant.id)
+
+    @router.get(
+        "/api/targets/configured",
+        response_model=TargetsLockedList,
+        summary="Список месяцев с заданными целями (план выручки > 0)",
+    )
+    @limiter.limit(settings.rate_limit)
+    def get_configured_targets(
+        request: Request,
+        _user: CurrentUser,
+        restaurant: CurrentRestaurant,
+        db: Session = Depends(get_db),
+    ) -> TargetsLockedList:
+        return list_configured_targets(db, restaurant.id)
 
     @router.put(
         "/api/targets",

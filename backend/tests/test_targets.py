@@ -7,7 +7,7 @@ from src.schemas.targets import TargetsUpsertRequest
 from src.services.dashboard import build_dashboard
 from src.services.foodcost import build_food_cost
 from src.services.sales import ingest_records, parse_records
-from src.services.targets import build_targets, save_targets
+from src.services.targets import build_targets, list_configured_targets, save_targets
 from src.services.targets_plan import build_month_day_plans
 from tests.factories import create_restaurant
 from tests.sales.test_ingest import make_raw
@@ -29,8 +29,8 @@ def _upsert(**overrides):
             {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.0, "rub": 0},
             {"key": "b", "name": "Бар", "mode": "pct", "pct": 0.8, "rub": 0},
         ],
-        "complimentsGoalPct": 0.5,
-        "inventoryGoalPct": 0.1,
+        "compliments": {"mode": "pct", "pct": 0.5, "rub": 0},
+        "inventory": {"mode": "pct", "pct": 0.1, "rub": 0},
     }
     payload.update(overrides)
     return TargetsUpsertRequest.model_validate(payload)
@@ -86,6 +86,14 @@ def test_save_and_load_targets_no_inheritance(session, restaurant):
     assert september.foodcost[0].goalPct == 0
 
 
+def test_list_configured_targets_only_positive_revenue_plan(session, restaurant):
+    assert list_configured_targets(session, restaurant.id).items == []
+
+    save_targets(session, restaurant.id, _upsert(year=2026, month=8))
+    configured = list_configured_targets(session, restaurant.id)
+    assert [(item.year, item.month) for item in configured.items] == [(2026, 8)]
+
+
 def test_api_targets_put_rejects_incomplete_payload(client):
     response = client.put(
         "/api/targets",
@@ -96,8 +104,8 @@ def test_api_targets_put_rejects_incomplete_payload(client):
             "dailyOverrides": {},
             "foodcost": [{"key": "k", "name": "Кухня", "goalPct": 30, "factPct": 0}],
             "writeoffs": [{"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.2, "rub": 0}],
-            "complimentsGoalPct": 0.4,
-            "inventoryGoalPct": 0.15,
+            "compliments": {"mode": "pct", "pct": 0.4, "rub": 0},
+            "inventory": {"mode": "pct", "pct": 0.15, "rub": 0},
         },
     )
     assert response.status_code == 422
@@ -153,8 +161,8 @@ def test_api_targets_delete(client):
                 {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.2, "rub": 0},
                 {"key": "b", "name": "Бар", "mode": "rub", "pct": 0, "rub": 50000},
             ],
-            "complimentsGoalPct": 0.4,
-            "inventoryGoalPct": 0.15,
+            "compliments": {"mode": "pct", "pct": 0.4, "rub": 0},
+            "inventory": {"mode": "pct", "pct": 0.15, "rub": 0},
         },
     )
     assert put.status_code == 200
@@ -270,8 +278,8 @@ def test_foodcost_goals_from_targets(session, restaurant):
                 {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.0, "rub": 0},
                 {"key": "b", "name": "Бар", "mode": "rub", "pct": 0, "rub": 25_000},
             ],
-            complimentsGoalPct=0.5,
-            inventoryGoalPct=0.1,
+            compliments={"mode": "pct", "pct": 0.5, "rub": 0},
+            inventory={"mode": "pct", "pct": 0.1, "rub": 0},
         ),
     )
 
@@ -279,6 +287,28 @@ def test_foodcost_goals_from_targets(session, restaurant):
     assert page.units[0].goal == 30  # кухня
     assert page.losses.writeoffsGoal == 35_000  # 1% of 1M + 25k
     assert page.losses.complimentsGoal == 5_000
+
+
+def test_compliments_goal_rub_mode_uses_absolute_amount(session, restaurant):
+    save_targets(
+        session,
+        restaurant.id,
+        _upsert(
+            revenue={"monthPlan": 1_000_000, "weekProfile": [1, 1, 1, 1, 1, 1, 1]},
+            compliments={"mode": "rub", "pct": 0, "rub": 12_500},
+            inventory={"mode": "rub", "pct": 0, "rub": 3_000},
+        ),
+    )
+    loaded = build_targets(session, restaurant.id, year=2026, month=8)
+    assert loaded.compliments.mode == "rub"
+    assert loaded.compliments.goalRub == 12_500
+    assert loaded.inventory.mode == "rub"
+    assert loaded.inventory.goalRub == 3_000
+
+    from src.services.targets import load_foodcost_goals
+
+    goals = load_foodcost_goals(session, restaurant.id, 2026, 8)
+    assert goals.compliments_goal_rub == 12_500
 
 
 def test_api_targets_get_put(client):
@@ -306,8 +336,8 @@ def test_api_targets_get_put(client):
                 {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.2, "rub": 0},
                 {"key": "b", "name": "Бар", "mode": "rub", "pct": 0, "rub": 50000},
             ],
-            "complimentsGoalPct": 0.4,
-            "inventoryGoalPct": 0.15,
+            "compliments": {"mode": "pct", "pct": 0.4, "rub": 0},
+            "inventory": {"mode": "pct", "pct": 0.15, "rub": 0},
         },
     )
     assert put_response.status_code == 200
@@ -319,6 +349,8 @@ def test_api_targets_get_put(client):
     again = client.get("/api/targets?year=2026&month=8").json()
     assert again["revenue"]["monthPlan"] == 5_000_000
     assert again["inventory"]["goalPct"] == 0.15
+    assert again["inventory"]["mode"] == "pct"
+    assert again["compliments"]["mode"] == "pct"
     assert again["locked"] is False
 
 
@@ -338,8 +370,8 @@ def test_api_targets_lock_blocks_put_and_delete(client):
                 {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.2, "rub": 0},
                 {"key": "b", "name": "Бар", "mode": "pct", "pct": 0.8, "rub": 0},
             ],
-            "complimentsGoalPct": 0.4,
-            "inventoryGoalPct": 0.15,
+            "compliments": {"mode": "pct", "pct": 0.4, "rub": 0},
+            "inventory": {"mode": "pct", "pct": 0.15, "rub": 0},
         },
     )
     assert put.status_code == 200
@@ -363,8 +395,8 @@ def test_api_targets_lock_blocks_put_and_delete(client):
                 {"key": "k", "name": "Кухня", "mode": "pct", "pct": 1.2, "rub": 0},
                 {"key": "b", "name": "Бар", "mode": "pct", "pct": 0.8, "rub": 0},
             ],
-            "complimentsGoalPct": 0.4,
-            "inventoryGoalPct": 0.15,
+            "compliments": {"mode": "pct", "pct": 0.4, "rub": 0},
+            "inventory": {"mode": "pct", "pct": 0.15, "rub": 0},
         },
     )
     assert blocked_put.status_code == 409

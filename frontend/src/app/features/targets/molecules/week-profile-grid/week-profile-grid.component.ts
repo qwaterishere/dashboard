@@ -26,6 +26,7 @@ const WEEK_PROFILE_LABELS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'в
               type="number"
               inputMode="decimal"
               step="0.01"
+              [blurOnEnter]="true"
               [disabled]="disabled()"
               [value]="displayValue(i)"
               (valueChange)="onValueChange(i, $event)"

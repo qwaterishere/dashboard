@@ -114,12 +114,34 @@ def _migrate_monthly_targets_locked(engine: Engine) -> None:
     logger.info("Migrated monthly_targets table: added locked")
 
 
+_MONTHLY_TARGETS_AMOUNT_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("compliments_goal_rub", "FLOAT NOT NULL DEFAULT 0"),
+    ("compliments_mode", "VARCHAR(8) NOT NULL DEFAULT 'pct'"),
+    ("inventory_goal_rub", "FLOAT NOT NULL DEFAULT 0"),
+    ("inventory_mode", "VARCHAR(8) NOT NULL DEFAULT 'pct'"),
+)
+
+
+def _migrate_monthly_targets_amount_modes(engine: Engine) -> None:
+    inspector = inspect(engine)
+    if not inspector.has_table("monthly_targets"):
+        return
+    existing = {col["name"] for col in inspector.get_columns("monthly_targets")}
+    for name, ddl in _MONTHLY_TARGETS_AMOUNT_COLUMNS:
+        if name in existing:
+            continue
+        with engine.begin() as conn:
+            conn.execute(text(f"ALTER TABLE monthly_targets ADD COLUMN {name} {ddl}"))
+        logger.info("Migrated monthly_targets table: added %s", name)
+
+
 def upgrade_schema(engine: Engine) -> None:
     from src.db.session import Base
 
     Base.metadata.create_all(engine)
     _migrate_restaurant_sync_columns(engine)
     _migrate_monthly_targets_locked(engine)
+    _migrate_monthly_targets_amount_modes(engine)
 
     inspector = inspect(engine)
     if not inspector.has_table("orders"):

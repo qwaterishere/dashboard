@@ -1,4 +1,5 @@
 import type {
+  TargetsAmountGoal,
   TargetsData,
   TargetsFormState,
   TargetsUpsertRequest,
@@ -26,8 +27,16 @@ export function buildTargetsFormState(data: TargetsData): TargetsFormState {
     dailyPlanOverrides,
     foodcostGoals: Object.fromEntries(data.foodcost.map((unit) => [unit.key, unit.goalPct])),
     writeoffs: data.writeoffs.map((unit) => ({ ...unit })),
-    complimentsGoalPct: data.compliments.goalPct,
-    inventoryGoalPct: data.inventory.goalPct,
+    compliments: {
+      mode: data.compliments.mode ?? 'pct',
+      pct: data.compliments.goalPct,
+      rub: data.compliments.goalRub ?? 0,
+    },
+    inventory: {
+      mode: data.inventory.mode ?? 'pct',
+      pct: data.inventory.goalPct,
+      rub: data.inventory.goalRub ?? 0,
+    },
   };
 }
 
@@ -53,13 +62,22 @@ export function formStateToUpsertRequest(
       goalPct: form.foodcostGoals[unit.key] ?? unit.goalPct,
     })),
     writeoffs: form.writeoffs.map((unit) => ({ ...unit })),
-    complimentsGoalPct: form.complimentsGoalPct,
-    inventoryGoalPct: form.inventoryGoalPct,
+    compliments: { ...form.compliments },
+    inventory: { ...form.inventory },
   };
 }
 
 export function complimentsAmountFromPlan(monthPlan: number, goalPct: number): number {
   return Math.round((monthPlan * goalPct) / 100);
+}
+
+export function complimentsPctFromAmount(monthPlan: number, goalRub: number): number | null {
+  if (!(monthPlan > 0) || !(goalRub > 0)) return null;
+  return Math.round((goalRub / monthPlan) * 10000) / 100;
+}
+
+export function amountGoalActiveValue(goal: TargetsAmountGoal): number {
+  return goal.mode === 'pct' ? goal.pct : goal.rub;
 }
 
 /** Месяц считается настроенным, если сохранён положительный план выручки. */
@@ -112,11 +130,11 @@ export function validateTargetsFormState(form: TargetsFormState): TargetsFormVal
     }
   }
 
-  if (!isFilledPositive(form.complimentsGoalPct)) {
+  if (!isFilledPositive(amountGoalActiveValue(form.compliments))) {
     missing.push('комплименты');
   }
 
-  if (!isFilledPositive(form.inventoryGoalPct)) {
+  if (!isFilledPositive(amountGoalActiveValue(form.inventory))) {
     missing.push('инвентаризация');
   }
 
@@ -138,8 +156,8 @@ export function cloneTargetsFormState(state: TargetsFormState): TargetsFormState
     dailyPlanOverrides: { ...state.dailyPlanOverrides },
     foodcostGoals: { ...state.foodcostGoals },
     writeoffs: state.writeoffs.map((unit) => ({ ...unit })),
-    complimentsGoalPct: state.complimentsGoalPct,
-    inventoryGoalPct: state.inventoryGoalPct,
+    compliments: { ...state.compliments },
+    inventory: { ...state.inventory },
   };
 }
 
@@ -170,9 +188,9 @@ export function isTargetsSectionDirty(
     case 'writeoffs':
       return JSON.stringify(current.writeoffs) !== JSON.stringify(saved.writeoffs);
     case 'compliments':
-      return current.complimentsGoalPct !== saved.complimentsGoalPct;
+      return JSON.stringify(current.compliments) !== JSON.stringify(saved.compliments);
     case 'inventory':
-      return current.inventoryGoalPct !== saved.inventoryGoalPct;
+      return JSON.stringify(current.inventory) !== JSON.stringify(saved.inventory);
   }
 }
 
@@ -195,10 +213,10 @@ export function restoreTargetsSection(
       next.writeoffs = saved.writeoffs.map((unit) => ({ ...unit }));
       break;
     case 'compliments':
-      next.complimentsGoalPct = saved.complimentsGoalPct;
+      next.compliments = { ...saved.compliments };
       break;
     case 'inventory':
-      next.inventoryGoalPct = saved.inventoryGoalPct;
+      next.inventory = { ...saved.inventory };
       break;
   }
   return next;

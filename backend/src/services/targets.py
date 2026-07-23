@@ -5,6 +5,7 @@ from __future__ import annotations
 import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -164,12 +165,16 @@ def build_targets(
         foodcost=foodcost_units,
         writeoffs=writeoffs,
         compliments=TargetsCompliments(
+            mode=_amount_mode(getattr(row, "compliments_mode", None)),
             goalPct=float(row.compliments_goal_pct or 0.0),
+            goalRub=float(getattr(row, "compliments_goal_rub", 0.0) or 0.0),
             factPct=0.0,
             factRub=0.0,
         ),
         inventory=TargetsInventory(
+            mode=_amount_mode(getattr(row, "inventory_mode", None)),
             goalPct=float(row.inventory_goal_pct or 0.0),
+            goalRub=float(getattr(row, "inventory_goal_rub", 0.0) or 0.0),
             note="пока недоступен",
         ),
         locked=bool(getattr(row, "locked", False)),
@@ -212,8 +217,12 @@ def save_targets(
         }
         for unit in payload.writeoffs
     ]
-    row.compliments_goal_pct = float(payload.complimentsGoalPct)
-    row.inventory_goal_pct = float(payload.inventoryGoalPct)
+    row.compliments_mode = payload.compliments.mode
+    row.compliments_goal_pct = float(payload.compliments.pct)
+    row.compliments_goal_rub = float(payload.compliments.rub)
+    row.inventory_mode = payload.inventory.mode
+    row.inventory_goal_pct = float(payload.inventory.pct)
+    row.inventory_goal_rub = float(payload.inventory.rub)
 
     session.commit()
     session.refresh(row)
@@ -292,6 +301,28 @@ def list_locked_targets(session: Session, restaurant_id: UUID) -> TargetsLockedL
         ]
     )
 
+
+def list_configured_targets(session: Session, restaurant_id: UUID) -> TargetsLockedList:
+    """Месяцы с сохранённым планом выручки (> 0) — для подсветки в пикере."""
+    rows = session.scalars(
+        select(MonthlyTarget)
+        .where(
+            MonthlyTarget.restaurant_id == restaurant_id,
+            MonthlyTarget.revenue_month_plan > 0,
+        )
+        .order_by(MonthlyTarget.year.desc(), MonthlyTarget.month.desc())
+    ).all()
+    return TargetsLockedList(
+        items=[
+            TargetsLockedPeriod(
+                year=row.year,
+                month=row.month,
+                label=_period_label(row.year, row.month),
+            )
+            for row in rows
+        ]
+    )
+
 def load_revenue_plans(
     session: Session,
     restaurant_id: UUID,
@@ -346,10 +377,11 @@ def load_foodcost_goals(
 
     month_plan = float(row.revenue_month_plan or 0.0)
     writeoffs_goal = _writeoffs_goal_rub(row.writeoffs or [], month_plan)
-    compliments_goal = (
-        round(month_plan * float(row.compliments_goal_pct or 0.0) / 100.0)
-        if month_plan > 0 and (row.compliments_goal_pct or 0) > 0
-        else None
+    compliments_goal = _amount_goal_rub(
+        mode=_amount_mode(getattr(row, "compliments_mode", None)),
+        pct=float(row.compliments_goal_pct or 0.0),
+        rub=float(getattr(row, "compliments_goal_rub", 0.0) or 0.0),
+        month_plan=month_plan,
     )
 
     return TargetsFoodcostGoals(
@@ -413,8 +445,19 @@ def _empty_targets(
             for key in _DEFAULT_FOODCOST_KEYS
         ],
         writeoffs=_empty_writeoffs(),
-        compliments=TargetsCompliments(goalPct=0.0, factPct=0.0, factRub=0.0),
-        inventory=TargetsInventory(goalPct=0.0, note="пока недоступен"),
+        compliments=TargetsCompliments(
+            mode="pct",
+            goalPct=0.0,
+            goalRub=0.0,
+            factPct=0.0,
+            factRub=0.0,
+        ),
+        inventory=TargetsInventory(
+            mode="pct",
+            goalPct=0.0,
+            goalRub=0.0,
+            note="пока недоступен",
+        ),
         locked=False,
     )
 
@@ -530,3 +573,21 @@ def _writeoffs_goal_rub(writeoffs: list[dict], month_plan: float) -> float | Non
                 has_any = True
                 total += month_plan * pct / 100.0
     return round(total) if has_any else None
+
+
+def _amount_mode(raw: object) -> Literal["pct", "rub"]:
+    return "rub" if raw == "rub" else "pct"
+
+
+def _amount_goal_rub(
+    *,
+    mode: Literal["pct", "rub"],
+    pct: float,
+    rub: float,
+    month_plan: float,
+) -> float | None:
+    if mode == "rub":
+        return round(rub) if rub > 0 else None
+    if month_plan > 0 and pct > 0:
+        return round(month_plan * pct / 100.0)
+    return None

@@ -19,6 +19,7 @@ import { TargetFactHintComponent } from '../target-fact-hint/target-fact-hint.co
           type="number"
           inputMode="decimal"
           step="any"
+          [blurOnEnter]="true"
           [disabled]="disabled()"
           [value]="displayValue()"
           (valueChange)="onValueChange($event)"

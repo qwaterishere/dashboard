@@ -14,6 +14,7 @@ import {
 
 import { CurrencyService } from '../../../../core/state/currency.service';
 import type {
+  TargetsAmountMode,
   TargetsData,
   TargetsFormState,
   TargetsWriteoffMode,
@@ -25,6 +26,7 @@ import { SegmentControlComponent } from '../../../../ui/molecules/segment-contro
 import {
   cloneTargetsFormState,
   complimentsAmountFromPlan,
+  complimentsPctFromAmount,
   isTargetsFormDirty,
   isTargetsMonthConfigured,
   isTargetsSectionDirty,
@@ -246,22 +248,52 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
         [canReset]="!isLocked() && canResetSection('compliments')"
         (resetRequested)="onResetSection('compliments')"
       >
-        <app-target-numeric-field
-          label="План, % от выручки"
-          inputId="targets-compliments"
-          name="targets-compliments"
-          suffix="%"
-          [disabled]="isLocked()"
-          [hintPrefix]="'факт ' + data().reference.label + ':'"
-          [hintFactPct]="data().compliments.factPct"
-          [hintAmountMoney]="data().compliments.factRub"
-          [value]="form().complimentsGoalPct"
-          (valueChange)="updateComplimentsGoalPct($event)"
-        />
-        <app-target-fact-hint
-          [prefix]="'от плана выручки: '"
-          [amountMoney]="complimentsPlanAmount()"
-        />
+        <div class="targets-form__amount-goal">
+          <div class="targets-form__amount-goal-head">
+            <span class="targets-form__amount-goal-label">План</span>
+            <app-segment-control
+              size="sm"
+              [disabled]="isLocked()"
+              [options]="amountModeOptions()"
+              [value]="form().compliments.mode"
+              (valueChange)="setComplimentsMode($event)"
+            />
+          </div>
+          @if (form().compliments.mode === 'pct') {
+            <app-target-numeric-field
+              label="План, % от выручки"
+              inputId="targets-compliments-pct"
+              name="targets-compliments-pct"
+              suffix="%"
+              [disabled]="isLocked()"
+              [hintPrefix]="'факт ' + data().reference.label + ':'"
+              [hintFactPct]="data().compliments.factPct"
+              [hintAmountMoney]="data().compliments.factRub"
+              [value]="form().compliments.pct"
+              (valueChange)="updateComplimentsPct($event)"
+            />
+            <app-target-fact-hint
+              [prefix]="'от плана выручки: '"
+              [amountMoney]="complimentsPlanAmount()"
+            />
+          } @else {
+            <app-target-numeric-field
+              label="План, {{ currencySymbol() }}"
+              inputId="targets-compliments-rub"
+              name="targets-compliments-rub"
+              [suffix]="currencySymbol()"
+              [disabled]="isLocked()"
+              [hintPrefix]="'факт ' + data().reference.label + ':'"
+              [hintFactPct]="data().compliments.factPct"
+              [hintAmountMoney]="data().compliments.factRub"
+              [value]="form().compliments.rub"
+              (valueChange)="updateComplimentsRub($event)"
+            />
+            @if (complimentsPlanPct(); as pct) {
+              <app-target-fact-hint [prefix]="'от плана выручки: '" [factPct]="pct" />
+            }
+          }
+        </div>
       </app-target-section>
 
       <app-target-section
@@ -271,16 +303,41 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
         [canReset]="!isLocked() && canResetSection('inventory')"
         (resetRequested)="onResetSection('inventory')"
       >
-        <app-target-numeric-field
-          label="План, % от выручки"
-          inputId="targets-inventory"
-          name="targets-inventory"
-          suffix="%"
-          [disabled]="isLocked()"
-          [hintPrefix]="'факт ' + data().reference.label + ': ' + data().inventory.note"
-          [value]="form().inventoryGoalPct"
-          (valueChange)="updateInventoryGoalPct($event)"
-        />
+        <div class="targets-form__amount-goal">
+          <div class="targets-form__amount-goal-head">
+            <span class="targets-form__amount-goal-label">План</span>
+            <app-segment-control
+              size="sm"
+              [disabled]="isLocked()"
+              [options]="amountModeOptions()"
+              [value]="form().inventory.mode"
+              (valueChange)="setInventoryMode($event)"
+            />
+          </div>
+          @if (form().inventory.mode === 'pct') {
+            <app-target-numeric-field
+              label="План, % от выручки"
+              inputId="targets-inventory-pct"
+              name="targets-inventory-pct"
+              suffix="%"
+              [disabled]="isLocked()"
+              [hintPrefix]="'факт ' + data().reference.label + ': ' + data().inventory.note"
+              [value]="form().inventory.pct"
+              (valueChange)="updateInventoryPct($event)"
+            />
+          } @else {
+            <app-target-numeric-field
+              label="План, {{ currencySymbol() }}"
+              inputId="targets-inventory-rub"
+              name="targets-inventory-rub"
+              [suffix]="currencySymbol()"
+              [disabled]="isLocked()"
+              [hintPrefix]="'факт ' + data().reference.label + ': ' + data().inventory.note"
+              [value]="form().inventory.rub"
+              (valueChange)="updateInventoryRub($event)"
+            />
+          }
+        </div>
       </app-target-section>
     </div>
   `,
@@ -314,13 +371,19 @@ export class TargetsFormOrganismComponent {
     { value: 'rub' as const, label: this.currencySymbol() },
   ]);
 
+  protected readonly amountModeOptions = computed(() => this.writeoffModeOptions());
+
   private readonly savedState = signal<TargetsFormState | null>(null);
   private syncedPeriodKey = '';
 
   protected readonly isLocked = computed(() => this.data().locked);
 
   protected readonly complimentsPlanAmount = computed(() =>
-    complimentsAmountFromPlan(this.form().revenueMonthPlan, this.form().complimentsGoalPct),
+    complimentsAmountFromPlan(this.form().revenueMonthPlan, this.form().compliments.pct),
+  );
+
+  protected readonly complimentsPlanPct = computed(() =>
+    complimentsPctFromAmount(this.form().revenueMonthPlan, this.form().compliments.rub),
   );
 
   /** Темп показываем только если прошлый месяц ещё не закрыт (pace ≠ fact). */
@@ -461,16 +524,62 @@ export class TargetsFormOrganismComponent {
     this.saveError.set(null);
   }
 
-  updateComplimentsGoalPct(value: number): void {
+  setComplimentsMode(mode: TargetsAmountMode): void {
     if (this.isLocked()) return;
-    this.form.update((state) => ({ ...state, complimentsGoalPct: value }));
+    this.form.update((state) => ({
+      ...state,
+      compliments: { ...state.compliments, mode },
+    }));
     this.saveSuccess.set(false);
     this.saveError.set(null);
   }
 
-  updateInventoryGoalPct(value: number): void {
+  updateComplimentsPct(value: number): void {
     if (this.isLocked()) return;
-    this.form.update((state) => ({ ...state, inventoryGoalPct: value }));
+    this.form.update((state) => ({
+      ...state,
+      compliments: { ...state.compliments, pct: value },
+    }));
+    this.saveSuccess.set(false);
+    this.saveError.set(null);
+  }
+
+  updateComplimentsRub(value: number): void {
+    if (this.isLocked()) return;
+    this.form.update((state) => ({
+      ...state,
+      compliments: { ...state.compliments, rub: value },
+    }));
+    this.saveSuccess.set(false);
+    this.saveError.set(null);
+  }
+
+  setInventoryMode(mode: TargetsAmountMode): void {
+    if (this.isLocked()) return;
+    this.form.update((state) => ({
+      ...state,
+      inventory: { ...state.inventory, mode },
+    }));
+    this.saveSuccess.set(false);
+    this.saveError.set(null);
+  }
+
+  updateInventoryPct(value: number): void {
+    if (this.isLocked()) return;
+    this.form.update((state) => ({
+      ...state,
+      inventory: { ...state.inventory, pct: value },
+    }));
+    this.saveSuccess.set(false);
+    this.saveError.set(null);
+  }
+
+  updateInventoryRub(value: number): void {
+    if (this.isLocked()) return;
+    this.form.update((state) => ({
+      ...state,
+      inventory: { ...state.inventory, rub: value },
+    }));
     this.saveSuccess.set(false);
     this.saveError.set(null);
   }

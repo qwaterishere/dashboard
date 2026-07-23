@@ -2,13 +2,15 @@ import { computed, effect, inject, Injectable, signal, untracked } from '@angula
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { PeriodService } from '../../../core/services/period.service';
 import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync.service';
+import { DataFreshnessService } from '../../../core/data/data-freshness.service';
 import { TargetsRepository } from '../../../core/data/targets.repository';
 import { DashboardCache } from '../../../core/data/dashboard-cache.service';
 import { DashboardCompareCache } from '../../../core/data/dashboard-compare-cache.service';
 import { FoodcostCache } from '../../../core/data/foodcost-cache.service';
 import type { TargetsData, TargetsUpsertRequest } from '../../../shared/models/targets.model';
+import { TargetsPeriodService } from './targets-period.service';
+import { formatTargetsMonthLabel } from './targets-period.utils';
 
 export interface TargetsResourceFacade {
   hasValue(): boolean;
@@ -21,7 +23,8 @@ export interface TargetsResourceFacade {
 @Injectable({ providedIn: 'root' })
 export class TargetsDataStore {
   private readonly auth = inject(AuthService);
-  private readonly periodService = inject(PeriodService);
+  private readonly targetsPeriod = inject(TargetsPeriodService);
+  private readonly freshness = inject(DataFreshnessService);
   private readonly repository = inject(TargetsRepository);
   private readonly sync = inject(AnalyticsDataSyncService);
   private readonly dashboardCache = inject(DashboardCache);
@@ -31,6 +34,8 @@ export class TargetsDataStore {
   private readonly rawData = signal<TargetsData | null>(null);
   private readonly loadError = signal<unknown | null>(null);
   private readonly loading = signal(false);
+  /** Ключи `yyyy-mm` месяцев с заданным планом выручки. */
+  readonly configuredKeys = signal<ReadonlySet<string>>(new Set());
   private latestRequestId = 0;
 
   readonly data: TargetsResourceFacade = {
@@ -43,9 +48,26 @@ export class TargetsDataStore {
     },
   };
 
-  readonly periodLabel = computed(() => this.rawData()?.period.label ?? '…');
+  readonly periodLabel = computed(() => {
+    const fromApi = this.rawData()?.period.label;
+    if (fromApi) return fromApi;
+    const selection = this.targetsPeriod.selection();
+    if (!selection) return '…';
+    return formatTargetsMonthLabel(selection.year, selection.month);
+  });
+
+  isMonthConfigured(year: number, month: number): boolean {
+    return this.configuredKeys().has(monthKey(year, month));
+  }
 
   constructor() {
+    effect(() => {
+      const fresh = this.freshness.freshness();
+      untracked(() => {
+        this.targetsPeriod.ensureBootstrapped(fresh?.latestSalesDay ?? null);
+      });
+    });
+
     effect(() => {
       const userId = this.auth.user()?.id;
       if (!userId) {
@@ -53,11 +75,20 @@ export class TargetsDataStore {
         return;
       }
 
-      const chartPeriod = this.periodService.chartPeriod();
-      const dashboardPeriod = this.periodService.dashboardPeriod();
-      const granularity = this.periodService.granularity();
       untracked(() => {
-        void this.loadCurrent(chartPeriod, dashboardPeriod, granularity);
+        void this.refreshConfiguredMonths();
+      });
+    });
+
+    effect(() => {
+      const userId = this.auth.user()?.id;
+      if (!userId) return;
+
+      const selection = this.targetsPeriod.selection();
+      if (!selection) return;
+
+      untracked(() => {
+        void this.loadCurrent(selection.year, selection.month);
       });
     });
   }
@@ -67,6 +98,7 @@ export class TargetsDataStore {
     this.rawData.set(saved);
     this.loadError.set(null);
     this.invalidateAnalyticsCaches();
+    void this.refreshConfiguredMonths();
     return saved;
   }
 
@@ -75,6 +107,7 @@ export class TargetsDataStore {
     this.rawData.set(cleared);
     this.loadError.set(null);
     this.invalidateAnalyticsCaches();
+    void this.refreshConfiguredMonths();
     return cleared;
   }
 
@@ -104,45 +137,20 @@ export class TargetsDataStore {
     this.sync.forceReload(['dashboard', 'foodcost']);
   }
 
-  private resolveQuery(
-    chartPeriod = this.periodService.chartPeriod(),
-    dashboardPeriod = this.periodService.dashboardPeriod(),
-    granularity = this.periodService.granularity(),
-  ): { year?: number; month?: number } {
-    // Цели всегда месячные — в year-режиме берём месяц KPI дашборда или январь.
-    if (granularity === 'year') {
-      const year = chartPeriod?.year ?? dashboardPeriod?.year;
-      if (year == null) return {};
-      if (dashboardPeriod?.year === year && dashboardPeriod.month) {
-        return { year, month: dashboardPeriod.month };
-      }
-      return { year, month: 1 };
-    }
-
-    if (chartPeriod?.year != null && chartPeriod.month != null) {
-      return { year: chartPeriod.year, month: chartPeriod.month };
-    }
-
-    if (dashboardPeriod?.year && dashboardPeriod.month) {
-      return { year: dashboardPeriod.year, month: dashboardPeriod.month };
-    }
-    return {};
-  }
-
-  private async loadCurrent(
-    chartPeriod = this.periodService.chartPeriod(),
-    dashboardPeriod = this.periodService.dashboardPeriod(),
-    granularity = this.periodService.granularity(),
-  ): Promise<void> {
+  private async loadCurrent(year?: number, month?: number): Promise<void> {
     if (!this.auth.user()?.id) return;
+
+    const selection = this.targetsPeriod.selection();
+    const y = year ?? selection?.year;
+    const m = month ?? selection?.month;
+    if (y == null || m == null) return;
 
     const requestId = ++this.latestRequestId;
     this.loading.set(true);
     this.loadError.set(null);
 
     try {
-      const query = this.resolveQuery(chartPeriod, dashboardPeriod, granularity);
-      const data = await firstValueFrom(this.repository.fetch(query));
+      const data = await firstValueFrom(this.repository.fetch({ year: y, month: m }));
       if (requestId !== this.latestRequestId) return;
       this.rawData.set(data);
     } catch (error) {
@@ -155,10 +163,27 @@ export class TargetsDataStore {
     }
   }
 
+  async refreshConfiguredMonths(): Promise<void> {
+    if (!this.auth.user()?.id) return;
+    try {
+      const list = await firstValueFrom(this.repository.listConfigured());
+      this.configuredKeys.set(
+        new Set(list.items.map((item) => monthKey(item.year, item.month))),
+      );
+    } catch {
+      /* пикер просто без подсветки */
+    }
+  }
+
   private resetState(): void {
     this.latestRequestId += 1;
     this.rawData.set(null);
     this.loadError.set(null);
     this.loading.set(false);
+    this.configuredKeys.set(new Set());
   }
+}
+
+function monthKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, '0')}`;
 }

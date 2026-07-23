@@ -48,34 +48,40 @@ const WEEKDAY_HEADERS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
           <div class="month-plan-calendar__pad" role="presentation"></div>
         }
         @for (plan of dayPlans(); track plan.day) {
-          <button
-            type="button"
+          <div
             class="month-plan-calendar__day"
             [class.month-plan-calendar__day--override]="plan.isOverride"
             [class.month-plan-calendar__day--weekend]="isWeekend(plan.day)"
-            [disabled]="disabled()"
+            [class.month-plan-calendar__day--editing]="editingDay() === plan.day"
+            [class.month-plan-calendar__day--disabled]="disabled()"
             role="gridcell"
             [attr.aria-label]="dayAriaLabel(plan)"
-            (click)="startEdit(plan)"
+            [attr.tabindex]="disabled() || editingDay() === plan.day ? -1 : 0"
+            (click)="onDayClick(plan)"
+            (keydown.enter)="onDayKeyActivate($event, plan)"
+            (keydown.space)="onDayKeyActivate($event, plan)"
           >
             <span class="month-plan-calendar__day-num">{{ plan.day }}</span>
             @if (editingDay() === plan.day) {
               <input
                 class="month-plan-calendar__input"
-                type="number"
-                inputmode="numeric"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
                 [id]="inputId(plan.day)"
+                [attr.aria-label]="'План на ' + plan.day + ' число'"
+                [placeholder]="editPlaceholder()"
                 [value]="editValue()"
                 (input)="onEditInput($event)"
                 (blur)="commitEdit(plan.day)"
-                (keydown.enter)="commitEdit(plan.day)"
-                (keydown.escape)="cancelEdit()"
+                (keydown.enter)="onEnterKey($event, plan.day)"
+                (keydown.escape)="onEscapeKey($event)"
                 (click)="$event.stopPropagation()"
               />
             } @else {
               <span class="month-plan-calendar__amount">{{ plan.amount | kFormat }}</span>
             }
-          </button>
+          </div>
         }
       </div>
     </div>
@@ -96,6 +102,7 @@ export class MonthPlanCalendarComponent {
   protected readonly weekdayHeaders = WEEKDAY_HEADERS;
   protected readonly editingDay = signal<number | null>(null);
   protected readonly editValue = signal('');
+  protected readonly editPlaceholder = signal('');
 
   protected readonly dayPlans = computed(() =>
     buildMonthDayPlans(
@@ -123,11 +130,29 @@ export class MonthPlanCalendarComponent {
     return `${plan.day} число, план ${plan.amount}${suffix}`;
   }
 
+  onDayClick(plan: MonthDayPlan): void {
+    if (this.editingDay() === plan.day) return;
+    this.startEdit(plan);
+  }
+
+  onDayKeyActivate(event: Event, plan: MonthDayPlan): void {
+    if (this.editingDay() === plan.day) return;
+    event.preventDefault();
+    this.startEdit(plan);
+  }
+
   startEdit(plan: MonthDayPlan): void {
     if (this.disabled()) return;
     this.editingDay.set(plan.day);
-    this.editValue.set(String(plan.amount));
-    queueMicrotask(() => document.getElementById(this.inputId(plan.day))?.focus());
+    this.editPlaceholder.set(String(plan.amount));
+    // Пустое поле: новый ввод сразу заменяет план, без ручного стирания.
+    this.editValue.set('');
+    queueMicrotask(() => {
+      const el = document.getElementById(this.inputId(plan.day));
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+      }
+    });
   }
 
   inputId(day: number): string {
@@ -140,18 +165,42 @@ export class MonthPlanCalendarComponent {
     this.editValue.set(target.value);
   }
 
+  onEnterKey(event: Event, day: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const target = event.target;
+    if (target instanceof HTMLInputElement) {
+      target.blur();
+      return;
+    }
+    this.commitEdit(day);
+  }
+
+  onEscapeKey(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.cancelEdit();
+  }
+
   commitEdit(day: number): void {
     if (this.editingDay() !== day) return;
-    const parsed = Number.parseFloat(this.editValue().replace(',', '.'));
+    const raw = this.editValue().trim().replace(/\s/g, '').replace(',', '.');
+    if (raw === '') {
+      this.cancelEdit();
+      return;
+    }
+    const parsed = Number.parseFloat(raw);
     if (Number.isFinite(parsed) && parsed >= 0) {
       this.overrideChange.emit({ day, amount: Math.round(parsed) });
     }
     this.editingDay.set(null);
     this.editValue.set('');
+    this.editPlaceholder.set('');
   }
 
   cancelEdit(): void {
     this.editingDay.set(null);
     this.editValue.set('');
+    this.editPlaceholder.set('');
   }
 }

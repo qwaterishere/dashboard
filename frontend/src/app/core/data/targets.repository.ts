@@ -36,6 +36,12 @@ export class TargetsRepository {
     });
   }
 
+  listConfigured(): Observable<TargetsLockedList> {
+    return this.http.get<TargetsLockedList>(`${this.api.apiBase}/targets/configured`, {
+      withCredentials: true,
+    });
+  }
+
   save(payload: TargetsUpsertRequest): Observable<TargetsData> {
     return this.http.put<TargetsData>(`${this.api.apiBase}/targets`, payload, {
       withCredentials: true,

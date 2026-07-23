@@ -129,6 +129,24 @@
     font-weight: 700;
     color: var(--txt);
   }
+
+  &__amount-goal {
+    display: grid;
+    gap: 10px;
+  }
+
+  &__amount-goal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__amount-goal-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--txt);
+  }
 }
 
 @media (max-width: 900px) {

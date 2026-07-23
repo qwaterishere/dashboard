@@ -1,0 +1,145 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.targets-period-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  margin-bottom: 18px;
+  width: 100%;
+  min-width: 0;
+
+  app-segment-control {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .targets-period-bar__date {
+    flex: 1 1 0;
+    width: 0;
+    max-width: var(--period-pill-slot-width);
+    min-width: 0;
+    min-height: var(--period-pill-height);
+    position: relative;
+    z-index: 20;
+  }
+}
+
+.picker {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.picker__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: auto;
+  z-index: 100;
+  width: min(300px, calc(100vw - 32px));
+  padding: 14px 16px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(110, 107, 255, 0.45);
+  background: var(--popover-bg);
+  box-shadow: var(--popover-shadow);
+  display: grid;
+  gap: 12px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    width: 10px;
+    height: 10px;
+    background: var(--popover-bg);
+    border-left: 1px solid rgba(110, 107, 255, 0.45);
+    border-top: 1px solid rgba(110, 107, 255, 0.45);
+    transform: rotate(45deg);
+  }
+}
+
+.picker__year-nav {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker__year-label {
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--txt);
+}
+
+.picker__nav-btn ::ng-deep button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.picker__nav-btn ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.45);
+}
+
+.picker__months {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.picker__month ::ng-deep button {
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--card2);
+  color: var(--mut);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 8px 4px;
+  min-height: 42px;
+}
+
+.picker__month ::ng-deep button:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: rgba(110, 107, 255, 0.35);
+}
+
+.picker__month--active ::ng-deep button {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(90deg, rgba(110, 107, 255, 0.35), rgba(61, 220, 151, 0.22));
+  box-shadow: inset 0 0 0 1px rgba(110, 107, 255, 0.4);
+}
+
+.picker__month--configured ::ng-deep button {
+  color: var(--txt);
+  border-color: rgba(61, 220, 151, 0.55);
+  background: rgba(61, 220, 151, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(61, 220, 151, 0.25);
+}
+
+@media (max-width: 1180px) {
+  .targets-period-bar {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .targets-period-bar {
+    gap: 6px;
+  }
+}

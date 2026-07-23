@@ -1,0 +1,65 @@
+<div class="targets-period-bar">
+  <app-segment-control
+    [options]="quickOptions"
+    [value]="quickValue()"
+    (valueChange)="onQuickChange($event)"
+  />
+  <div class="targets-period-bar__date">
+    <div class="picker" (click)="$event.stopPropagation()">
+      <app-date-pill
+        [label]="label()"
+        [note]="note()"
+        [interactive]="true"
+        [ariaExpanded]="panelOpen()"
+        ariaHasPopup="dialog"
+        (pressed)="togglePanel()"
+      />
+      @if (panelOpen()) {
+        <div class="picker__panel" role="dialog" aria-label="Месяц целей">
+          <app-heading [level]="4" text="Месяц" />
+
+          <div class="picker__year-nav">
+            <app-button
+              variant="default"
+              type="button"
+              class="picker__nav-btn"
+              [disabled]="!canPrevYear()"
+              (pressed)="shiftYear(-1)"
+              aria-label="Предыдущий год"
+            >
+              ‹
+            </app-button>
+            <span class="picker__year-label">{{ draftYear() }}</span>
+            <app-button
+              variant="default"
+              type="button"
+              class="picker__nav-btn"
+              [disabled]="!canNextYear()"
+              (pressed)="shiftYear(1)"
+              aria-label="Следующий год"
+            >
+              ›
+            </app-button>
+          </div>
+
+          <div class="picker__months" role="listbox" aria-label="Месяц">
+            @for (month of monthOptions; track month) {
+              <app-button
+                variant="default"
+                type="button"
+                class="picker__month"
+                [class.picker__month--active]="isMonthActive(month)"
+                [class.picker__month--configured]="isMonthConfigured(month) && !isMonthActive(month)"
+                (pressed)="selectMonth(month)"
+              >
+                {{ monthLabel(month) }}
+              </app-button>
+            }
+          </div>
+
+          <app-text tone="caption">Подсвечены месяцы с уже заданными целями</app-text>
+        </div>
+      }
+    </div>
+  </div>
+</div>

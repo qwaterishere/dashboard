@@ -95,14 +95,33 @@ class TargetsWriteoffUnitUpsert(StrictModel):
 
 
 class TargetsCompliments(StrictModel):
+    mode: WriteoffMode = "pct"
     goalPct: float = Field(ge=0, le=100)
+    goalRub: float = Field(ge=0)
     factPct: float = Field(ge=0)
     factRub: float = Field(ge=0)
 
 
 class TargetsInventory(StrictModel):
+    mode: WriteoffMode = "pct"
     goalPct: float = Field(ge=0, le=100)
+    goalRub: float = Field(ge=0)
     note: str
+
+
+class TargetsAmountGoalUpsert(StrictModel):
+    """Цель в % или в валюте — как у списаний."""
+
+    mode: WriteoffMode
+    pct: float = Field(ge=0, le=100)
+    rub: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def active_amount_required(self) -> TargetsAmountGoalUpsert:
+        amount = self.pct if self.mode == "pct" else self.rub
+        if amount <= 0:
+            raise ValueError("goal amount for active mode must be > 0")
+        return self
 
 
 class TargetsData(StrictModel):
@@ -139,8 +158,8 @@ class TargetsUpsertRequest(StrictModel):
     dailyOverrides: dict[str, float] = Field(default_factory=dict)
     foodcost: list[TargetsFoodcostUnitUpsert] = Field(min_length=1)
     writeoffs: list[TargetsWriteoffUnitUpsert] = Field(min_length=1)
-    complimentsGoalPct: float = Field(gt=0, le=100)
-    inventoryGoalPct: float = Field(gt=0, le=100)
+    compliments: TargetsAmountGoalUpsert
+    inventory: TargetsAmountGoalUpsert
 
     @field_validator("dailyOverrides")
     @classmethod

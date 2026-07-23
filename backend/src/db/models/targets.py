@@ -34,7 +34,11 @@ class MonthlyTarget(Base):
     foodcost_goals: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     writeoffs: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     compliments_goal_pct: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    compliments_goal_rub: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    compliments_mode: Mapped[str] = mapped_column(nullable=False, default="pct")
     inventory_goal_pct: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    inventory_goal_rub: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    inventory_mode: Mapped[str] = mapped_column(nullable=False, default="pct")
     locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     updated_at: Mapped[datetime] = mapped_column(
