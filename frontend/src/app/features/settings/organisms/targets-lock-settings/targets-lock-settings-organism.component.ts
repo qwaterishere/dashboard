@@ -13,6 +13,7 @@ import { TargetsDataStore } from '../../../targets/data/targets-data.store';
 import type { TargetsLockedPeriod } from '../../../../shared/models/targets.model';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
+import { ConfirmDialogComponent } from '../../../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { FormBannerComponent } from '../../../../ui/molecules/form-banner/form-banner.component';
 import { SettingsSectionComponent } from '../../../../ui/molecules/settings-section/settings-section.component';
 
@@ -22,6 +23,7 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
   imports: [
     ButtonComponent,
     TextComponent,
+    ConfirmDialogComponent,
     FormBannerComponent,
     SettingsSectionComponent,
   ],
@@ -56,7 +58,7 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
               <app-button
                 variant="pill"
                 [disabled]="busyKey() === lockKey(item)"
-                (pressed)="onUnlock(item)"
+                (pressed)="requestUnlock(item)"
               >
                 {{ busyKey() === lockKey(item) ? 'Разблокировка…' : 'Разблокировать' }}
               </app-button>
@@ -65,6 +67,22 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
         </ul>
       }
     </app-settings-section>
+
+    @if (unlockConfirm(); as item) {
+      <app-confirm-dialog
+        title="Разблокировать цели?"
+        [message]="
+          'Разблокировать цели за ' +
+          item.label +
+          '? После этого месяц снова можно будет редактировать на странице «Цели».'
+        "
+        confirmLabel="Разблокировать"
+        cancelLabel="Отмена"
+        confirmVariant="danger"
+        (confirmed)="confirmUnlock()"
+        (cancelled)="unlockConfirm.set(null)"
+      />
+    }
   `,
   styles: `
     .locks {
@@ -116,6 +134,7 @@ export class TargetsLockSettingsOrganismComponent implements OnInit {
   protected readonly actionError = signal<string | null>(null);
   protected readonly success = signal<string | null>(null);
   protected readonly busyKey = signal<string | null>(null);
+  protected readonly unlockConfirm = signal<TargetsLockedPeriod | null>(null);
 
   ngOnInit(): void {
     void this.reload();
@@ -125,11 +144,14 @@ export class TargetsLockSettingsOrganismComponent implements OnInit {
     return `${item.year}-${item.month}`;
   }
 
-  async onUnlock(item: TargetsLockedPeriod): Promise<void> {
-    const ok = confirm(
-      `Разблокировать цели за ${item.label}? После этого месяц снова можно будет редактировать на странице «Цели».`,
-    );
-    if (!ok) return;
+  requestUnlock(item: TargetsLockedPeriod): void {
+    this.unlockConfirm.set(item);
+  }
+
+  async confirmUnlock(): Promise<void> {
+    const item = this.unlockConfirm();
+    this.unlockConfirm.set(null);
+    if (!item) return;
 
     this.busyKey.set(this.lockKey(item));
     this.actionError.set(null);

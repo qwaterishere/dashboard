@@ -21,6 +21,7 @@ import type {
   TargetsWriteoffUnit,
 } from '../../../../shared/models/targets.model';
 import { ButtonComponent } from '../../../../ui/atoms/button/button.component';
+import { ConfirmDialogComponent } from '../../../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { FormBannerComponent } from '../../../../ui/molecules/form-banner/form-banner.component';
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
 import {
@@ -47,6 +48,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
   imports: [
     RouterLink,
     ButtonComponent,
+    ConfirmDialogComponent,
     FormBannerComponent,
     SegmentControlComponent,
     TargetFactHintComponent,
@@ -340,6 +342,18 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
         </div>
       </app-target-section>
     </div>
+
+    @if (confirmDialog(); as dialog) {
+      <app-confirm-dialog
+        [title]="dialog.title"
+        [message]="dialog.message"
+        [confirmLabel]="dialog.confirmLabel"
+        cancelLabel="Отмена"
+        [confirmVariant]="dialog.confirmVariant"
+        (confirmed)="onConfirmDialogConfirmed()"
+        (cancelled)="confirmDialog.set(null)"
+      />
+    }
   `,
   styleUrl: './targets-form-organism.component.scss',
 })
@@ -360,6 +374,13 @@ export class TargetsFormOrganismComponent {
   protected readonly saveSuccess = signal(false);
   protected readonly successMessage = signal('Цели сохранены');
   protected readonly saveError = signal<string | null>(null);
+  protected readonly confirmDialog = signal<{
+    kind: 'lock' | 'lock-discard';
+    title: string;
+    message: string;
+    confirmLabel: string;
+    confirmVariant: 'danger' | 'primary';
+  } | null>(null);
 
   protected readonly currencySymbol = computed(() => {
     this.currency.code();
@@ -616,20 +637,44 @@ export class TargetsFormOrganismComponent {
   onLockMonth(): void {
     if (this.isLocked() || !this.canLockMonth()) return;
     if (this.canResetAll()) {
-      const discard = confirm(
-        'Есть несохранённые правки. Заблокировать сохранённую версию целей? Несохранённые изменения будут отброшены.',
-      );
-      if (!discard) return;
-      this.onResetAll();
+      this.confirmDialog.set({
+        kind: 'lock-discard',
+        title: 'Несохранённые правки',
+        message:
+          'Есть несохранённые правки. Заблокировать сохранённую версию целей? Несохранённые изменения будут отброшены.',
+        confirmLabel: 'Продолжить',
+        confirmVariant: 'danger',
+      });
+      return;
     }
-    const ok = confirm(
-      `Заблокировать цели за ${this.data().period.label}? Редактирование будет недоступно до разблокировки в Настройках.`,
-    );
-    if (!ok) return;
+    this.openLockConfirm();
+  }
+
+  onConfirmDialogConfirmed(): void {
+    const dialog = this.confirmDialog();
+    this.confirmDialog.set(null);
+    if (!dialog) return;
+
+    if (dialog.kind === 'lock-discard') {
+      this.onResetAll();
+      this.openLockConfirm();
+      return;
+    }
+
     this.locking.set(true);
     this.saveSuccess.set(false);
     this.saveError.set(null);
     this.lockRequested.emit();
+  }
+
+  private openLockConfirm(): void {
+    this.confirmDialog.set({
+      kind: 'lock',
+      title: 'Заблокировать цели?',
+      message: `Заблокировать цели за ${this.data().period.label}? Редактирование будет недоступно до разблокировки в Настройках.`,
+      confirmLabel: 'Заблокировать',
+      confirmVariant: 'danger',
+    });
   }
 
   markSaveSuccess(snapshot: TargetsFormState): void {
