@@ -21,9 +21,7 @@ import { foodcostBarWidth } from './foodcost-bar-scale.utils';
   ],
   template: `
     <div class="panel panel-flat">
-      <app-panel-header title="Фудкост">
-        <button type="button" class="pill">Месяц</button>
-      </app-panel-header>
+      <app-panel-header title="Фудкост" />
       <div class="fc-cap">{{ foodcost().caption }}</div>
       <div class="fc-list">
         @for (item of foodcost().items; track item.key) {
