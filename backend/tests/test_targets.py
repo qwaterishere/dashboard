@@ -386,3 +386,44 @@ def test_api_targets_lock_blocks_put_and_delete(client):
 def test_api_targets_lock_rejects_empty_month(client):
     response = client.post("/api/targets/lock?year=2026&month=9")
     assert response.status_code == 422
+
+
+def test_reference_uses_full_previous_month_not_mtd_slice(session, restaurant):
+    """Подсказка «факт» — весь прошлый месяц, не срез 1…N по текущему MTD."""
+    # Июль: продажи 1–31 (полный месяц). Август: закрыто по 12-е.
+    # Раньше reference брал июль 1–12; теперь — весь июль.
+    records = []
+    for day, amount in ((1, 100_000), (12, 200_000), (31, 300_000)):
+        records.append(
+            make_raw(
+                **{
+                    "ItemSaleEvent.Id": f"eeeeeeee-0000-0000-0000-0000000000{day:02d}",
+                    "OpenDate.Typed": f"2026-07-{day:02d}",
+                    "OrderNum": day,
+                    "SessionNum": 1,
+                    "GuestNum": 2,
+                    "DishSumInt": amount,
+                    "DishDiscountSumInt": amount,
+                }
+            )
+        )
+    records.append(
+        make_raw(
+            **{
+                "ItemSaleEvent.Id": "ffffffff-0000-0000-0000-000000000012",
+                "OpenDate.Typed": "2026-08-12",
+                "OrderNum": 12,
+                "SessionNum": 1,
+                "GuestNum": 2,
+                "DishSumInt": 50_000,
+                "DishDiscountSumInt": 50_000,
+            }
+        )
+    )
+    ingest_records(session, parse_records(records), restaurant_id=restaurant.id)
+    session.commit()
+
+    page = build_targets(session, restaurant.id, year=2026, month=8)
+    assert page.reference.label == "июля"
+    assert page.reference.revenueFact == 600_000  # 100k+200k+300k, не только 1–12
+    assert page.reference.revenuePace == 600_000  # июль закрыт полностью

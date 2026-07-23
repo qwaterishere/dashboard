@@ -436,24 +436,14 @@ def _build_reference(
     year: int,
     month: int,
 ) -> TargetsReference:
-    """Факт предыдущего месяца (MTD по числу дней текущего закрытия) + темп."""
+    """Факт всего предыдущего календарного месяца (+ темп, если месяц ещё не закрыт)."""
     first = date(year, month, 1)
     prev_last = first - timedelta(days=1)
     prev_year, prev_month = prev_last.year, prev_last.month
     prev_days = calendar.monthrange(prev_year, prev_month)[1]
 
-    latest = session.scalar(
-        select(func.max(Order.day)).where(Order.restaurant_id == restaurant_id)
-    )
-    if latest is not None and latest.year == year and latest.month == month:
-        mtd_days = min(latest.day, prev_days)
-    elif latest is not None and (latest.year, latest.month) == (prev_year, prev_month):
-        mtd_days = latest.day
-    else:
-        mtd_days = prev_days
-
     d_from = date(prev_year, prev_month, 1)
-    d_to = date(prev_year, prev_month, mtd_days)
+    d_to = prev_last
     fact = float(
         session.scalar(
             select(func.coalesce(func.sum(Order.paid_total), 0)).where(
@@ -464,13 +454,26 @@ def _build_reference(
         )
         or 0.0
     )
-    pace = round(fact / mtd_days * prev_days) if mtd_days > 0 else 0.0
-    label = (
-        f"{_MONTH_GENITIVE[prev_month]} (1–{mtd_days})"
-        if mtd_days < prev_days
-        else _MONTH_GENITIVE[prev_month]
+
+    latest = session.scalar(
+        select(func.max(Order.day)).where(Order.restaurant_id == restaurant_id)
     )
-    return TargetsReference(label=label, revenueFact=round(fact), revenuePace=pace)
+    # Темп — только если прошлый месяц ещё не полностью закрыт в данных.
+    if (
+        latest is not None
+        and (latest.year, latest.month) == (prev_year, prev_month)
+        and latest.day < prev_days
+        and latest.day > 0
+    ):
+        pace = round(fact / latest.day * prev_days)
+    else:
+        pace = round(fact)
+
+    return TargetsReference(
+        label=_MONTH_GENITIVE[prev_month],
+        revenueFact=round(fact),
+        revenuePace=pace,
+    )
 
 
 def _foodcost_facts(

@@ -32,9 +32,8 @@
 **Контракт данных:** бэкенд отдаёт **сырые числа**, фронтенд форматирует в ru-RU.
 
 ```
-data/<страница>.json   ← контракт API + static fallback
-backend/app.py         ← FastAPI: GET /api/{page}
-app/js/                ← legacy (удалить после cutover)
+backend/src/                          ← FastAPI: GET /api/{page}
+OpenAPI / Pydantic schemas            ← контракт API (источник правды)
 ```
 
 Принцип: `8144000`, а не `"8 144 000 ₽"`; категория — ключ `"k"`, имя «Кухня» — на клиенте.
@@ -255,11 +254,11 @@ dashboard/
 │   │   │   │   ├── config/
 │   │   │   │   │   └── environment.ts
 │   │   │   │   ├── interceptors/
-│   │   │   │   │   └── api-fallback.interceptor.ts
+│   │   │   │   │   └── auth.interceptor.ts
 │   │   │   │   └── services/
 │   │   │   │       └── period.service.ts
 │   │   │   ├── shared/
-│   │   │   │   ├── models/            # TS interfaces из data/*.json
+│   │   │   │   ├── models/            # TS interfaces из API/OpenAPI
 │   │   │   │   ├── pipes/
 │   │   │   │   ├── constants/
 │   │   │   │   └── utils/
@@ -302,8 +301,7 @@ dashboard/
 │   │   └── index.html
 │   ├── e2e/                           # Playwright
 │   └── .storybook/                    # Design system catalog
-├── backend/                           # существующий FastAPI
-├── data/                              # JSON-контракты + fallback
+├── backend/                           # FastAPI + schemas + tests
 ├── .github/
 │   ├── workflows/
 │   │   ├── frontend-ci.yml
@@ -374,10 +372,7 @@ export const routes: Routes = [
 ### Data layer (замена `app/js/api.js`)
 
 ```typescript
-// core/interceptors/api-fallback.interceptor.ts
-// При network error / API недоступен → GET /data/{page}.json
-
-// core/api/page-data.resource.ts
+// core/api/page-data.resource.ts — только /api/{page}, без static JSON fallback
 export function createPageResource<T>(page: () => string) {
   return httpResource<T>(() => ({
     url: `${inject(ENV).apiBase}/${page()}`,
@@ -394,10 +389,10 @@ export function createPageResource<T>(page: () => string) {
 | `app/js/format.js` | Pipes в `shared/pipes/` | Atoms utilities |
 | `app/js/palette.js` | `shared/constants/category.constants.ts` | Atoms constants |
 | `app/js/charts.js` | `shared/utils/chart.utils.ts` | Atoms utilities |
-| `app/js/api.js` | `core/api/` + interceptor | Core (не UI) |
+| `app/js/api.js` | `core/api/` + auth interceptor | Core (не UI) |
 | `app/base.css` | `_tokens.scss`, `_layout.scss` | Design tokens |
 | `app/{page}.css` | Page-scoped styles + `[data-page]` | Templates/Pages |
-| `data/*.json` | `shared/models/*.model.ts` | Core contracts |
+| API JSON / OpenAPI | `shared/models/*.model.ts` | Core contracts |
 | Sidebar HTML × 4 | `SidebarOrganism` | Organism |
 | `#levelSeg` × 5 | `SegmentControlComponent` | Molecule |
 
@@ -425,11 +420,11 @@ npx playwright install
 
 **Порядок:** сначала atoms, потом molecules (не нарушать иерархию).
 
-1. TypeScript-модели из `data/*.json`
+1. TypeScript-модели из API schemas / OpenAPI
 2. Все pipes из `format.js` + unit-тесты
 3. `category.constants.ts`, `chart.utils.ts` + тесты
 4. Atoms: Button, Icon, Badge, Label, Heading, Text, Dot, ProgressFill, ProgressTrack, MarkLine, LflBadgeAtom
-5. ApiService + fallback interceptor + security interceptor tests
+5. ApiService + auth interceptor + security interceptor tests
 6. Storybook stories для каждого atom
 7. `xss-safety.spec.ts` — базовый XSS test suite
 
@@ -491,7 +486,7 @@ npx playwright install
 2. FastAPI: `app.mount("/", StaticFiles(directory=ROOT / "frontend" / "dist", html=True))`
 3. Удалить legacy: `index.html`, `sales.html`, `app/js/`
 4. Обновить README
-5. GitHub Pages: deploy `dist/` + `data/`
+5. Обновить README
 
 ### Фаза 9 — Security hardening + audit (2–3 дня, параллельно с 6–8)
 
@@ -708,8 +703,8 @@ describe('XSS safety', () => {
 ```
 
 ```typescript
-// frontend/src/app/core/interceptors/api-fallback.interceptor.spec.ts
-it('rejects non-whitelisted page names', () => { ... });
+// frontend/src/app/core/interceptors/auth.interceptor.spec.ts
+it('attaches credentials only to same-origin API', () => { ... });
 it('does not expose stack traces in error UI', () => { ... });
 ```
 
@@ -781,7 +776,7 @@ test('X-Frame-Options prevents clickjacking', async ({ request }) => {
 #### E. Penetration testing checklist (перед production)
 
 - [ ] OWASP Top 10 review (Injection, XSS, Broken Access Control, SSRF, etc.)
-- [ ] Manual test: подмена `data/*.json` — UI не исполняет скрипты
+- [ ] Manual test: подмена API JSON — UI не исполняет скрипты
 - [ ] Manual test: CORS bypass attempt
 - [ ] Manual test: path traversal `/api/..%2f..%2f`
 - [ ] `zap-baseline.py` против staging (OWASP ZAP baseline scan)
@@ -938,7 +933,7 @@ Do NOT open public GitHub issues for security bugs.
 | `chart.utils` | `describeArc`, `shade` |
 | `abc-analysis.utils` | границы A/B/C |
 | `SalesAggregationService` | rev = qty × price |
-| API interceptor | fallback на static JSON |
+| API interceptor | auth / same-origin only |
 | **XSS safety** | malicious payloads → escaped text, no script execution |
 | **Page name whitelist** | invalid page → error, no path traversal |
 | **Error UI** | generic message, no stack traces |
@@ -948,7 +943,7 @@ Do NOT open public GitHub issues for security bugs.
 | Suite | Файл | Что проверяет |
 |-------|------|---------------|
 | XSS payloads | `xss-safety.spec.ts` | `<script>`, event handlers в data fields |
-| API security | `api-fallback.interceptor.spec.ts` | whitelist pages, no leak in errors |
+| API security | `auth.interceptor.spec.ts` | credentials, no leak in errors |
 | Backend security | `backend/tests/test_security.py` | headers, CORS, rate limit, schema strict |
 | Supply chain | CI: `npm audit`, `pip-audit` | 0 high/critical CVE |
 | Secrets | CI: gitleaks | 0 secrets in diff |
@@ -968,7 +963,7 @@ Do NOT open public GitHub issues for security bugs.
 3. Warehouse: dynamics store toggle
 4. Foodcost: tabs + product chart tooltip
 5. Navigation: 4 routes
-6. Fallback без API
+6. API error → generic UI (no stack / sensitive leak)
 7. 404 route
 8. Mobile viewport
 9. Keyboard nav (Angular Aria)
@@ -979,7 +974,7 @@ Do NOT open public GitHub issues for security bugs.
 11. CSP blocks inline script injection
 12. Security headers present (X-Frame-Options, CSP)
 13. No sensitive data in console on API failure
-14. Malicious JSON fallback data rendered safely
+14. Malicious API JSON payloads rendered safely (XSS)
 
 ### Backend (pytest)
 
@@ -1103,7 +1098,6 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci && npm run build
         working-directory: frontend
-      - run: cp -r data frontend/dist/data
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
@@ -1195,7 +1189,7 @@ jobs:
 |------|-----------|
 | Over-engineering atoms | Не создавать atom, если нет ≥2 использований; начинать inline, extract позже |
 | Pixel drift | Playwright visual regression |
-| Fallback на GitHub Pages | Interceptor + `data/` в `dist/` |
+| API недоступен | Generic error UI; без static JSON-подмены |
 | ABC regression | Unit-тесты до порта |
 | Scope creep | Purchases/Settings — placeholder only |
 | **XSS через API data** | Strict templates + XSS unit tests + no innerHTML |
@@ -1211,7 +1205,7 @@ jobs:
 - [ ] Все 4 страницы — pixel-parity с MVP
 - [ ] Atomic Design: все компоненты в правильном слое, нет нарушений импортов
 - [ ] Storybook: все atoms, molecules, shared organisms задокументированы
-- [ ] Fallback `data/*.json` без бэкенда
+- [ ] Нет static JSON mock / api-fallback; API обязателен
 - [ ] Legacy HTML/JS удалён
 - [ ] README обновлён
 
@@ -1296,4 +1290,4 @@ jobs:
 - [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
 - [Angular Security Guide](https://angular.dev/best-practices/security)
 - Legacy README: `README.md`
-- JSON contracts: `data/*.json`
+- API schemas: `backend/src/schemas/`

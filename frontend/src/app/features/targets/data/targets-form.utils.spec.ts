@@ -13,7 +13,7 @@ import type { TargetsData, TargetsFormState } from '../../../shared/models/targe
 
 const SAMPLE: TargetsData = {
   period: { year: 2026, month: 8, label: 'Август 2026' },
-  reference: { label: 'июня (1–12)', revenueFact: 4_600_000, revenuePace: 11_900_000 },
+  reference: { label: 'июля', revenueFact: 4_600_000, revenuePace: 4_600_000 },
   revenue: { monthPlan: 11_800_000, weekProfile: [1, 1, 1, 1.05, 1.1, 1.2, 1.15] },
   dailyOverrides: { '3': 500_000 },
   foodcost: [

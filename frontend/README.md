@@ -1,6 +1,6 @@
 # Frontend (Angular 22)
 
-SPA дашборда «Сезоны». Данные с бэкенда (`GET /api/*`) с fallback на `/data/{page}.json`.
+SPA дашборда «Сезоны». Данные только с бэкенда (`GET /api/*`).
 
 ## Development
 
@@ -31,11 +31,11 @@ Proxy (`proxy.conf.json`) проксирует `/api` → `localhost:8000`.
 
 ```
 ui/atoms/ → ui/molecules/ → ui/organisms/ → ui/templates/ → features/*/pages/
-core/services/period.service.ts        — granularity + sales date range
+core/services/period.service.ts        — dashboard granularity / chart period
 core/api/page-data.resource.ts         — typed httpResource factory
 core/data/analytics-data-sync.service.ts — TTL + stale-while-revalidate polling
 core/routing/analytics-route-reuse.strategy.ts — keep analytics pages alive
-core/interceptors/api-fallback           — static JSON fallback
+core/interceptors/auth.interceptor.ts  — credentials / session
 ```
 
 **Smart layer:** `AppShellHostComponent` (route) — greeting, period, right panel.  
@@ -64,10 +64,10 @@ cd frontend && npm run storybook   # http://localhost:6006
 ## Реализовано
 
 - **4 страницы** + purchases/support placeholders; **настройки** — профиль и смена пароля
-- **PeriodService** — granularity, sales query из dashboard period
+- **PeriodService** — granularity, chart/compare period (dashboard / foodcost / targets)
+- **SalesPeriodService** — изолированный date range на `/sales`
 - **Analytics data layer** — root stores + TTL polling + `AnalyticsRouteReuseStrategy`
 - **WarehouseDataStore** — единый fetch `/api/warehouse` для dashboard + warehouse
-- **api-fallback.interceptor** — `/data/{page}.json` при недоступности API
 - **Per-page layout templates** — dashboard, sales, warehouse, foodcost
 - **Theme toggle** — `localStorage` + `[data-theme]`
 - **Mobile sidebar** — drawer на `<900px`
@@ -76,6 +76,4 @@ cd frontend && npm run storybook   # http://localhost:6006
 
 ## Deploy
 
-Production build: `frontend/dist/frontend/browser/`.
-
-Статический fallback: положите `data/*.json` в `public/data/` перед сборкой.
+Production build: `frontend/dist/frontend/browser/`. API обязателен — статического JSON-fallback нет.

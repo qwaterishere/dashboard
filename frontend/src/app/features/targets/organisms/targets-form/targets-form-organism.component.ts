@@ -148,7 +148,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
           [disabled]="isLocked()"
           [hintPrefix]="'факт ' + data().reference.label + ':'"
           [hintFactMoney]="data().reference.revenueFact"
-          [hintPaceMoney]="data().reference.revenuePace"
+          [hintPaceMoney]="revenuePaceHint()"
           [value]="form().revenueMonthPlan"
           (valueChange)="updateRevenueMonthPlan($event)"
         />
@@ -322,6 +322,12 @@ export class TargetsFormOrganismComponent {
   protected readonly complimentsPlanAmount = computed(() =>
     complimentsAmountFromPlan(this.form().revenueMonthPlan, this.form().complimentsGoalPct),
   );
+
+  /** Темп показываем только если прошлый месяц ещё не закрыт (pace ≠ fact). */
+  protected readonly revenuePaceHint = computed(() => {
+    const ref = this.data().reference;
+    return ref.revenuePace !== ref.revenueFact ? ref.revenuePace : null;
+  });
 
   protected readonly formValidation = computed(() => validateTargetsFormState(this.form()));
 
