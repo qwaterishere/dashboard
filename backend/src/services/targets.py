@@ -170,7 +170,7 @@ def build_targets(
         ),
         inventory=TargetsInventory(
             goalPct=float(row.inventory_goal_pct or 0.0),
-            note="факта нет — домен фазы 2",
+            note="пока недоступен",
         ),
         locked=bool(getattr(row, "locked", False)),
     )
@@ -414,7 +414,7 @@ def _empty_targets(
         ],
         writeoffs=_empty_writeoffs(),
         compliments=TargetsCompliments(goalPct=0.0, factPct=0.0, factRub=0.0),
-        inventory=TargetsInventory(goalPct=0.0, note="факта нет — домен фазы 2"),
+        inventory=TargetsInventory(goalPct=0.0, note="пока недоступен"),
         locked=False,
     )
 

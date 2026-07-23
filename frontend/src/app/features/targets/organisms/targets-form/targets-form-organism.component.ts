@@ -136,7 +136,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
       <app-target-section
         badge="01"
         title="Выручка — план по дням"
-        description="сумма месяца распределяется профилем дней недели; дневные планы уезжают в plan графика на дашборде"
+        description="месячный план выручки и его распределение по дням недели"
         [canReset]="!isLocked() && canResetSection('revenue')"
         (resetRequested)="onResetSection('revenue')"
       >
@@ -172,7 +172,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
       <app-target-section
         badge="02"
         title="Фудкост по юнитам"
-        description="цель на странице «Фудкост» (totals и юниты)"
+        description="целевая доля себестоимости в выручке по юнитам"
         [canReset]="!isLocked() && canResetSection('foodcost')"
         (resetRequested)="onResetSection('foodcost')"
       >
@@ -196,7 +196,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
       <app-target-section
         badge="03"
         title="Списания"
-        description="акты списания (порча, бой, срок) — фаза 2 фудкоста"
+        description="лимит потерь от порчи, боя и просрочки"
         [canReset]="!isLocked() && canResetSection('writeoffs')"
         (resetRequested)="onResetSection('writeoffs')"
       >
@@ -242,7 +242,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
       <app-target-section
         badge="04"
         title="Комплименты и представительские"
-        description="блок losses страницы «Фудкост», по себестоимости"
+        description="доля комплиментов и представительских расходов в выручке"
         [canReset]="!isLocked() && canResetSection('compliments')"
         (resetRequested)="onResetSection('compliments')"
       >
@@ -277,7 +277,7 @@ import { TargetFactHintComponent } from '../../molecules/target-fact-hint/target
           name="targets-inventory"
           suffix="%"
           [disabled]="isLocked()"
-          [hintPrefix]="'факт ' + data().reference.label + ' ' + data().inventory.note"
+          [hintPrefix]="'факт ' + data().reference.label + ': ' + data().inventory.note"
           [value]="form().inventoryGoalPct"
           (valueChange)="updateInventoryGoalPct($event)"
         />
