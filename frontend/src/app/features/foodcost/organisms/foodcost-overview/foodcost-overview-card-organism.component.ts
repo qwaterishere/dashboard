@@ -1,13 +1,13 @@
 import { Component, input } from '@angular/core';
 
 import { LflBadgeComponent } from '../../../../ui/atoms/lfl-badge/lfl-badge.component';
-import { MoneyPipe, PctPipe } from '../../../../shared/pipes/format.pipes';
+import { PctPipe } from '../../../../shared/pipes/format.pipes';
 import type { FoodcostOverviewCard } from '../../../../shared/models';
 
 @Component({
   selector: 'app-foodcost-overview-card-organism',
   standalone: true,
-  imports: [LflBadgeComponent, MoneyPipe, PctPipe],
+  imports: [LflBadgeComponent, PctPipe],
   host: { class: 'foodcost-overview-card' },
   template: `
     <div class="big-card" [class.clean]="tone() === 'clean'" [class.dirty]="tone() === 'dirty'">
@@ -27,15 +27,6 @@ import type { FoodcostOverviewCard } from '../../../../shared/models';
         <span class="bc-pct">{{ card().pct | pct }}</span>
         <div class="bc-meta">
           <span>цель <b>{{ card().goal | pct }}</b></span>
-          @if (tone() === 'clean') {
-            <span>себестоимость <b>{{ card().cost | money }}</b></span>
-            <span>выручка <b>{{ card().revenue! | money }}</b></span>
-          } @else {
-            <span>расход продуктов <b>{{ card().cost | money }}</b></span>
-            <span
-              >сверх продаж <b class="over-sales">+{{ card().overSales! | money }}</b></span
-            >
-          }
         </div>
       </div>
     </div>

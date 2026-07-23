@@ -1,7 +1,7 @@
 import { Component, input } from '@angular/core';
 
-import { FoodcostOverviewCardOrganismComponent } from './foodcost-overview-card-organism.component';
 import type { FoodcostData } from '../../../../shared/models';
+import { FoodcostOverviewCardOrganismComponent } from './foodcost-overview-card-organism.component';
 
 @Component({
   selector: 'app-foodcost-overview-organism',
@@ -10,26 +10,14 @@ import type { FoodcostData } from '../../../../shared/models';
   template: `
     <div class="fc-overview">
       <app-foodcost-overview-card-organism tone="clean" [card]="overview().clean" />
-      <app-foodcost-overview-card-organism tone="dirty" [card]="overview().dirty" />
     </div>
   `,
   styles: `
     .fc-overview {
       display: grid;
-      grid-template-columns: 1fr 1.25fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
       margin-bottom: 16px;
-      align-items: stretch;
-    }
-
-    .fc-overview > * {
-      height: 100%;
-    }
-
-    @media (max-width: 900px) {
-      .fc-overview {
-        grid-template-columns: 1fr;
-      }
     }
   `,
 })
