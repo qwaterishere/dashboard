@@ -8,6 +8,7 @@ interface ProfileBlockStoryArgs {
   name: string;
   role: string;
   showLogout: boolean;
+  hasUnread: boolean;
 }
 
 const meta: Meta<ProfileBlockStoryArgs> = {
@@ -19,6 +20,7 @@ const meta: Meta<ProfileBlockStoryArgs> = {
     name: { control: 'text' },
     role: { control: 'text' },
     showLogout: { control: 'boolean' },
+    hasUnread: { control: 'boolean' },
   },
 };
 
@@ -31,6 +33,7 @@ export const Default: Story = {
     name: 'Алексей К.',
     role: 'Управляющий',
     showLogout: true,
+    hasUnread: false,
   },
   render: (args) => ({
     props: {
@@ -46,6 +49,7 @@ export const Default: Story = {
           [name]="name"
           [role]="role"
           [showLogout]="showLogout"
+          [hasUnread]="hasUnread"
           (logout)="onLogout()"
         />
       </div>
