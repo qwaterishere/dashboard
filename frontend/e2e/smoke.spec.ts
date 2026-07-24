@@ -113,4 +113,30 @@ test.describe('smoke', () => {
     await expect(page.locator('app-page-greeting')).toContainText('Продажи');
     await expect(page.locator('app-period-bar')).toHaveCount(1);
   });
+
+  test('sales ABC workspace shows concentration viz, filters and C collapse', async ({ page }) => {
+    const apiReady = waitForPageApi(page, 'sales');
+    await page.goto('/sales');
+    await apiReady;
+
+    const abc = page.locator('app-abc-analysis-organism');
+    await expect(abc.getByText('Позиции · ABC-анализ')).toBeVisible({ timeout: 15_000 });
+    await expect(abc.locator('.abc-viz')).toBeVisible();
+    await expect(abc.locator('.abc-pareto__svg')).toBeVisible();
+    await expect(abc.getByText('Концентрация')).toBeVisible();
+
+    await abc.locator('.abc-pill.A').click();
+    await expect(abc.locator('.abc-pill.A')).toHaveClass(/off/);
+
+    await abc.locator('.abc-search input').fill('а');
+    await expect(abc.locator('.pos-table__viewport')).toBeVisible();
+
+    await abc.locator('.abc-pill.C').click();
+    await expect(abc.locator('.abc-pill.C')).toHaveClass(/off/);
+    const collapse = abc.locator('.abc-c-collapse');
+    await expect(collapse).toBeVisible();
+    await collapse.getByRole('button', { name: 'Показать' }).click();
+    await expect(abc.locator('.abc-c-collapse')).toHaveCount(0);
+    await expect(abc.locator('.abc-pill.C')).not.toHaveClass(/off/);
+  });
 });

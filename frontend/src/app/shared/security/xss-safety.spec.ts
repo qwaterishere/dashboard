@@ -38,7 +38,12 @@ describe('XSS safety', () => {
     });
 
     it.each(XSS_TEST_PAYLOADS)('escapes malicious product name: %s', (payload) => {
-      const row: SalesPositionComputed & { abc: 'A' } = {
+      const row: SalesPositionComputed & {
+        abc: 'A';
+        rank: number;
+        share: number;
+        cumShare: number;
+      } = {
         name: payload,
         sub: payload,
         cat: 'k',
@@ -48,6 +53,9 @@ describe('XSS safety', () => {
         gp: 50,
         fc: 30,
         abc: 'A',
+        rank: 1,
+        share: 100,
+        cumShare: 100,
       };
       fixture.componentRef.setInput('rows', [row]);
       fixture.detectChanges();
