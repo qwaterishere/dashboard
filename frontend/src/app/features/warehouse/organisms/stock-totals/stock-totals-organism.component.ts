@@ -12,7 +12,7 @@ import type { CategoryKey, WarehouseData } from '../../../../shared/models';
     <div class="block total-big">
       <div class="tb-label">Общие товарные запасы</div>
       <div class="tb-val">{{ totals().value | money }}</div>
-      <div class="tb-sub">в себестоимости · {{ totals().stores }} склада</div>
+      <div class="tb-sub">в себестоимости</div>
       <div class="tb-stores">
         @for (store of totals().byStore; track store.key) {
           <div class="store-row">

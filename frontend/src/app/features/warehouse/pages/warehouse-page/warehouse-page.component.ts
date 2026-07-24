@@ -8,7 +8,7 @@ import { StockTotalsOrganismComponent } from '../../organisms/stock-totals/stock
 import { WarehouseCategoriesOrganismComponent } from '../../organisms/warehouse-categories/warehouse-categories-organism.component';
 import { StockDynamicsOrganismComponent } from '../../organisms/stock-dynamics/stock-dynamics-organism.component';
 import { TopPositionsOrganismComponent } from '../../organisms/top-positions/top-positions-organism.component';
-import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
+import { NegativeStockBannerOrganismComponent } from '../../organisms/negative-stock-banner/negative-stock-banner-organism.component';
 
 @Component({
   selector: 'app-warehouse-page',
@@ -20,7 +20,7 @@ import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
     WarehouseCategoriesOrganismComponent,
     StockDynamicsOrganismComponent,
     TopPositionsOrganismComponent,
-    MoneyPipe,
+    NegativeStockBannerOrganismComponent,
   ],
   template: `
     <app-warehouse-layout-template>
@@ -28,10 +28,10 @@ import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
         <p class="as-of">На {{ data.value().asOf.label }} · {{ data.value().asOf.note }}</p>
 
         @if (data.value().negativeStock.count > 0) {
-          <div class="neg-banner" role="status">
-            Минусовые остатки: {{ data.value().negativeStock.count }} поз. · дыра
-            {{ data.value().negativeStock.valueAbs | money }}
-          </div>
+          <app-negative-stock-banner-organism
+            [summary]="data.value().negativeStock"
+            [positions]="data.value().positions"
+          />
         }
 
         <div class="row2">
