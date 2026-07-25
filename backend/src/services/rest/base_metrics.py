@@ -1,4 +1,8 @@
-"""REST-слой метрик дашборда: одна метрика — одна ручка (/api/metrics/*).
+﻿"""Базовые метрики заведения: одна метрика — одна ручка (/api/base-metrics/*).
+
+Конвенция слоёв метрик: <домен>_metrics (появятся sales_metrics,
+foodcost_metrics...). base — пять головных показателей: выручка, чеки,
+гости, средний чек, средний чек на гостя.
 
 Только факты из продаж: план сюда не подмешивается — план принадлежит
 домену Целей (/api/targets).
@@ -27,8 +31,8 @@ from uuid import UUID
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from backend.src.db.models.sales import DishSale, Order
-from backend.src.services.period_compare import previous_period
+from src.db.models.sales import DishSale, Order
+from src.services.period_compare import previous_period
 
 # Метрики-дроби: значение периода = сумма числителя / сумма знаменателя.
 # НЕ средняя дневных средних — та даёт слабым дням тот же вес, что сильным.
@@ -152,7 +156,7 @@ def _period_value(
 # --------------------------------------------------------------------------
 
 def metric_bounds(session: Session, restaurant_id: UUID) -> dict:
-    """GET /api/metrics/bounds — края истории данных.
+    """GET /api/base-metrics/bounds — края истории данных.
 
     Клиент сверяется с ними, чтобы не запрашивать периоды шире данных
     и не сравнивать с полупустой базой."""
@@ -166,7 +170,7 @@ def metric_fact(
     session: Session, restaurant_id: UUID, metric: str,
     d_from: date, d_to: date,
 ) -> dict:
-    """GET /api/metrics/{metric} — факт ровно за запрошенный период."""
+    """GET /api/base-metrics/{metric} — факт ровно за запрошенный период."""
     return {
         'date_from': d_from,
         'date_to': d_to,
@@ -178,7 +182,7 @@ def metric_lfl(
     session: Session, restaurant_id: UUID, metric: str,
     d_from: date, d_to: date,
 ) -> dict:
-    """GET /api/metrics/{metric}/lfl — факт против предшествующего периода
+    """GET /api/base-metrics/{metric}/lfl — факт против предшествующего периода
     той же формы (правило дат — period_compare.previous_period, единое
     с BFF и фудкостом). Дельту в % считает клиент из двух сырых значений.
 
@@ -200,7 +204,7 @@ def metric_series(
     session: Session, restaurant_id: UUID, metric: str,
     d_from: date, d_to: date,
 ) -> dict:
-    """GET /api/metrics/{metric}/series — ряд по дням для графика.
+    """GET /api/base-metrics/{metric}/series — ряд по дням для графика.
 
     Календарная сетка сплошная по всему запрошенному диапазону:
     день без продаж -> 0 (метрики-дроби -> None, делить не на что)."""

@@ -1,7 +1,5 @@
-"""Контракт REST-слоя метрик (/api/metrics/*) — schemas к services/rest.
+﻿"""Контракт REST-слоя метрик (/api/base-metrics/*) — schemas к services/rest.
 
-Поля ответов в snake_case — единый стиль с query-параметрами слоя
-(date_from/date_to); страничные контракты (camelCase) не трогаем.
 Производные — зона клиента: дельту lfl в % он считает сам
 из value и base_value.
 """
@@ -65,7 +63,7 @@ class MetricLfl(MetricFact):
     base_value: float | None = Field(
         description="Значение за базовый период, правила как у value. "
         "Внимание: покрытие базы данными слой не проверяет — "
-        "сверяйтесь с /api/metrics/bounds"
+        "сверяйтесь с /api/base-metrics/bounds"
     )
 
 

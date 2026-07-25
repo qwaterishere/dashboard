@@ -1,4 +1,4 @@
-"""Application factory (12-factor V: build vs run, VII: port binding)."""
+﻿"""Application factory (12-factor V: build vs run, VII: port binding)."""
 
 import asyncio
 import logging
@@ -16,7 +16,7 @@ from src.api.routes.dashboard import create_dashboard_router
 from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
 from src.api.routes.internal import create_internal_router
-from src.api.routes.rest.dashboard_rest import create_metrics_router
+from src.api.routes.rest.base_metrics import create_base_metrics_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.targets import create_targets_router
 from src.api.routes.warehouse import create_warehouse_router
@@ -87,6 +87,11 @@ def create_app() -> FastAPI:
             {"name": "Продажи", "description": "Продажи (БД)"},
             {"name": "Склад", "description": "Остатки и динамика запасов (БД)"},
             {"name": "Фудкост", "description": "Фудкост (БД)"},
+            {
+                "name": "Базовые метрики (REST)",
+                "description": "Головные показатели заведения по одной ручке: "
+                "выручка, чеки, гости, средний чек (БД)",
+            },
         ],
         lifespan=lifespan,
     )
@@ -116,6 +121,7 @@ def create_app() -> FastAPI:
     app.include_router(create_targets_router(limiter))
     app.include_router(create_foodcost_router(limiter))
     app.include_router(create_warehouse_router(limiter))
+    app.include_router(create_base_metrics_router(limiter))
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(

@@ -28,3 +28,7 @@ Thumbs.db
 # seed_e2e.py нужен Playwright CI — оставляем в треке.
 backend/scripts/*
 !backend/scripts/seed_e2e.py
+
+# Внутренние материалы — не для репозитория
+docs/marketing-brief.md
+docs/mockups/

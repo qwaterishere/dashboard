@@ -1,4 +1,4 @@
-from datetime import date
+﻿from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
@@ -6,14 +6,14 @@ from slowapi import Limiter
 
 from src.api.deps import CurrentRestaurant, CurrentUser, get_db
 from src.core.config import get_settings
-from src.schemas.rest.dashboard_rest import (
+from src.schemas.rest.base_metrics import (
     MetricBounds,
     MetricFact,
     MetricLfl,
     MetricName,
     MetricSeries,
 )
-from src.services.rest.dashboard_rest import (
+from src.services.rest.base_metrics import (
     metric_bounds,
     metric_fact,
     metric_lfl,
@@ -41,13 +41,13 @@ def _validate_range(date_from: date, date_to: date) -> None:
         )
 
 
-def create_metrics_router(limiter: Limiter) -> APIRouter:
-    router = APIRouter(tags=["Метрики (REST)"])
+def create_base_metrics_router(limiter: Limiter) -> APIRouter:
+    router = APIRouter(tags=["Базовые метрики (REST)"])
     settings = get_settings()
 
     # bounds объявлен ДО /{metric}: иначе «bounds» матчится как имя метрики
     @router.get(
-        "/api/metrics/bounds",
+        "/api/base-metrics/bounds",
         response_model=MetricBounds,
         summary="Края истории данных",
         description=(
@@ -67,7 +67,7 @@ def create_metrics_router(limiter: Limiter) -> APIRouter:
         return metric_bounds(db, restaurant.id)
 
     @router.get(
-        "/api/metrics/{metric}",
+        "/api/base-metrics/{metric}",
         response_model=MetricFact,
         summary="Факт метрики за период",
         description=(
@@ -92,7 +92,7 @@ def create_metrics_router(limiter: Limiter) -> APIRouter:
         return metric_fact(db, restaurant.id, metric.value, date_from, date_to)
 
     @router.get(
-        "/api/metrics/{metric}/lfl",
+        "/api/base-metrics/{metric}/lfl",
         response_model=MetricLfl,
         summary="Метрика против прошлого периода (лайк-фор-лайк)",
         description=(
@@ -100,7 +100,7 @@ def create_metrics_router(limiter: Limiter) -> APIRouter:
             "полный месяц -> предыдущий полный; 1..N числа -> те же числа "
             "прошлого месяца; произвольный диапазон -> блок той же длины "
             "накануне. Оба значения сырые — дельту в % считает клиент. "
-            "Покрытие базы данными не проверяется — см. /api/metrics/bounds."
+            "Покрытие базы данными не проверяется — см. /api/base-metrics/bounds."
         ),
     )
     @limiter.limit(settings.rate_limit)
@@ -117,7 +117,7 @@ def create_metrics_router(limiter: Limiter) -> APIRouter:
         return metric_lfl(db, restaurant.id, metric.value, date_from, date_to)
 
     @router.get(
-        "/api/metrics/{metric}/series",
+        "/api/base-metrics/{metric}/series",
         response_model=MetricSeries,
         summary="Ряд метрики по дням (для графика)",
         description=(
