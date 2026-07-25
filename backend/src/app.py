@@ -16,6 +16,7 @@ from src.api.routes.dashboard import create_dashboard_router
 from src.api.routes.foodcost import create_foodcost_router
 from src.api.routes.health import create_health_router
 from src.api.routes.internal import create_internal_router
+from src.api.routes.rest.dashboard_rest import create_metrics_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.targets import create_targets_router
 from src.api.routes.warehouse import create_warehouse_router
