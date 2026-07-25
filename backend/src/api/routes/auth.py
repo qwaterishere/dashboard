@@ -226,7 +226,7 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         db: Session = Depends(get_db),
     ) -> IikoSettingsPublic:
         restaurant = get_or_create_restaurant(db, user)
-        return restaurant_to_iiko_public(restaurant)
+        return restaurant_to_iiko_public(restaurant, db)
 
     @router.put(
         "/me/iiko",
@@ -247,7 +247,7 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         "/me/iiko/sync",
         response_model=IikoSyncStartResponse,
         status_code=status.HTTP_202_ACCEPTED,
-        summary="Загрузить продажи из iiko (фоновая задача)",
+        summary="Загрузить продажи и склад из iiko (фоновая задача)",
     )
     @limiter.limit("3/minute")
     def sync_iiko_sales(

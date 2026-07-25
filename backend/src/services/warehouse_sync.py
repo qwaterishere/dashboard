@@ -12,21 +12,21 @@
 - инкремент: от последнего слепка вперёд; первый запуск — бэкфилл
   BACKFILL_DAYS дней.
 
-Запуск — ТОЛЬКО CLI администратора и шедулер (решение 7 карточки №13):
-пересинк прошлого переписывает зафиксированную историю (iiko считает
-остатки из ТЕКУЩЕГО состояния документов) — потребителю недоступен.
-Кнопка синка в UI на домен stock не распространяется; интеграция
-в run_sync_job — отдельное согласование с коллегой (ветка шедулера).
+Запуск:
+- штатно — внутри run_sync_job (UI + шедулер) после продаж;
+- CLI ``python -m src.cli.stock_loader`` — ручной/админский бэкфилл.
 """
 
 from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from src.db.models.restaurant import Restaurant
 from src.db.models.warehouse import StockBalance, SyncDomainStatus
@@ -41,6 +41,9 @@ BACKFILL_DAYS = 90
 RETENTION_DAILY_DAYS = 365
 SUNDAY = 6  # date.weekday(): 0=пн .. 6=вс
 
+# days_done, current_day, plan_from, plan_to
+ProgressHook = Callable[[int, date, date, date], None]
+
 
 @dataclass(frozen=True)
 class StockSyncStats:
@@ -48,6 +51,12 @@ class StockSyncStats:
     date_to: date | None
     days_loaded: int
     rows_loaded: int
+
+
+@dataclass(frozen=True)
+class StockSyncPlan:
+    date_from: date
+    date_to: date
 
 
 def _utc_now() -> datetime:
@@ -71,8 +80,11 @@ def _set_status(restaurant_id: uuid.UUID, **fields) -> None:
         session.close()
 
 
-def _resolve_plan(restaurant_id: uuid.UUID,
-                  backfill_days: int) -> tuple[date, date] | None:
+def resolve_stock_plan(
+    restaurant_id: uuid.UUID,
+    *,
+    backfill_days: int = BACKFILL_DAYS,
+) -> StockSyncPlan | None:
     """От последнего слепка вперёд; без слепков — бэкфилл; до вчера."""
     yesterday = date.today() - timedelta(days=1)
     session = db_manager.get_session()
@@ -83,11 +95,30 @@ def _resolve_plan(restaurant_id: uuid.UUID,
     finally:
         session.close()
 
-    date_from = (last + timedelta(days=1)) if last is not None \
+    date_from = (
+        (last + timedelta(days=1))
+        if last is not None
         else yesterday - timedelta(days=backfill_days - 1)
+    )
     if date_from > yesterday:
         return None
-    return date_from, yesterday
+    return StockSyncPlan(date_from=date_from, date_to=yesterday)
+
+
+def latest_stock_day(session: Session, restaurant_id: uuid.UUID) -> date | None:
+    return session.query(func.max(StockBalance.day)).filter(
+        StockBalance.restaurant_id == restaurant_id,
+    ).scalar()
+
+
+def get_stock_domain_status(
+    session: Session,
+    restaurant_id: uuid.UUID,
+) -> SyncDomainStatus | None:
+    return session.query(SyncDomainStatus).filter_by(
+        restaurant_id=restaurant_id,
+        domain=DOMAIN,
+    ).first()
 
 
 def _replace_day(restaurant_id: uuid.UUID, day: date,
@@ -129,21 +160,27 @@ def _apply_retention(restaurant_id: uuid.UUID) -> int:
         session.close()
 
 
-def sync_restaurant_stock(restaurant: Restaurant, *,
-                          backfill_days: int = BACKFILL_DAYS) -> StockSyncStats:
+def sync_restaurant_stock(
+    restaurant: Restaurant,
+    *,
+    backfill_days: int = BACKFILL_DAYS,
+    progress_hook: ProgressHook | None = None,
+) -> StockSyncStats:
     """Синк слепков остатков одного ресторана (день-за-днём, коммит на день)."""
     if not restaurant.iiko_configured:
         raise RuntimeError("iiko is not configured")
 
-    plan = _resolve_plan(restaurant.id, backfill_days)
+    plan = resolve_stock_plan(restaurant.id, backfill_days=backfill_days)
     if plan is None:
         _set_status(restaurant.id, status="success", finished_at=_utc_now(),
                     error=None)
         return StockSyncStats(None, None, 0, 0)
-    date_from, date_to = plan
+    date_from, date_to = plan.date_from, plan.date_to
 
     _set_status(restaurant.id, status="running", started_at=_utc_now(),
                 finished_at=None, days_done=0, error=None)
+    if progress_hook is not None:
+        progress_hook(0, date_from, date_from, date_to)
 
     days_loaded = 0
     rows_loaded = 0
@@ -189,6 +226,8 @@ def sync_restaurant_stock(restaurant: Restaurant, *,
                 days_loaded += 1
                 rows_loaded += len(rows)
                 _set_status(restaurant.id, days_done=days_loaded, last_day=day)
+                if progress_hook is not None:
+                    progress_hook(days_loaded, day, date_from, date_to)
                 day += timedelta(days=1)
 
         removed = _apply_retention(restaurant.id)

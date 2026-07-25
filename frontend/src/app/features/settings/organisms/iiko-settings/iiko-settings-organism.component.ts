@@ -148,8 +148,9 @@ import { SettingsSectionComponent } from '../../../../ui/molecules/settings-sect
               </app-button>
             </div>
             <app-text tone="muted" class="sync-hint">
-              «Догрузить» подтягивает дни с последней выгрузки. «Скачать заново» перезапишет всю
-              историю с {{ historyFromLabel() }} — может занять несколько минут.
+              «Догрузить» подтягивает продажи и склад с последней выгрузки. «Скачать заново»
+              перезапишет историю продаж с {{ historyFromLabel() }} и догрузит склад — может занять
+              несколько минут (склад: до ~90 дней при первом запуске).
             </app-text>
             <div class="sync-feedback">
               @if (syncError()) {

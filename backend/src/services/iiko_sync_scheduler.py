@@ -20,6 +20,7 @@ from src.services.iiko_sync import (
     resolve_sync_plan,
     run_sync_job,
 )
+from src.services.warehouse_sync import resolve_stock_plan
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,10 @@ def should_auto_sync(
     plan = resolve_sync_plan(session, restaurant.id, full=False)
     if plan is not None:
         return True, "pending_data"
+
+    stock_plan = resolve_stock_plan(restaurant.id)
+    if stock_plan is not None:
+        return True, "pending_stock"
 
     if status == "error" and _in_retry_window(restaurant, moment):
         return True, "retry_after_error"

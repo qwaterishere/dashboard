@@ -237,7 +237,13 @@ def acquire_sync_lock(session: Session, restaurant_id: uuid.UUID) -> bool:
 
 
 def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
-    """Фоновая задача: один web/CLI sync для ресторана."""
+    """Фоновая задача: продажи + склад для ресторана (UI / шедулер).
+
+    Порядок: sales → stock. Ошибка склада после успешных продаж
+    помечает весь job как error (решение product: 2A).
+    """
+    from src.services.warehouse_sync import resolve_stock_plan, sync_restaurant_stock
+
     session = db_manager.get_session()
     try:
         restaurant = session.get(Restaurant, restaurant_id)
@@ -245,8 +251,10 @@ def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
             logger.error("sync job: restaurant %s not found", restaurant_id)
             return
 
-        plan = resolve_sync_plan(session, restaurant_id, full=full)
-        if plan is None:
+        sales_plan = resolve_sync_plan(session, restaurant_id, full=full)
+        stock_plan = resolve_stock_plan(restaurant_id)
+
+        if sales_plan is None and stock_plan is None:
             restaurant.sync_status = "noop"
             restaurant.last_sync_at = _utc_now()
             restaurant.last_sync_error = None
@@ -257,30 +265,68 @@ def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
             session.commit()
             return
 
-        restaurant.sync_plan_from = plan.date_from
-        restaurant.sync_plan_to = plan.date_to
-        restaurant.sync_days_done = 0
-        restaurant.sync_current_day = plan.date_from
-        session.commit()
+        sales_stats: SyncStats | None = None
+        if sales_plan is not None:
+            restaurant.sync_plan_from = sales_plan.date_from
+            restaurant.sync_plan_to = sales_plan.date_to
+            restaurant.sync_days_done = 0
+            restaurant.sync_current_day = sales_plan.date_from
+            session.commit()
 
-        stats = sync_restaurant_sales(restaurant, plan.date_from, plan.date_to)
+            sales_stats = sync_restaurant_sales(
+                restaurant, sales_plan.date_from, sales_plan.date_to,
+            )
+
+        def _stock_progress(
+            days_done: int,
+            current_day: date,
+            plan_from: date,
+            plan_to: date,
+        ) -> None:
+            _update_sync_progress(
+                restaurant_id,
+                plan_from=plan_from,
+                plan_to=plan_to,
+                current_day=current_day,
+                days_done=days_done,
+            )
+
+        # Detached restaurant may be stale after sales; reload credentials row.
+        restaurant = session.get(Restaurant, restaurant_id)
+        if restaurant is None:
+            return
+
+        stock_stats = sync_restaurant_stock(
+            restaurant,
+            progress_hook=_stock_progress if stock_plan is not None else None,
+        )
 
         restaurant = session.get(Restaurant, restaurant_id)
         if restaurant is None:
             return
+
         restaurant.sync_status = "success"
         restaurant.last_sync_at = _utc_now()
         restaurant.last_sync_error = None
-        restaurant.last_sync_from = stats.date_from
-        restaurant.last_sync_to = stats.date_to
-        restaurant.last_sync_days = stats.days_loaded
+        if sales_stats is not None:
+            restaurant.last_sync_from = sales_stats.date_from
+            restaurant.last_sync_to = sales_stats.date_to
+            restaurant.last_sync_days = sales_stats.days_loaded
+        elif stock_stats.date_from is not None:
+            restaurant.last_sync_from = stock_stats.date_from
+            restaurant.last_sync_to = stock_stats.date_to
+            restaurant.last_sync_days = stock_stats.days_loaded
+        else:
+            restaurant.last_sync_from = None
+            restaurant.last_sync_to = None
+            restaurant.last_sync_days = 0
         _clear_sync_progress(restaurant)
         session.commit()
         logger.info(
-            "iiko sync done restaurant=%s days=%s rows=%s",
+            "iiko sync done restaurant=%s sales_days=%s stock_days=%s",
             restaurant_id,
-            stats.days_loaded,
-            stats.rows_loaded,
+            sales_stats.days_loaded if sales_stats else 0,
+            stock_stats.days_loaded,
         )
     except Exception:
         logger.exception("iiko sync failed restaurant=%s", restaurant_id)

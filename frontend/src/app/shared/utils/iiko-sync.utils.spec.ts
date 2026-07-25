@@ -21,7 +21,15 @@ describe('iiko-sync.utils', () => {
     days_done: 1,
     current_day: '2026-06-02',
     progress_percent: 50,
+    phase: 'sales',
     error: null,
+    stock: {
+      status: 'idle',
+      latest_day: null,
+      lag_days: null,
+      days_done: null,
+      error: null,
+    },
   };
 
   it('syncPlanDays counts inclusive range', () => {
@@ -42,7 +50,19 @@ describe('iiko-sync.utils', () => {
 
   it('buildSyncProgressLabel formats current day and counter', () => {
     expect(buildSyncProgressLabel(runningSync)).toContain('2 из 3 дн.');
+    expect(buildSyncProgressLabel(runningSync)).toContain('продажи');
     expect(buildSyncProgressLabel(undefined)).toBe('Подготовка загрузки…');
+  });
+
+  it('buildSyncProgressLabel uses stock wording in stock phase', () => {
+    expect(
+      buildSyncProgressLabel({
+        ...runningSync,
+        phase: 'stock',
+        days_done: 2,
+        current_day: '2026-06-02',
+      }),
+    ).toContain('склад');
   });
 
   it('formatSyncDayLabel uses ru-RU locale', () => {

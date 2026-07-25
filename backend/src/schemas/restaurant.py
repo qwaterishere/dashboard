@@ -12,6 +12,16 @@ from src.core.iiko_url import validate_iiko_url
 from src.schemas.base import StrictModel
 
 SyncStatus = Literal["idle", "running", "success", "error", "noop"]
+SyncPhase = Literal["sales", "stock"]
+StockDomainStatus = Literal["idle", "running", "success", "error", "skipped"]
+
+
+class StockSyncPublic(StrictModel):
+    status: StockDomainStatus
+    latest_day: date | None = None
+    lag_days: int | None = None
+    days_done: int | None = None
+    error: str | None = None
 
 
 class IikoSyncPublic(StrictModel):
@@ -26,7 +36,12 @@ class IikoSyncPublic(StrictModel):
     days_done: int | None = None
     current_day: date | None = None
     progress_percent: int | None = Field(default=None, ge=0, le=100)
+    phase: SyncPhase | None = Field(
+        default=None,
+        description="sales | stock во время running; иначе null",
+    )
     error: str | None = None
+    stock: StockSyncPublic
 
 
 class IikoSettingsPublic(StrictModel):

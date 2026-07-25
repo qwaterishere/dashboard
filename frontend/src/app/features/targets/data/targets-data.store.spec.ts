@@ -23,6 +23,14 @@ function freshness(partial: Partial<DataFreshness> = {}): DataFreshness {
     syncError: null,
     autoSyncEnabled: false,
     syncProgressPercent: null,
+    syncPhase: null,
+    stock: {
+      latestDay: '2026-06-10',
+      lagDays: 0,
+      syncStatus: 'success',
+      syncError: null,
+      daysDone: null,
+    },
     ...partial,
   };
 }

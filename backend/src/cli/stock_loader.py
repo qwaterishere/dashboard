@@ -7,6 +7,9 @@
     python -m src.cli.stock_loader                       # все настроенные рестораны
     python -m src.cli.stock_loader --restaurant-id <uuid>
     python -m src.cli.stock_loader --backfill-days 30
+
+Штатный путь — run_sync_job (UI + шедулер). Этот CLI — админский ручной/
+бэкфилл-инструмент.
 """
 import argparse
 import sys

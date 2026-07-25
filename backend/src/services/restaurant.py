@@ -18,9 +18,16 @@ from src.schemas.restaurant import (
     IikoSettingsPublic,
     IikoSyncPublic,
     IikoSyncStartResponse,
+    StockSyncPublic,
     UpdateIikoSettingsRequest,
 )
+from src.services.data_freshness import (
+    expected_closed_sales_day,
+    resolve_restaurant_timezone,
+    resolve_sync_phase,
+)
 from src.services.iiko_sync import normalize_sync_status, sync_progress_percent
+from src.services.warehouse_sync import get_stock_domain_status, latest_stock_day
 
 
 def get_or_create_restaurant(db: Session, user: User) -> Restaurant:
@@ -34,8 +41,26 @@ def get_or_create_restaurant(db: Session, user: User) -> Restaurant:
     return restaurant
 
 
-def restaurant_to_iiko_public(restaurant: Restaurant) -> IikoSettingsPublic:
+def restaurant_to_iiko_public(restaurant: Restaurant, db: Session | None = None) -> IikoSettingsPublic:
     status_value, error = normalize_sync_status(restaurant)
+    phase = None
+    stock_public = StockSyncPublic(status="idle")
+
+    if db is not None:
+        phase = resolve_sync_phase(db, restaurant)
+        stock_row = get_stock_domain_status(db, restaurant.id)
+        latest = latest_stock_day(db, restaurant.id)
+        tz = resolve_restaurant_timezone(restaurant.timezone)
+        expected = expected_closed_sales_day(tz)
+        lag = None if latest is None else max(0, (expected - latest).days)
+        stock_public = StockSyncPublic(
+            status=(stock_row.status if stock_row is not None else "idle"),  # type: ignore[arg-type]
+            latest_day=latest,
+            lag_days=lag,
+            days_done=stock_row.days_done if stock_row is not None else None,
+            error=stock_row.error if stock_row is not None else None,
+        )
+
     return IikoSettingsPublic(
         restaurant_id=restaurant.id,
         configured=restaurant.iiko_configured,
@@ -54,7 +79,9 @@ def restaurant_to_iiko_public(restaurant: Restaurant) -> IikoSettingsPublic:
             days_done=restaurant.sync_days_done,
             current_day=restaurant.sync_current_day,
             progress_percent=sync_progress_percent(restaurant),
+            phase=phase,
             error=error,
+            stock=stock_public,
         ),
     )
 
@@ -95,7 +122,7 @@ def update_iiko_settings(
     restaurant.set_iiko_credentials(payload.iiko_url, payload.iiko_login, password)
     db.commit()
     db.refresh(restaurant)
-    return restaurant_to_iiko_public(restaurant)
+    return restaurant_to_iiko_public(restaurant, db)
 
 
 def build_iiko_client(restaurant: Restaurant) -> IikoClient:

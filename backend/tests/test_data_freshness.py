@@ -27,7 +27,7 @@ def test_expected_closed_sales_day_uses_restaurant_tz():
     assert expected_closed_sales_day(tz, now=now) == date(2026, 3, 2)
 
 
-def test_build_data_freshness_fresh():
+def test_build_data_freshness_fresh(monkeypatch):
     restaurant = _restaurant(
         iiko_url="https://demo.iiko.it:443",
         iiko_login="api",
@@ -47,19 +47,21 @@ def test_build_data_freshness_fresh():
 
     from src.services import data_freshness as mod
 
-    original = mod._data_bounds
-    mod._data_bounds = lambda _session, _rid: (date(2026, 1, 1), expected)
-    try:
-        payload = build_data_freshness(session, restaurant, now=now)  # type: ignore[arg-type]
-    finally:
-        mod._data_bounds = original
+    monkeypatch.setattr(mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
+    monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: expected)
+    monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
+
+    payload = build_data_freshness(session, restaurant, now=now)  # type: ignore[arg-type]
 
     assert payload.status == "fresh"
     assert payload.lagDays == 0
     assert payload.latestSalesDay == expected
+    assert payload.stock.latestDay == expected
+    assert payload.stock.lagDays == 0
+    assert payload.syncPhase is None
 
 
-def test_build_data_freshness_stale_when_behind():
+def test_build_data_freshness_stale_when_behind(monkeypatch):
     restaurant = _restaurant(
         iiko_url="https://demo.iiko.it:443",
         iiko_login="api",
@@ -71,15 +73,41 @@ def test_build_data_freshness_stale_when_behind():
 
     from src.services import data_freshness as mod
 
-    original = mod._data_bounds
-    mod._data_bounds = lambda _session, _rid: (date(2026, 1, 1), date(2026, 3, 1))
-    try:
-        payload = build_data_freshness(None, restaurant, now=now)  # type: ignore[arg-type]
-    finally:
-        mod._data_bounds = original
+    monkeypatch.setattr(
+        mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), date(2026, 3, 1))
+    )
+    monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: date(2026, 3, 1))
+    monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
+
+    payload = build_data_freshness(None, restaurant, now=now)  # type: ignore[arg-type]
 
     assert payload.status == "stale"
     assert payload.lagDays == 3
+
+
+def test_build_data_freshness_stale_when_stock_behind(monkeypatch):
+    restaurant = _restaurant(
+        iiko_url="https://demo.iiko.it:443",
+        iiko_login="api",
+        iiko_password_encrypted="enc",
+        sync_status="success",
+        auto_sync_enabled=True,
+        timezone="Asia/Bishkek",
+    )
+    now = datetime(2026, 3, 5, 12, 0, tzinfo=UTC)
+    expected = expected_closed_sales_day(resolve_restaurant_timezone("Asia/Bishkek"), now=now)
+
+    from src.services import data_freshness as mod
+
+    monkeypatch.setattr(mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
+    monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: date(2026, 3, 1))
+    monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
+
+    payload = build_data_freshness(None, restaurant, now=now)  # type: ignore[arg-type]
+
+    assert payload.status == "stale"
+    assert payload.lagDays == 0
+    assert payload.stock.lagDays == 3
 
 
 def test_should_auto_sync_when_plan_pending(monkeypatch):
@@ -103,6 +131,29 @@ def test_should_auto_sync_when_plan_pending(monkeypatch):
     should, reason = should_auto_sync(None, restaurant)  # type: ignore[arg-type]
     assert should is True
     assert reason == "pending_data"
+
+
+def test_should_auto_sync_when_stock_pending(monkeypatch):
+    restaurant = _restaurant(
+        iiko_url="https://demo.iiko.it:443",
+        iiko_login="api",
+        iiko_password_encrypted="enc",
+        sync_status="idle",
+        auto_sync_enabled=True,
+    )
+
+    monkeypatch.setattr(
+        "src.services.iiko_sync_scheduler.resolve_sync_plan",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "src.services.iiko_sync_scheduler.resolve_stock_plan",
+        lambda *_args, **_kwargs: object(),
+    )
+
+    should, reason = should_auto_sync(None, restaurant)  # type: ignore[arg-type]
+    assert should is True
+    assert reason == "pending_stock"
 
 
 def test_data_freshness_endpoint(client):

@@ -1,18 +1,20 @@
-"""Статус актуальности продаж в БД относительно закрытого дня в TZ ресторана."""
+"""Статус актуальности продаж и склада в БД относительно закрытого дня."""
 
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime, timedelta
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session
 
 from src.core.config import get_settings
 from src.db.models.restaurant import Restaurant
-from src.schemas.dashboard import DataFreshness
+from src.schemas.dashboard import DataFreshness, StockFreshness
 from src.services.dashboard import _data_bounds
 from src.services.iiko_sync import normalize_sync_status, sync_progress_percent
+from src.services.warehouse_sync import get_stock_domain_status, latest_stock_day
 
 
 def resolve_restaurant_timezone(tz_name: str | None) -> ZoneInfo:
@@ -35,6 +37,53 @@ def expected_closed_sales_day(
     return local_today - timedelta(days=1)
 
 
+def resolve_sync_phase(
+    session: Session,
+    restaurant: Restaurant,
+) -> Literal["sales", "stock"] | None:
+    if restaurant.sync_status != "running":
+        return None
+    stock = get_stock_domain_status(session, restaurant.id)
+    if stock is not None and stock.status == "running":
+        return "stock"
+    return "sales"
+
+
+def build_stock_freshness(
+    session: Session,
+    restaurant: Restaurant,
+    *,
+    expected: date,
+) -> StockFreshness:
+    stock_row = get_stock_domain_status(session, restaurant.id)
+    latest = latest_stock_day(session, restaurant.id)
+    if latest is None and stock_row is not None and stock_row.last_day is not None:
+        latest = stock_row.last_day
+
+    lag_days: int | None
+    if latest is None:
+        lag_days = None
+    else:
+        lag_days = max(0, (expected - latest).days)
+
+    status = "idle"
+    error = None
+    days_done = None
+    if stock_row is not None:
+        status = stock_row.status  # type: ignore[assignment]
+        error = stock_row.error
+        if stock_row.status == "running":
+            days_done = stock_row.days_done
+
+    return StockFreshness(
+        latestDay=latest,
+        lagDays=lag_days,
+        syncStatus=status,  # type: ignore[arg-type]
+        syncError=error,
+        daysDone=days_done,
+    )
+
+
 def build_data_freshness(
     session: Session,
     restaurant: Restaurant,
@@ -46,6 +95,7 @@ def build_data_freshness(
     expected = expected_closed_sales_day(tz, now=moment)
     earliest, latest = _data_bounds(session, restaurant.id)
     sync_status, sync_error = normalize_sync_status(restaurant)
+    stock = build_stock_freshness(session, restaurant, expected=expected)
 
     lag_days: int | None
     if latest is None:
@@ -59,9 +109,11 @@ def build_data_freshness(
         sync_status=sync_status,
         iiko_configured=restaurant.iiko_configured,
         auto_sync_enabled=restaurant.auto_sync_enabled,
+        stock=stock,
     )
 
     progress = sync_progress_percent(restaurant) if sync_status == "running" else None
+    phase = resolve_sync_phase(session, restaurant) if sync_status == "running" else None
 
     return DataFreshness(
         status=status,
@@ -73,6 +125,8 @@ def build_data_freshness(
         syncError=sync_error,
         autoSyncEnabled=restaurant.auto_sync_enabled and restaurant.iiko_configured,
         syncProgressPercent=progress,
+        syncPhase=phase,
+        stock=stock,
     )
 
 
@@ -83,6 +137,7 @@ def _resolve_status(
     sync_status: str,
     iiko_configured: bool,
     auto_sync_enabled: bool,
+    stock: StockFreshness,
 ) -> str:
     if not iiko_configured:
         return "unconfigured"
@@ -90,10 +145,15 @@ def _resolve_status(
         return "empty"
     if sync_status == "running":
         return "syncing"
-    if latest >= expected:
-        return "fresh"
-    if sync_status == "error":
+    if sync_status == "error" or stock.syncStatus == "error":
         return "error"
+    if latest >= expected:
+        # Продажи свежие, но склад отстаёт — stale, чтобы badge/worker видели дыру.
+        if stock.latestDay is None or (stock.lagDays is not None and stock.lagDays > 0):
+            if not auto_sync_enabled:
+                return "stale_manual"
+            return "stale"
+        return "fresh"
     if not auto_sync_enabled:
         return "stale_manual"
     return "stale"

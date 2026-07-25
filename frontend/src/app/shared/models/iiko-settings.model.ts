@@ -1,6 +1,16 @@
 /** Настройки подключения iiko — GET/PUT /api/auth/me/iiko */
 
 export type IikoSyncStatus = 'idle' | 'running' | 'success' | 'error' | 'noop';
+export type IikoSyncPhase = 'sales' | 'stock';
+export type StockDomainStatus = 'idle' | 'running' | 'success' | 'error' | 'skipped';
+
+export interface StockSyncPublic {
+  status: StockDomainStatus;
+  latest_day: string | null;
+  lag_days: number | null;
+  days_done: number | null;
+  error: string | null;
+}
 
 export interface IikoSyncPublic {
   status: IikoSyncStatus;
@@ -14,7 +24,9 @@ export interface IikoSyncPublic {
   days_done: number | null;
   current_day: string | null;
   progress_percent: number | null;
+  phase: IikoSyncPhase | null;
   error: string | null;
+  stock: StockSyncPublic;
 }
 
 export interface IikoSettingsPublic {

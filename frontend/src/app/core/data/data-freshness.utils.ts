@@ -58,21 +58,36 @@ export interface FreshnessBadgeView {
 }
 
 function latestDayTitle(freshness: DataFreshness): string {
-  if (!freshness.latestSalesDay) {
-    return '';
+  const parts: string[] = [];
+  if (freshness.latestSalesDay) {
+    parts.push(`Продажи: ${formatSalesDay(freshness.latestSalesDay)}`);
   }
-  return `Последний день в базе: ${formatSalesDay(freshness.latestSalesDay)}`;
+  if (freshness.stock.latestDay) {
+    parts.push(`Склад: ${formatSalesDay(freshness.stock.latestDay)}`);
+  }
+  return parts.join(' · ');
 }
 
 function lagTitle(freshness: DataFreshness): string {
-  if (freshness.lagDays === null || freshness.lagDays <= 0) {
+  const parts: string[] = [];
+  if (freshness.lagDays !== null && freshness.lagDays > 0) {
+    parts.push(`продажи −${lagLabel(freshness.lagDays)}`);
+  }
+  if (freshness.stock.lagDays !== null && freshness.stock.lagDays > 0) {
+    parts.push(`склад −${lagLabel(freshness.stock.lagDays)}`);
+  }
+  if (parts.length === 0) {
     return '';
   }
-  return `Отставание: ${lagLabel(freshness.lagDays)}`;
+  return `Отставание: ${parts.join(', ')}`;
 }
 
-function jobSuffixTitle(suffix: FreshnessJobSuffix): string {
-  if (suffix === 'sync') return 'Идёт синхронизация с iiko';
+function jobSuffixTitle(suffix: FreshnessJobSuffix, phase: DataFreshness['syncPhase']): string {
+  if (suffix === 'sync') {
+    if (phase === 'stock') return 'Идёт синхронизация склада с iiko';
+    if (phase === 'sales') return 'Идёт синхронизация продаж с iiko';
+    return 'Идёт синхронизация с iiko';
+  }
   if (suffix === 'action') return 'Требуется действие в настройках';
   return '';
 }
@@ -82,7 +97,7 @@ export function resolveFreshnessDotTone(freshness: DataFreshness): FreshnessDotT
     return 'warn';
   }
 
-  const lag = freshness.lagDays ?? 0;
+  const lag = Math.max(freshness.lagDays ?? 0, freshness.stock.lagDays ?? 0);
   if (lag >= SEVERE_FRESHNESS_LAG_DAYS) {
     return 'critical';
   }
@@ -111,7 +126,7 @@ export function resolveFreshnessJobSuffix(freshness: DataFreshness): FreshnessJo
 }
 
 export function resolveFreshnessUrgency(freshness: DataFreshness): FreshnessUrgency {
-  const lag = freshness.lagDays ?? 0;
+  const lag = Math.max(freshness.lagDays ?? 0, freshness.stock.lagDays ?? 0);
   if (lag >= SEVERE_FRESHNESS_LAG_DAYS) {
     return 'critical';
   }
@@ -119,7 +134,8 @@ export function resolveFreshnessUrgency(freshness: DataFreshness): FreshnessUrge
     freshness.status === 'error' ||
     freshness.status === 'stale_manual' ||
     freshness.status === 'empty' ||
-    freshness.status === 'unconfigured'
+    freshness.status === 'unconfigured' ||
+    freshness.stock.syncStatus === 'error'
   ) {
     return 'action_required';
   }
@@ -175,8 +191,9 @@ export function buildFreshnessBadge(
   const titleParts = [
     latestDayTitle(freshness),
     lagTitle(freshness),
-    jobSuffixTitle(jobSuffix),
+    jobSuffixTitle(jobSuffix, freshness.syncPhase),
     freshness.syncError && jobSuffix === 'action' ? freshness.syncError : '',
+    freshness.stock.syncError && jobSuffix === 'action' ? freshness.stock.syncError : '',
   ].filter(Boolean);
 
   return {

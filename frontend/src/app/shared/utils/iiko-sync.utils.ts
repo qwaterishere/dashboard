@@ -34,13 +34,16 @@ export function buildSyncProgressLabel(sync: IikoSyncPublic | undefined): string
 
   const dayLabel = sync.current_day ? formatSyncDayLabel(sync.current_day) : '…';
   const total = syncPlanDays(sync.plan_from, sync.plan_to);
+  const domain = sync.phase === 'stock' ? 'склад' : 'продажи';
 
   if (total !== null) {
-    const currentNum = Math.min((sync.days_done ?? 0) + 1, total);
-    return `Скачиваются продажи за ${dayLabel} · ${currentNum} из ${total} дн.`;
+    const currentNum = Math.min((sync.days_done ?? 0) + (sync.phase === 'stock' ? 0 : 1), total);
+    const done = sync.phase === 'stock' ? (sync.days_done ?? 0) : currentNum;
+    const shown = sync.phase === 'stock' ? Math.min(Math.max(done, 1), total) : currentNum;
+    return `Скачивается ${domain} за ${dayLabel} · ${shown} из ${total} дн.`;
   }
 
-  return `Скачиваются продажи за ${dayLabel}`;
+  return `Скачивается ${domain} за ${dayLabel}`;
 }
 
 export function buildSyncStatusText(
@@ -51,14 +54,18 @@ export function buildSyncStatusText(
 
   if (sync.status === 'success' && sync.date_from && sync.date_to) {
     const days = sync.days_loaded ?? 0;
-    return `Последняя загрузка: ${sync.date_from} — ${sync.date_to} (${days} дн.)`;
+    const stockNote =
+      sync.stock?.latest_day != null
+        ? ` · склад до ${sync.stock.latest_day}`
+        : '';
+    return `Последняя загрузка: ${sync.date_from} — ${sync.date_to} (${days} дн.)${stockNote}`;
   }
   if (sync.status === 'noop') {
     return 'Данные актуальны — новых дней для загрузки нет.';
   }
   if (sync.status === 'error') {
     if (options?.hidePersistedError) return '';
-    return sync.error ?? 'Ошибка загрузки данных';
+    return sync.error ?? sync.stock?.error ?? 'Ошибка загрузки данных';
   }
-  return 'Загрузите продажи из iiko для отображения дашборда.';
+  return 'Загрузите продажи и склад из iiko для отображения дашборда.';
 }
