@@ -5,7 +5,7 @@ import { PanelBusyOverlayComponent } from '../../../../ui/molecules/panel-busy-o
 import { ProgressFillComponent } from '../../../../ui/atoms/progress-fill/progress-fill.component';
 import { ProgressTrackComponent } from '../../../../ui/atoms/progress-track/progress-track.component';
 import { MarkLineComponent } from '../../../../ui/atoms/mark-line/mark-line.component';
-import { PctPipe, SignedPpPipe } from '../../../../shared/pipes/format.pipes';
+import { PctPipe } from '../../../../shared/pipes/format.pipes';
 import type { DashboardData } from '../../../../shared/models';
 import {
   foodcostGaugePosition,
@@ -22,7 +22,6 @@ import {
     ProgressTrackComponent,
     MarkLineComponent,
     PctPipe,
-    SignedPpPipe,
   ],
   template: `
     <div class="panel panel-flat" [class.panel--loading]="loading()">
@@ -34,15 +33,6 @@ import {
         @if (foodcost().goal != null) {
           <div class="fc-meta">
             <span>цель {{ foodcost().goal! | pct }}</span>
-            @if (foodcost().deltaPP != null) {
-              <span class="fc-dot" aria-hidden="true">·</span>
-              <span
-                [class.up]="foodcost().dir === 'up'"
-                [class.dn]="foodcost().dir === 'dn'"
-              >
-                {{ foodcost().deltaPP! | signedPp }}
-              </span>
-            }
           </div>
         }
       </div>
