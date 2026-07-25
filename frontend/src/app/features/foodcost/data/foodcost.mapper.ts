@@ -4,6 +4,7 @@ import type { FoodcostData } from '../../../shared/models/foodcost.model';
 import type { DashboardData } from '../../../shared/models/dashboard.model';
 import type {
   BaseCost,
+  CostTotals,
   FoodcostApi,
   GroupCost,
   ProductCost,
@@ -15,6 +16,7 @@ import {
   formatYearPeriodLabel,
 } from '../../../shared/utils/period-format.utils';
 import { formatMoney } from '../../../shared/utils/money-format.utils';
+import { foodcostGaugeScale } from '../../../shared/utils/foodcost-gauge.utils';
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
 
@@ -207,25 +209,82 @@ function buildDiscounts(data: FoodcostApi): FoodcostData['discounts'] {
   ];
 }
 
-/** Мини-панель фудкоста на дашборде (k/b/w). */
-export function buildDashboardFoodcostMini(units: UnitCost[]): DashboardData['foodcostMini'] {
+function foodcostDir(deltaPP: number): LflDirection {
+  return (deltaPP >= 0 ? 'dn' : 'up') as LflDirection;
+}
+
+function buildFoodcostMiniUnits(units: UnitCost[]): DashboardData['foodcostMini']['units'] {
+  return KBW.map((key) => {
+    const unit = units.find((entry) => entry.key === key);
+    const pct = unit ? fcPct(unit.cost, unit.revenueWithCost) : 0;
+    const prevPct = unit ? prevFcPct(unit) : null;
+    const goal = resolveGoal(unit?.goal ?? null, prevPct);
+    const deltaPP = pct - goal;
+    return {
+      key,
+      name: CAT_NAME[key],
+      deltaPP,
+      dir: foodcostDir(deltaPP),
+    };
+  });
+}
+
+function aggregateUnitsFoodcost(units: UnitCost[]): {
+  pct: number;
+  prevPct: number | null;
+  goal: number | null;
+} {
+  const kbw = units.filter((unit) => KBW.includes(unit.key as CategoryKey));
+  const cost = kbw.reduce((sum, unit) => sum + unit.cost, 0);
+  const revenueWithCost = kbw.reduce((sum, unit) => sum + unit.revenueWithCost, 0);
+  const prevCost = kbw.reduce(
+    (sum, unit) => sum + (unit.prevCost ?? 0),
+    0,
+  );
+  const prevRevenueWithCost = kbw.reduce(
+    (sum, unit) => sum + (unit.prevRevenueWithCost ?? 0),
+    0,
+  );
+  const hasPrev = kbw.some(
+    (unit) => unit.prevCost !== null && unit.prevRevenueWithCost !== null,
+  );
+  return {
+    pct: fcPct(cost, revenueWithCost),
+    prevPct: hasPrev ? fcPct(prevCost, prevRevenueWithCost) : null,
+    goal: null,
+  };
+}
+
+/**
+ * Мини-панель фудкоста на дашборде: общий KPI + дельты k/b/w.
+ * Герой берётся из totals (clean), fallback — агрегация units.
+ */
+export function buildDashboardFoodcostMini(
+  units: UnitCost[],
+  totals?: CostTotals | null,
+): DashboardData['foodcostMini'] {
+  const fromTotals = totals
+    ? {
+        pct: fcPct(totals.cost, totals.revenueWithCost),
+        prevPct: prevFcPct(totals),
+        goal: totals.goal,
+      }
+    : aggregateUnitsFoodcost(units);
+
+  const pct = fromTotals.pct;
+  const goal = resolveGoal(fromTotals.goal, fromTotals.prevPct);
+  const deltaPP = pct - goal;
+  const scale = foodcostGaugeScale(pct, goal);
+
   return {
     caption: 'Средняя себестоимость продаж за период',
-    items: KBW.map((key) => {
-      const unit = units.find((entry) => entry.key === key);
-      const pct = unit ? fcPct(unit.cost, unit.revenueWithCost) : 0;
-      const prevPct = unit ? prevFcPct(unit) : null;
-      const goal = resolveGoal(unit?.goal ?? null, prevPct);
-      const deltaPP = pct - goal;
-      return {
-        key,
-        name: CAT_NAME[key],
-        pct,
-        goal,
-        deltaPP,
-        dir: (deltaPP >= 0 ? 'dn' : 'up') as LflDirection,
-      };
-    }),
+    pct,
+    goal,
+    deltaPP,
+    dir: foodcostDir(deltaPP),
+    scaleMin: scale.min,
+    scaleMax: scale.max,
+    units: buildFoodcostMiniUnits(units),
   };
 }
 

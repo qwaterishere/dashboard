@@ -82,11 +82,18 @@ export interface DashboardData {
   } | null;
   foodcostMini: {
     caption: string;
-    items: {
+    /** Общий clean foodcost, %. */
+    pct: number;
+    goal: number;
+    deltaPP: number;
+    dir: LflMetric['dir'];
+    /** Границы горизонтального gauge (не 0–100). */
+    scaleMin: number;
+    scaleMax: number;
+    /** Дельты k/b/w к цели (чипы). */
+    units: {
       key: CategoryKey;
       name: string;
-      pct: number;
-      goal: number;
       deltaPP: number;
       dir: LflMetric['dir'];
     }[];

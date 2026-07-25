@@ -125,7 +125,7 @@ describe('dashboard.mapper', () => {
   it('builds view model with LfL and foodcost from API facts', () => {
     const vm = buildDashboardViewModel(sample);
     expect(vm.kpis.revenue.lfl?.pct).toBe(25);
-    expect(vm.foodcostMini.items).toHaveLength(3);
+    expect(vm.foodcostMini.units).toHaveLength(3);
     expect(vm.categories).toHaveLength(2);
     expect(vm.reviews).toBeNull();
     expect(vm.stock).toBeNull();
@@ -135,7 +135,11 @@ describe('dashboard.mapper', () => {
 
   it('prefers foodcost API for mini panel fc%', () => {
     const vm = buildDashboardViewModel(sample, { foodcost: foodcostSample });
-    expect(vm.foodcostMini.items[0].pct).toBeCloseTo(33.3, 1);
+    expect(vm.foodcostMini.pct).toBeCloseTo(30, 0);
+    expect(vm.foodcostMini.units[0].deltaPP).toBeCloseTo(
+      (200 / 600) * 100 - (180 / 500) * 100,
+      1,
+    );
     expect(vm.categories).toEqual([
       { key: 'k', name: 'Кухня', pct: 60 },
       { key: 'b', name: 'Бар', pct: 40 },

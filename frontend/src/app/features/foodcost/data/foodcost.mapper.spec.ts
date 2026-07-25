@@ -148,13 +148,15 @@ describe('foodcost.mapper', () => {
     expect(vm.discounts[2].tone).toBe('amber');
   });
 
-  it('builds dashboard foodcost mini from API units', () => {
-    const mini = buildDashboardFoodcostMini(sample.units);
-    expect(mini.items).toHaveLength(3);
-    expect(mini.items[0].pct).toBeCloseTo(30, 0);
-    expect(mini.items[1].pct).toBeCloseTo(17.1, 0);
-    expect(mini.items[0].goal).toBe(28);
-    expect(mini.items[1].goal).toBe(22);
+  it('builds dashboard foodcost mini from API totals + units', () => {
+    const mini = buildDashboardFoodcostMini(sample.units, sample.totals);
+    expect(mini.pct).toBeCloseTo(27.19, 1);
+    expect(mini.units).toHaveLength(3);
+    expect(mini.units[0].deltaPP).toBeCloseTo(30 - 28, 0);
+    expect(mini.units[1].deltaPP).toBeCloseTo(17.1 - 22, 0);
+    expect(mini.goal).toBeCloseTo(25, 0); // prevPct fallback: 100/400
+    expect(mini.scaleMin).toBeLessThan(mini.pct);
+    expect(mini.scaleMax).toBeGreaterThan(mini.goal);
   });
 
   it('uses targets goals for units and losses', () => {

@@ -1,33 +1,56 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, input } from '@angular/core';
 
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
-import { MoneyPipe } from '../../../../shared/pipes/format.pipes';
-import { ProgressFillComponent } from '../../../../ui/atoms/progress-fill/progress-fill.component';
-import { ProgressTrackComponent } from '../../../../ui/atoms/progress-track/progress-track.component';
+import { DotComponent } from '../../../../ui/atoms/dot/dot.component';
+import { KFormatPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
+import { CAT_COLOR } from '../../../../shared/constants/category.constants';
 import type { CategoryKey } from '../../../../shared/models';
 
 @Component({
   selector: 'app-stock-panel-organism',
   standalone: true,
-  imports: [PanelHeaderComponent, MoneyPipe, ProgressFillComponent, ProgressTrackComponent],
+  imports: [PanelHeaderComponent, DotComponent, MoneyPipe, KFormatPipe],
   template: `
     <div class="panel panel-flat">
       <app-panel-header title="Остаток на складе" />
+      <p class="r-cap">Стоимость запасов по складам</p>
+
       @if (stock(); as s) {
-        <div class="stock-total">
-          <div class="st-sum">{{ s.total | money }}</div>
+        <div class="stock-hero">
+          <span class="st-sum">{{ s.total | money }}</span>
         </div>
-        <div class="store-split">
-          @for (item of s.items; track item.key) {
-            <div class="ss-row">
-              <span>{{ item.name }}</span>
-              <b>{{ item.value | money }}</b>
-            </div>
-            <app-progress-track variant="bar">
-              <app-progress-fill [width]="share(item.value)" [category]="item.key" />
-            </app-progress-track>
-          }
-        </div>
+
+        @if (rows().length) {
+          <div
+            class="stock-stack"
+            role="img"
+            [attr.aria-label]="'Структура остатка ' + (s.total | money)"
+          >
+            @for (row of rows(); track row.key) {
+              <span
+                class="stock-seg"
+                [style.flex-grow]="row.value"
+                [style.background]="row.color"
+                [attr.title]="row.name + ': ' + (row.value | money)"
+              ></span>
+            }
+          </div>
+
+          <ul class="stock-rows">
+            @for (row of rows(); track row.key) {
+              <li class="stock-row">
+                <app-dot [color]="row.color" />
+                <span class="stock-row__name">{{ row.name }}</span>
+                <span class="stock-row__val" [attr.title]="row.value | money">
+                  {{ row.value | kFormat }}
+                </span>
+                <span class="stock-row__pct">{{ row.share }}%</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="stock-empty">Нет положительных остатков</p>
+        }
       } @else {
         <p class="stock-empty">Нет слепка остатков</p>
       }
@@ -41,8 +64,18 @@ export class StockPanelOrganismComponent {
     items: { key: CategoryKey; name: string; value: number }[];
   } | null>(null);
 
-  share(value: number): number {
-    const total = this.stock()?.total ?? 0;
-    return total ? Math.round((value / total) * 1000) / 10 : 0;
-  }
+  protected readonly rows = computed(() => {
+    const data = this.stock();
+    if (!data) return [];
+    const total = data.total;
+    return data.items
+      .filter((item) => item.value > 0)
+      .map((item) => ({
+        key: item.key,
+        name: item.name,
+        value: item.value,
+        color: CAT_COLOR[item.key],
+        share: total ? Math.round((item.value / total) * 100) : 0,
+      }));
+  });
 }

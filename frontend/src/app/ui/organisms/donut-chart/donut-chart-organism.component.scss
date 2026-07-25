@@ -31,6 +31,33 @@
   }
 }
 
+:host(.mini) {
+  .donut-side {
+    width: 120px;
+    height: 120px;
+
+    svg {
+      width: 120px;
+      height: 120px;
+    }
+  }
+
+  .dc-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+  }
+
+  .dc-val {
+    font-size: 1.05rem;
+    margin-top: 1px;
+  }
+
+  .dc-sub {
+    font-size: 0.62rem;
+    margin-top: 2px;
+  }
+}
+
 .donut-seg {
   transition: opacity 0.15s;
   cursor: default;

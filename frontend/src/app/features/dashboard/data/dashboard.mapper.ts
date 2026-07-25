@@ -26,6 +26,7 @@ import {
   monthRangeFromSeries,
 } from '../../../shared/utils/period-format.utils';
 import { formatMoney } from '../../../shared/utils/money-format.utils';
+import { foodcostGaugeScale } from '../../../shared/utils/foodcost-gauge.utils';
 
 export interface DashboardViewModelOptions {
   granularity?: PeriodGranularity;
@@ -158,21 +159,36 @@ function hasRevenuePlan(
 }
 
 function buildFoodcostMini(units: UnitSums[]): DashboardData['foodcostMini'] {
-  const byKey = Object.fromEntries(units.map((u) => [u.key, u])) as Record<string, UnitSums>;
+  const kbw = units.filter((u) => KBW.includes(u.key as CategoryKey));
+  const cost = kbw.reduce((sum, u) => sum + u.cost, 0);
+  const revenue = kbw.reduce((sum, u) => sum + u.revenue, 0);
+  const prevCost = kbw.reduce((sum, u) => sum + u.prevCost, 0);
+  const prevRevenue = kbw.reduce((sum, u) => sum + u.prevRevenue, 0);
+  const pct = revenue ? (cost / revenue) * 100 : 0;
+  const prevPct = prevRevenue ? (prevCost / prevRevenue) * 100 : 0;
+  const goal = prevPct;
+  const deltaPP = pct - goal;
+  const scale = foodcostGaugeScale(pct, goal);
+
   return {
     caption: 'Средняя себестоимость продаж за период',
-    items: KBW.map((key) => {
-      const unit = byKey[key];
-      const pct = unit.revenue ? (unit.cost / unit.revenue) * 100 : 0;
-      const prevPct = unit.prevRevenue ? (unit.prevCost / unit.prevRevenue) * 100 : 0;
-      const deltaPP = pct - prevPct;
+    pct,
+    goal,
+    deltaPP,
+    dir: (deltaPP >= 0 ? 'dn' : 'up') as LflDirection,
+    scaleMin: scale.min,
+    scaleMax: scale.max,
+    units: KBW.map((key) => {
+      const unit = kbw.find((u) => u.key === key);
+      const unitPct = unit && unit.revenue ? (unit.cost / unit.revenue) * 100 : 0;
+      const unitPrev =
+        unit && unit.prevRevenue ? (unit.prevCost / unit.prevRevenue) * 100 : 0;
+      const unitDelta = unitPct - unitPrev;
       return {
         key,
         name: CAT_NAME[key],
-        pct,
-        goal: prevPct,
-        deltaPP,
-        dir: deltaPP >= 0 ? 'dn' : 'up',
+        deltaPP: unitDelta,
+        dir: (unitDelta >= 0 ? 'dn' : 'up') as LflDirection,
       };
     }),
   };
@@ -265,7 +281,7 @@ export function buildDashboardChartCore(
     revenueByDayMax: maxRevenue * 1.1,
     reviews: data.reviews,
     foodcostMini: options.foodcost
-      ? buildDashboardFoodcostMini(options.foodcost.units)
+      ? buildDashboardFoodcostMini(options.foodcost.units, options.foodcost.totals)
       : buildFoodcostMini(data.units),
     categories: options.foodcost
       ? buildDashboardRevenueCategories(options.foodcost.units)

@@ -4,6 +4,7 @@ import {
   buildDonutChartLayout,
   DONUT_LAYOUT_COMPACT,
   DONUT_LAYOUT_DEFAULT,
+  DONUT_LAYOUT_MINI,
 } from '../../../shared/utils/donut-chart.utils';
 
 export interface DonutChartSlice {
@@ -12,11 +13,14 @@ export interface DonutChartSlice {
   value: number;
 }
 
+let donutInstanceSeq = 0;
+
 @Component({
   selector: 'app-donut-chart-organism',
   standalone: true,
   host: {
     '[class.compact]': 'variant() === "compact"',
+    '[class.mini]': 'variant() === "mini"',
   },
   template: `
     <div class="donut-side">
@@ -28,7 +32,7 @@ export interface DonutChartSlice {
               <stop offset="1" [attr.stop-color]="slice.shadedColor" />
             </linearGradient>
           }
-          <radialGradient id="donutInnerShade" cx="0.5" cy="0.5" r="0.5">
+          <radialGradient [attr.id]="layout().innerShadeId" cx="0.5" cy="0.5" r="0.5">
             <stop offset="0.60" stop-color="#000" stop-opacity="0" />
             <stop offset="0.70" stop-color="#000" stop-opacity="0.4" />
             <stop offset="0.73" stop-color="#000" stop-opacity="0" />
@@ -52,7 +56,7 @@ export interface DonutChartSlice {
             [attr.cy]="layout().cy"
             [attr.r]="layout().r"
             fill="none"
-            stroke="url(#donutInnerShade)"
+            [attr.stroke]="'url(#' + layout().innerShadeId + ')'"
             [attr.stroke-width]="layout().strokeWidth"
             pointer-events="none"
           />
@@ -72,24 +76,41 @@ export interface DonutChartSlice {
   styleUrl: './donut-chart-organism.component.scss',
 })
 export class DonutChartOrganismComponent {
+  private readonly instanceId = `donut-${++donutInstanceSeq}`;
+
   readonly slices = input.required<DonutChartSlice[]>();
   readonly highlightKey = model<string | null>(null);
   readonly centerLabel = input('');
   readonly centerValue = input.required<string>();
   readonly centerSub = input('');
-  readonly variant = input<'default' | 'compact'>('default');
+  readonly variant = input<'default' | 'compact' | 'mini'>('default');
   readonly ariaLabel = input('структура продаж');
 
-  protected readonly viewSize = computed(() => (this.variant() === 'compact' ? 190 : 220));
+  protected readonly viewSize = computed(() => {
+    switch (this.variant()) {
+      case 'mini':
+        return 120;
+      case 'compact':
+        return 190;
+      default:
+        return 220;
+    }
+  });
 
-  protected readonly layout = computed(() =>
-    buildDonutChartLayout(
+  protected readonly layout = computed(() => {
+    const preset =
+      this.variant() === 'mini'
+        ? DONUT_LAYOUT_MINI
+        : this.variant() === 'compact'
+          ? DONUT_LAYOUT_COMPACT
+          : DONUT_LAYOUT_DEFAULT;
+    return buildDonutChartLayout(
       this.slices().map((slice) => ({
         key: slice.key,
         color: slice.color,
         value: slice.value,
       })),
-      this.variant() === 'compact' ? DONUT_LAYOUT_COMPACT : DONUT_LAYOUT_DEFAULT,
-    ),
-  );
+      { ...preset, idPrefix: this.instanceId },
+    );
+  });
 }
