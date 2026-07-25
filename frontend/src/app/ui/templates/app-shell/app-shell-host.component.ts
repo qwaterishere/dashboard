@@ -17,7 +17,7 @@ import { AppShellTemplateComponent } from './app-shell-template.component';
 
 const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcost', 'targets']);
 
-/** Правая панель (профиль + категории + остаток) — общий chrome всех страниц shell. */
+/** Правая панель (профиль) — общий chrome всех страниц shell. */
 const RIGHT_PANEL_SEGMENTS = new Set([
   'dashboard',
   'sales',

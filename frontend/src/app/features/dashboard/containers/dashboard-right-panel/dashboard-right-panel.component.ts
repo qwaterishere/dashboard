@@ -1,12 +1,7 @@
 import { Component, inject } from '@angular/core';
 
 import { AuthService } from '../../../../core/auth/auth.service';
-import { DashboardDataStore } from '../../data/dashboard-data.store';
-import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
 import { ProfileBlockComponent } from '../../../../ui/molecules/profile-block/profile-block.component';
-import { DividerComponent } from '../../../../ui/atoms/divider/divider.component';
-import { CategoriesPanelOrganismComponent } from '../../organisms/categories-panel/categories-panel-organism.component';
-import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-panel-organism.component';
 import {
   RIGHT_PANEL_HIDE_BREAKPOINT_PX,
   RIGHT_PANEL_WIDTH_PX,
@@ -15,13 +10,7 @@ import {
 @Component({
   selector: 'app-dashboard-right-panel',
   standalone: true,
-  imports: [
-    LoadErrorComponent,
-    ProfileBlockComponent,
-    DividerComponent,
-    CategoriesPanelOrganismComponent,
-    StockPanelOrganismComponent,
-  ],
+  imports: [ProfileBlockComponent],
   template: `
     <aside class="right app-scroll">
       <app-profile-block
@@ -30,17 +19,6 @@ import {
         [role]="auth.user()?.position ?? ''"
         (logout)="onLogout()"
       />
-      @if (viewModel(); as d) {
-        <app-categories-panel-organism [categories]="d.categories" />
-        @if (d.stock) {
-          <app-divider class="panel-divider" />
-          <app-stock-panel-organism [stock]="d.stock" />
-        }
-      } @else if (dashboard.error()) {
-        <app-load-error message="Не удалось загрузить боковую панель" />
-      } @else {
-        <p class="loading">Загрузка…</p>
-      }
     </aside>
   `,
   styles: `
@@ -63,15 +41,6 @@ import {
       align-self: start;
     }
 
-    .loading {
-      color: var(--mut2);
-      font-size: 0.9rem;
-    }
-
-    .panel-divider {
-      margin: 22px 0;
-    }
-
     @media (max-width: ${RIGHT_PANEL_HIDE_BREAKPOINT_PX}px) {
       .right {
         display: none;
@@ -80,10 +49,7 @@ import {
   `,
 })
 export class DashboardRightPanelComponent {
-  private readonly store = inject(DashboardDataStore);
   protected readonly auth = inject(AuthService);
-  protected readonly dashboard = this.store.dashboard;
-  protected readonly viewModel = this.store.displayedViewModel;
 
   protected onLogout(): void {
     this.auth.logoutAndRedirect();

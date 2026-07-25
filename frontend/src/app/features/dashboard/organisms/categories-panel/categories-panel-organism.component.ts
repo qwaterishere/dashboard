@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 
-import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component';
+import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
 import { PctIntPipe } from '../../../../shared/pipes/format.pipes';
 import { ProgressFillComponent } from '../../../../ui/atoms/progress-fill/progress-fill.component';
 import { ProgressTrackComponent } from '../../../../ui/atoms/progress-track/progress-track.component';
@@ -9,15 +9,11 @@ import type { CategoryKey } from '../../../../shared/models';
 @Component({
   selector: 'app-categories-panel-organism',
   standalone: true,
-  imports: [HeadingComponent, PctIntPipe, ProgressFillComponent, ProgressTrackComponent],
+  imports: [PanelHeaderComponent, PctIntPipe, ProgressFillComponent, ProgressTrackComponent],
   template: `
-    <div class="r-block">
-      <div class="r-head">
-        <div>
-          <app-heading [level]="4" text="Продажи по категориям" />
-          <p class="r-cap">Доля в выручке за период</p>
-        </div>
-      </div>
+    <div class="panel panel-flat">
+      <app-panel-header title="Продажи по категориям" />
+      <p class="r-cap">Доля в выручке за период</p>
       <div class="cat-list">
         @for (cat of categories(); track cat.key) {
           <div class="cat">

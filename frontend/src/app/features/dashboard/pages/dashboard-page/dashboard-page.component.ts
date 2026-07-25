@@ -10,6 +10,8 @@ import { KpiGridOrganismComponent } from '../../organisms/kpi-grid/kpi-grid-orga
 import { RevenueDaysChartOrganismComponent } from '../../organisms/revenue-days-chart/revenue-days-chart-organism.component';
 import { ReviewsPanelOrganismComponent } from '../../organisms/reviews-panel/reviews-panel-organism.component';
 import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foodcost-mini-organism.component';
+import { CategoriesPanelOrganismComponent } from '../../organisms/categories-panel/categories-panel-organism.component';
+import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-panel-organism.component';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -21,6 +23,8 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
     RevenueDaysChartOrganismComponent,
     ReviewsPanelOrganismComponent,
     FoodcostMiniOrganismComponent,
+    CategoriesPanelOrganismComponent,
+    StockPanelOrganismComponent,
   ],
   template: `
     <app-dashboard-layout-template>
@@ -41,11 +45,13 @@ import { FoodcostMiniOrganismComponent } from '../../organisms/foodcost-mini/foo
           [loading]="chartLoading()"
           (displayModeChange)="onChartDisplayModeChange($event)"
         />
-        <div class="row2">
-          @if (d.reviews) {
-            <app-reviews-panel-organism [reviews]="d.reviews" />
-          }
+        @if (d.reviews) {
+          <app-reviews-panel-organism [reviews]="d.reviews" />
+        }
+        <div class="row3">
           <app-foodcost-mini-organism [foodcost]="d.foodcostMini" />
+          <app-categories-panel-organism [categories]="d.categories" />
+          <app-stock-panel-organism [stock]="d.stock" />
         </div>
       } @else if (dashboard.error()) {
         <app-load-error message="Не удалось загрузить данные дашборда" />

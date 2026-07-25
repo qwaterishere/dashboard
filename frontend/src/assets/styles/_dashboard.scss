@@ -50,8 +50,33 @@
   }
 }
 
+app-reviews-panel-organism {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.row3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  > app-foodcost-mini-organism,
+  > app-categories-panel-organism,
+  > app-stock-panel-organism {
+    display: block;
+    min-width: 0;
+    min-height: 0;
+  }
+}
+
 @media (max-width: 900px) {
   .row2 {
+    grid-template-columns: 1fr;
+  }
+
+  .row3 {
     grid-template-columns: 1fr;
   }
 }
