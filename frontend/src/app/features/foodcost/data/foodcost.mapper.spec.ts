@@ -149,8 +149,9 @@ describe('foodcost.mapper', () => {
   });
 
   it('builds dashboard foodcost mini from API totals + units', () => {
-    const mini = buildDashboardFoodcostMini(sample.units, sample.totals);
+    const mini = buildDashboardFoodcostMini(sample.units, sample.totals, sample.period);
     expect(mini.pct).toBeCloseTo(27.19, 1);
+    expect(mini.caption).toBe('Средняя себестоимость продаж за июнь');
     expect(mini.units).toHaveLength(3);
     expect(mini.units[0].deltaPP).toBeCloseTo(30 - 28, 0);
     expect(mini.units[1].deltaPP).toBeCloseTo(17.1 - 22, 0);

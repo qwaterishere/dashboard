@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
+import { PanelBusyOverlayComponent } from '../../../../ui/molecules/panel-busy-overlay/panel-busy-overlay.component';
 import { DotComponent } from '../../../../ui/atoms/dot/dot.component';
 import { KFormatPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 import { CAT_COLOR } from '../../../../shared/constants/category.constants';
@@ -9,9 +10,9 @@ import type { CategoryKey } from '../../../../shared/models';
 @Component({
   selector: 'app-stock-panel-organism',
   standalone: true,
-  imports: [PanelHeaderComponent, DotComponent, MoneyPipe, KFormatPipe],
+  imports: [PanelHeaderComponent, PanelBusyOverlayComponent, DotComponent, MoneyPipe, KFormatPipe],
   template: `
-    <div class="panel panel-flat">
+    <div class="panel panel-flat" [class.panel--loading]="loading()">
       <app-panel-header title="Остаток на складе" />
       <p class="r-cap">Стоимость запасов по складам</p>
 
@@ -51,8 +52,12 @@ import type { CategoryKey } from '../../../../shared/models';
         } @else {
           <p class="stock-empty">Нет положительных остатков</p>
         }
-      } @else {
+      } @else if (!loading()) {
         <p class="stock-empty">Нет слепка остатков</p>
+      }
+
+      @if (loading()) {
+        <app-panel-busy-overlay />
       }
     </div>
   `,
@@ -63,6 +68,7 @@ export class StockPanelOrganismComponent {
     total: number;
     items: { key: CategoryKey; name: string; value: number }[];
   } | null>(null);
+  readonly loading = input(false);
 
   protected readonly rows = computed(() => {
     const data = this.stock();

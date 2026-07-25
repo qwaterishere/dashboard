@@ -117,7 +117,6 @@ services/
 | `POST /api/targets/unlock?year&month` | `POST /api/targets/{year}/{month}/unlock` или `DELETE …/lock` | Симметрия с lock; `DELETE /lock` = unlock |
 | `GET /api/targets/locks` + `/configured` | `GET /api/targets?status=locked\|configured` | Один list-endpoint + фильтр |
 | `GET\|PUT /api/auth/me/iiko` + sync | `GET\|PUT /api/integrations/iiko` + sync | iiko — интеграция ресторана, не профиль |
-| `GET /api/data-freshness` | `/api/dashboard/freshness` или `/api/meta/…` | Сейчас «сирота» без домена |
 | `weekStart` / `date_from` / `from` | `date_from` / `date_to` везде (snake) | Единый query-стиль |
 | `POST /api/internal/iiko/sync` | `POST /api/internal/v1/sync/iiko` | Версионирование internal API |
 
@@ -133,7 +132,7 @@ services/
 `GET|PUT /api/integrations/iiko` · `POST /api/integrations/iiko/sync?full=`
 
 **Analytics pages**  
-`GET /api/dashboard` · `/chart` · `/kpi` · `/freshness` · `GET /api/sales` · `/warehouse` · `/foodcost`
+`GET /api/dashboard` · `/chart` · `/kpi` · `GET /api/sales` · `/warehouse` · `/foodcost` · `GET /api/data-freshness`
 
 **Targets**  
 `GET /api/targets?status=` · `GET|PUT|DELETE /api/targets/{year}/{month}` · `POST …/lock` · `POST …/unlock`
@@ -151,7 +150,6 @@ services/
 - [ ] Один Period DTO (или иерархия `PeriodMonth` / `PeriodRange`) вместо трёх разных Period в schemas.
 - [ ] Слить `/targets/locks` + `/targets/configured` → `GET /api/targets?status=…`.
 - [ ] Рассмотреть `DELETE /api/targets/{y}/{m}/lock` вместо `POST unlock` (идемпотентность).
-- [ ] Перенести `GET /api/data-freshness` → `/api/dashboard/freshness` (или `/api/meta/…`).
 - [ ] Перенести `/health` → `/api/health` (или оставить оба alias).
 - [ ] Упростить `create_*_router(limiter)`: limiter через `app.state`.
 - [ ] Удалить пустой `schemas/stubs/`. Убрать мёртвые экспорты. Почистить `PAGES` из `main` если не нужны.

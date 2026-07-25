@@ -1,6 +1,7 @@
 import { Component, computed, input, model } from '@angular/core';
 
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
+import { PanelBusyOverlayComponent } from '../../../../ui/molecules/panel-busy-overlay/panel-busy-overlay.component';
 import { LegendRowComponent } from '../../../../ui/molecules/legend-row/legend-row.component';
 import { DonutChartOrganismComponent } from '../../../../ui/organisms/donut-chart/donut-chart-organism.component';
 import { PctIntPipe } from '../../../../shared/pipes/format.pipes';
@@ -12,14 +13,15 @@ import type { CategoryKey } from '../../../../shared/models';
   standalone: true,
   imports: [
     PanelHeaderComponent,
+    PanelBusyOverlayComponent,
     LegendRowComponent,
     DonutChartOrganismComponent,
     PctIntPipe,
   ],
   template: `
-    <div class="panel panel-flat">
+    <div class="panel panel-flat" [class.panel--loading]="loading()">
       <app-panel-header title="Продажи по категориям" />
-      <p class="r-cap">Доля в выручке за период</p>
+      <p class="r-cap">{{ caption() }}</p>
 
       @if (slices().length) {
         <div class="cat-body">
@@ -48,12 +50,18 @@ import type { CategoryKey } from '../../../../shared/models';
       } @else {
         <p class="cat-empty">Нет продаж за период</p>
       }
+
+      @if (loading()) {
+        <app-panel-busy-overlay />
+      }
     </div>
   `,
   styleUrl: './categories-panel-organism.component.scss',
 })
 export class CategoriesPanelOrganismComponent {
   readonly categories = input.required<{ key: CategoryKey; name: string; pct: number }[]>();
+  readonly caption = input('Доля в выручке за период');
+  readonly loading = input(false);
 
   protected readonly highlightKey = model<string | null>(null);
 

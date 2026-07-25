@@ -99,6 +99,8 @@ export interface DashboardData {
     }[];
   };
   categories: { key: CategoryKey; name: string; pct: number }[];
+  /** Подпись мини-карточки категорий (за неделю / месяц / год). */
+  categoriesCaption: string;
   stock: {
     total: number;
     items: { key: CategoryKey; name: string; value: number }[];

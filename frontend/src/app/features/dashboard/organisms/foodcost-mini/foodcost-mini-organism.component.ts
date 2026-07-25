@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 
 import { PanelHeaderComponent } from '../../../../ui/molecules/panel-header/panel-header.component';
+import { PanelBusyOverlayComponent } from '../../../../ui/molecules/panel-busy-overlay/panel-busy-overlay.component';
 import { ProgressFillComponent } from '../../../../ui/atoms/progress-fill/progress-fill.component';
 import { ProgressTrackComponent } from '../../../../ui/atoms/progress-track/progress-track.component';
 import { MarkLineComponent } from '../../../../ui/atoms/mark-line/mark-line.component';
@@ -16,6 +17,7 @@ import {
   standalone: true,
   imports: [
     PanelHeaderComponent,
+    PanelBusyOverlayComponent,
     ProgressFillComponent,
     ProgressTrackComponent,
     MarkLineComponent,
@@ -23,7 +25,7 @@ import {
     SignedPpPipe,
   ],
   template: `
-    <div class="panel panel-flat">
+    <div class="panel panel-flat" [class.panel--loading]="loading()">
       <app-panel-header title="Фудкост" />
       <div class="fc-cap">{{ foodcost().caption }}</div>
 
@@ -66,12 +68,17 @@ import {
           }
         }
       </div>
+
+      @if (loading()) {
+        <app-panel-busy-overlay />
+      }
     </div>
   `,
   styleUrl: './foodcost-mini-organism.component.scss',
 })
 export class FoodcostMiniOrganismComponent {
   readonly foodcost = input.required<DashboardData['foodcostMini']>();
+  readonly loading = input(false);
 
   protected readonly tone = computed(() => foodcostGaugeTone(this.foodcost().deltaPP));
 

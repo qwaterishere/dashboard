@@ -258,10 +258,12 @@ function aggregateUnitsFoodcost(units: UnitCost[]): {
 /**
  * Мини-панель фудкоста на дашборде: общий KPI + дельты k/b/w.
  * Герой берётся из totals (clean), fallback — агрегация units.
+ * Период всегда месяц/год API foodcost — отражается в caption.
  */
 export function buildDashboardFoodcostMini(
   units: UnitCost[],
   totals?: CostTotals | null,
+  period?: { year: number; month: number },
 ): DashboardData['foodcostMini'] {
   const fromTotals = totals
     ? {
@@ -275,9 +277,11 @@ export function buildDashboardFoodcostMini(
   const goal = resolveGoal(fromTotals.goal, fromTotals.prevPct);
   const deltaPP = pct - goal;
   const scale = foodcostGaugeScale(pct, goal);
+  const year = period?.year ?? new Date().getFullYear();
+  const month = period?.month;
 
   return {
-    caption: 'Средняя себестоимость продаж за период',
+    caption: foodcostMiniCaptionFromPeriod(year, month),
     pct,
     goal,
     deltaPP,
@@ -286,6 +290,27 @@ export function buildDashboardFoodcostMini(
     scaleMax: scale.max,
     units: buildFoodcostMiniUnits(units),
   };
+}
+
+function foodcostMiniCaptionFromPeriod(year: number, month: number | null | undefined): string {
+  const months = [
+    'январь',
+    'февраль',
+    'март',
+    'апрель',
+    'май',
+    'июнь',
+    'июль',
+    'август',
+    'сентябрь',
+    'октябрь',
+    'ноябрь',
+    'декабрь',
+  ] as const;
+  if (month == null || month < 1 || month > 12) {
+    return `Средняя себестоимость продаж за ${year} год`;
+  }
+  return `Средняя себестоимость продаж за ${months[month - 1]}`;
 }
 
 /** Доли выручки k/b/w для donut на дашборде. */

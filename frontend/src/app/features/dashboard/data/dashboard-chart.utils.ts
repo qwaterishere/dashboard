@@ -33,6 +33,7 @@ export type DashboardChartSlice = Pick<
   | 'revenueByMonth'
   | 'dataBounds'
   | 'weekKpi'
+  | 'units'
 >;
 
 const EMPTY_KPI_COMPARISON = {
@@ -207,6 +208,7 @@ export function mergeDashboardChartData(
     revenueByMonth: chart.revenueByMonth,
     dataBounds: chart.dataBounds,
     weekKpi: chart.weekKpi ?? null,
+    units: chart.units,
   };
 }
 
@@ -320,5 +322,6 @@ export function pickDashboardChartSlice(data: DashboardApi): DashboardChartSlice
     revenueByMonth: data.revenueByMonth,
     dataBounds: data.dataBounds,
     weekKpi: data.weekKpi ?? null,
+    units: data.units,
   };
 }
