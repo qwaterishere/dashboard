@@ -149,14 +149,26 @@ describe('foodcost.mapper', () => {
   });
 
   it('builds dashboard foodcost mini from API totals + units', () => {
-    const mini = buildDashboardFoodcostMini(sample.units, sample.totals);
+    const mini = buildDashboardFoodcostMini(sample.units, sample.totals, sample.period);
     expect(mini.pct).toBeCloseTo(27.19, 1);
+    expect(mini.caption).toBe('Средняя себестоимость продаж за июнь');
+    expect(mini.goal).toBeNull();
+    expect(mini.deltaPP).toBeNull();
     expect(mini.units).toHaveLength(3);
     expect(mini.units[0].deltaPP).toBeCloseTo(30 - 28, 0);
     expect(mini.units[1].deltaPP).toBeCloseTo(17.1 - 22, 0);
-    expect(mini.goal).toBeCloseTo(25, 0); // prevPct fallback: 100/400
     expect(mini.scaleMin).toBeLessThan(mini.pct);
-    expect(mini.scaleMax).toBeGreaterThan(mini.goal);
+    expect(mini.scaleMax).toBeGreaterThan(mini.pct);
+  });
+
+  it('uses explicit totals.goal when configured', () => {
+    const mini = buildDashboardFoodcostMini(
+      sample.units,
+      { ...sample.totals, goal: 26 },
+      sample.period,
+    );
+    expect(mini.goal).toBe(26);
+    expect(mini.deltaPP).toBeCloseTo(27.19 - 26, 1);
   });
 
   it('uses targets goals for units and losses', () => {

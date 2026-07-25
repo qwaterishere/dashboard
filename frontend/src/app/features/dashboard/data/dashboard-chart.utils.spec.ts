@@ -73,6 +73,7 @@ describe('dashboard-chart.utils', () => {
           revenueByDay: basePayload.revenueByDay,
           revenueByMonth: basePayload.revenueByMonth,
           dataBounds: basePayload.dataBounds,
+          units: basePayload.units,
           weekKpi: {
             weekStart: '2026-06-08',
             weekEnd: '2026-06-14',
@@ -145,11 +146,18 @@ describe('dashboard-chart.utils', () => {
       revenueByDay: [{ day: 1, weekday: 1, revenue: 1, checks: 1, guests: 1, plan: null, forecast: null }],
       revenueByMonth: [],
       dataBounds: { earliest: '2026-05-01', latest: '2026-05-31' },
+      units: [
+        { key: 'k', revenue: 50, cost: 10, prevRevenue: 40, prevCost: 8 },
+        { key: 'b', revenue: 0, cost: 0, prevRevenue: 0, prevCost: 0 },
+        { key: 'w', revenue: 0, cost: 0, prevRevenue: 0, prevCost: 0 },
+        { key: 'o', revenue: 0, cost: 0, prevRevenue: 0, prevCost: 0 },
+      ],
     });
 
     expect(merged.kpis.revenue.value).toBe(50);
     expect(merged.period.month).toBe(5);
     expect(merged.revenueByDay).toHaveLength(1);
+    expect(merged.units[0].revenue).toBe(50);
   });
 
   it('chartSliceMatchesSelection compares by year or month', () => {
@@ -160,6 +168,7 @@ describe('dashboard-chart.utils', () => {
       revenueByDay: [],
       revenueByMonth: [],
       dataBounds: { earliest: null, latest: null },
+      units: basePayload.units,
     };
     expect(chartSliceMatchesSelection(maySlice, { year: 2026, month: 5 }, 'month')).toBe(true);
     expect(chartSliceMatchesSelection(maySlice, { year: 2026, month: 6 }, 'month')).toBe(false);
@@ -205,6 +214,12 @@ describe('dashboard-chart.utils', () => {
       revenueByDay: [{ day: 1, weekday: 1, revenue: 5, checks: 1, guests: 1, plan: null, forecast: null }],
       revenueByMonth: [],
       dataBounds: { earliest: null, latest: null },
+      units: [
+        { key: 'k' as const, revenue: 40, cost: 10, prevRevenue: 30, prevCost: 8 },
+        { key: 'b' as const, revenue: 10, cost: 2, prevRevenue: 5, prevCost: 1 },
+        { key: 'w' as const, revenue: 0, cost: 0, prevRevenue: 0, prevCost: 0 },
+        { key: 'o' as const, revenue: 0, cost: 0, prevRevenue: 0, prevCost: 0 },
+      ],
     };
     const ready = resolveMergedChartData(
       basePayload,
@@ -215,6 +230,8 @@ describe('dashboard-chart.utils', () => {
     );
     expect(ready.revenueByDay[0].revenue).toBe(5);
     expect(ready.kpis.revenue.value).toBe(50);
+    expect(ready.units[0].revenue).toBe(40);
+    expect(ready.units).not.toBe(basePayload.units);
   });
 
   it('aggregateKpisFromRevenueDays sums week days', () => {
@@ -253,6 +270,7 @@ describe('dashboard-chart.utils', () => {
           revenueByDay: basePayload.revenueByDay,
           revenueByMonth: basePayload.revenueByMonth,
           dataBounds: basePayload.dataBounds,
+          units: basePayload.units,
           weekKpi: {
             weekStart: '2026-06-08',
             weekEnd: '2026-06-14',

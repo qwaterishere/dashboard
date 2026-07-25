@@ -105,6 +105,8 @@ export class DashboardDataStore {
   private readonly compareLoadingKey = signal<string | null>(null);
   /** Key awaiting first period KPI load (default LfL, no custom compare). */
   private readonly periodKpiLoadingKey = signal<string | null>(null);
+  /** Key awaiting first foodcost load for current chart period. */
+  private readonly foodcostLoadingKey = signal<string | null>(null);
 
   private readonly stableViewModel = signal<DashboardData | null>(null);
   private latestRequestId = 0;
@@ -194,6 +196,24 @@ export class DashboardDataStore {
 
     return this.compareLoadingKey() === compareKey;
   });
+
+  /**
+   * Мини-карточка фудкоста: ждём месячный foodcost
+   * (в week-режиме FC всё ещё за календарный месяц).
+   */
+  readonly foodcostCardLoadingState = computed(() => {
+    if (!this.baseData()) return false;
+    this.foodcostCacheRevision();
+    const key = this.currentFoodcostCacheKey();
+    if (this.foodcostCache.peek(key)) return false;
+    return this.foodcostLoadingKey() === key;
+  });
+
+  /** Категории продаж — из dashboard units (в т.ч. weekStart/weekEnd). */
+  readonly categoriesCardLoadingState = computed(() => this.chartLoadingState());
+
+  /** Остаток на складе — httpResource warehouse. */
+  readonly stockCardLoadingState = computed(() => this.warehouse.isLoading());
 
   readonly salesQuery = this.periodService.salesQuery;
 
@@ -402,10 +422,16 @@ export class DashboardDataStore {
       this.periodService.chartPeriod();
       this.granularity();
 
-      if (!userId || !base) return;
+      if (!userId || !base) {
+        untracked(() => this.foodcostLoadingKey.set(null));
+        return;
+      }
 
       const key = untracked(() => this.currentFoodcostCacheKey());
       untracked(() => {
+        if (!this.foodcostCache.peek(key)) {
+          this.foodcostLoadingKey.set(key);
+        }
         void this.ensureFoodcostLoaded(key);
       });
     });
@@ -681,8 +707,15 @@ export class DashboardDataStore {
 
   private async ensureFoodcostLoaded(key: string): Promise<void> {
     if (this.foodcostCache.isFresh(key, this.cacheConfig.staleAfterMs)) {
+      if (this.foodcostLoadingKey() === key) {
+        this.foodcostLoadingKey.set(null);
+      }
       this.foodcostCacheRevision.update((value) => value + 1);
       return;
+    }
+
+    if (!this.foodcostCache.peek(key)) {
+      this.foodcostLoadingKey.set(key);
     }
 
     try {
@@ -695,6 +728,10 @@ export class DashboardDataStore {
       this.foodcostCacheRevision.update((value) => value + 1);
     } catch {
       // stale-while-revalidate: keep prior cache body if any
+    } finally {
+      if (this.foodcostLoadingKey() === key) {
+        this.foodcostLoadingKey.set(null);
+      }
     }
   }
 
@@ -920,6 +957,7 @@ export class DashboardDataStore {
     this.chartLoadingKey.set(null);
     this.compareLoadingKey.set(null);
     this.periodKpiLoadingKey.set(null);
+    this.foodcostLoadingKey.set(null);
     this.chartCacheRevision.update((v) => v + 1);
     this.compareCacheRevision.update((v) => v + 1);
     this.foodcostCacheRevision.update((v) => v + 1);

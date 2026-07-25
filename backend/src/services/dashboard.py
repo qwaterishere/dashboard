@@ -594,6 +594,19 @@ def _empty_kpis() -> dict:
     }
 
 
+def _units_payload(units: dict, prev_units: dict) -> list[dict]:
+    return [
+        {
+            'key': key,
+            'revenue': round(units[key]['revenue']),
+            'cost': round(units[key]['cost']),
+            'prevRevenue': round(prev_units[key]['revenue']),
+            'prevCost': round(prev_units[key]['cost']),
+        }
+        for key in UNIT_KEYS
+    ]
+
+
 def _assemble_chart_response(
     d_from: date,
     d_to: date,
@@ -624,12 +637,7 @@ def _assemble_chart_response(
         'dataBounds': {'earliest': earliest, 'latest': latest},
         'revenueByDay': revenue_by_day,
         'revenueByMonth': revenue_by_month,
-        'units': [{'key': key,
-                   'revenue': round(units[key]['revenue']),
-                   'cost': round(units[key]['cost']),
-                   'prevRevenue': round(prev_units[key]['revenue']),
-                   'prevCost': round(prev_units[key]['cost'])}
-                  for key in UNIT_KEYS],
+        'units': _units_payload(units, prev_units),
         'weekKpi': week_kpi,
     })
 
@@ -690,7 +698,7 @@ def build_dashboard_chart(
     )
 
     if week_start is not None or week_end is not None:
-        from src.services.dashboard_week import build_week_kpi_overlay
+        from src.services.dashboard_week import build_week_kpi_overlay, previous_week_range
 
         if week_start is None or week_end is None:
             raise ValueError("weekStart and weekEnd must be provided together")
@@ -705,10 +713,14 @@ def build_dashboard_chart(
             anchor_month=month,
             latest=latest,
         )
+        prev_w_start, prev_w_end = previous_week_range(week_start, week_end)
+        week_units = _unit_sums(session, restaurant_id, week_start, week_end)
+        prev_week_units = _unit_sums(session, restaurant_id, prev_w_start, prev_w_end)
         payload = chart.model_dump()
         payload.update({
             "compare": overlay["compare"],
             "weekKpi": overlay["weekKpi"],
+            "units": _units_payload(week_units, prev_week_units),
         })
         return DashboardChart.model_validate(payload)
 
@@ -910,7 +922,7 @@ def build_dashboard(
     )
 
     if week_start is not None or week_end is not None:
-        from src.services.dashboard_week import build_week_kpi_overlay
+        from src.services.dashboard_week import build_week_kpi_overlay, previous_week_range
 
         if week_start is None or week_end is None:
             raise ValueError("weekStart and weekEnd must be provided together")
@@ -954,10 +966,14 @@ def build_dashboard(
         overlay_kpis = overlay['kpis']
         overlay_kpis['revenue']['forecast'] = week_forecasts['revenue']
         overlay_kpis['revenue']['forecastToday'] = week_paces['revenue']
+        prev_w_start, prev_w_end = previous_week_range(week_start, week_end)
+        week_units = _unit_sums(session, restaurant_id, week_start, week_end)
+        prev_week_units = _unit_sums(session, restaurant_id, prev_w_start, prev_w_end)
         payload.update({
             "kpis": overlay_kpis,
             "compare": overlay["compare"],
             "weekKpi": overlay["weekKpi"],
+            "units": _units_payload(week_units, prev_week_units),
         })
         return Dashboard.model_validate(payload)
 

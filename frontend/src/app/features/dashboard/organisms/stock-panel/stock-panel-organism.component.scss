@@ -12,6 +12,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+}
+
+.panel--loading > :not(app-panel-busy-overlay) {
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .r-cap {

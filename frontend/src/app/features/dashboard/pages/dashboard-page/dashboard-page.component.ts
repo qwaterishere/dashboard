@@ -49,9 +49,19 @@ import { StockPanelOrganismComponent } from '../../organisms/stock-panel/stock-p
           <app-reviews-panel-organism [reviews]="d.reviews" />
         }
         <div class="row3">
-          <app-foodcost-mini-organism [foodcost]="d.foodcostMini" />
-          <app-categories-panel-organism [categories]="d.categories" />
-          <app-stock-panel-organism [stock]="d.stock" />
+          <app-foodcost-mini-organism
+            [foodcost]="d.foodcostMini"
+            [loading]="foodcostCardLoading()"
+          />
+          <app-categories-panel-organism
+            [categories]="d.categories"
+            [caption]="d.categoriesCaption"
+            [loading]="categoriesCardLoading()"
+          />
+          <app-stock-panel-organism
+            [stock]="d.stock"
+            [loading]="stockCardLoading()"
+          />
         </div>
       } @else if (dashboard.error()) {
         <app-load-error message="Не удалось загрузить данные дашборда" />
@@ -81,6 +91,9 @@ export class DashboardPageComponent {
   protected readonly chartLoading = this.store.chartLoadingState;
   protected readonly kpiChartLoading = this.store.kpiChartLoadingState;
   protected readonly compareLflLoading = this.store.compareLflLoadingState;
+  protected readonly foodcostCardLoading = this.store.foodcostCardLoadingState;
+  protected readonly categoriesCardLoading = this.store.categoriesCardLoadingState;
+  protected readonly stockCardLoading = this.store.stockCardLoadingState;
   protected readonly granularity = this.store.granularity;
 
   onChartDisplayModeChange(mode: ChartDisplayMode): void {

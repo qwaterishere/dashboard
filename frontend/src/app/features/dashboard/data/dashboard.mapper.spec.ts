@@ -133,17 +133,22 @@ describe('dashboard.mapper', () => {
     expect(vm.chartPeriod).toEqual(sample.period);
   });
 
-  it('prefers foodcost API for mini panel fc%', () => {
+  it('prefers foodcost API for mini panel fc% but categories from dashboard units', () => {
     const vm = buildDashboardViewModel(sample, { foodcost: foodcostSample });
     expect(vm.foodcostMini.pct).toBeCloseTo(30, 0);
-    expect(vm.foodcostMini.units[0].deltaPP).toBeCloseTo(
-      (200 / 600) * 100 - (180 / 500) * 100,
-      1,
-    );
+    expect(vm.foodcostMini.caption).toBe('Средняя себестоимость продаж за июнь');
+    expect(vm.foodcostMini.goal).toBeNull();
+    expect(vm.foodcostMini.units[0].deltaPP).toBeNull();
     expect(vm.categories).toEqual([
       { key: 'k', name: 'Кухня', pct: 60 },
       { key: 'b', name: 'Бар', pct: 40 },
     ]);
+    expect(vm.categoriesCaption).toBe('Доля в выручке за месяц');
+  });
+
+  it('labels categories as weekly when granularity is week', () => {
+    const vm = buildDashboardViewModel(sample, { granularity: 'week' });
+    expect(vm.categoriesCaption).toBe('Доля в выручке за неделю');
   });
 
   it('maps guests card with checks as headline and guests in subline', () => {

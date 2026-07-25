@@ -13,7 +13,6 @@ import type { WarehouseData } from '../../../shared/models/warehouse.model';
 import type { FoodcostApi } from '../../../shared/models/foodcost-api.model';
 import {
   buildDashboardFoodcostMini,
-  buildDashboardRevenueCategories,
 } from '../../foodcost/data/foodcost.mapper';
 import { defaultChartDisplayMode } from '../../../shared/constants/chart-display.constants';
 import { buildChartDisplaySeries, chartSeriesMaxValue } from '../../../shared/utils/chart-display.utils';
@@ -35,12 +34,46 @@ export interface DashboardViewModelOptions {
   chartPeriodLabel?: string;
   weekRange?: ChartWeekRange;
   weekDayLookup?: (year: number, month: number, day: number) => import('../../../shared/models/dashboard-api.model').RevenueDayFact | undefined;
-  /** Факты фудкоста за тот же период — для mini-панели и donut категорий. */
+  /** Месячный foodcost для mini-карточки FC (категории берутся из dashboard.units). */
   foodcost?: FoodcostApi | null;
   weekKpi?: WeekKpiContext | null;
 }
 
 const KBW: CategoryKey[] = ['k', 'b', 'w'];
+
+/** «за июнь» — винительный = именительный для названий месяцев. */
+const MONTHS_FOR_ZA = [
+  'январь',
+  'февраль',
+  'март',
+  'апрель',
+  'май',
+  'июнь',
+  'июль',
+  'август',
+  'сентябрь',
+  'октябрь',
+  'ноябрь',
+  'декабрь',
+] as const;
+
+function foodcostMiniCaption(year: number, month: number | null | undefined): string {
+  if (month == null || month < 1 || month > 12) {
+    return `Средняя себестоимость продаж за ${year} год`;
+  }
+  return `Средняя себестоимость продаж за ${MONTHS_FOR_ZA[month - 1]}`;
+}
+
+function categoriesCaption(granularity: PeriodGranularity): string {
+  switch (granularity) {
+    case 'week':
+      return 'Доля в выручке за неделю';
+    case 'year':
+      return 'Доля в выручке за год';
+    default:
+      return 'Доля в выручке за месяц';
+  }
+}
 
 function lfl(value: number, prev: number | null): LflMetric | null {
   if (prev === null || prev === 0) return null;
@@ -158,39 +191,30 @@ function hasRevenuePlan(
   return Boolean(months?.some((month) => month.plan != null));
 }
 
-function buildFoodcostMini(units: UnitSums[]): DashboardData['foodcostMini'] {
+function buildFoodcostMini(
+  units: UnitSums[],
+  period: { year: number; month: number },
+): DashboardData['foodcostMini'] {
   const kbw = units.filter((u) => KBW.includes(u.key as CategoryKey));
   const cost = kbw.reduce((sum, u) => sum + u.cost, 0);
   const revenue = kbw.reduce((sum, u) => sum + u.revenue, 0);
-  const prevCost = kbw.reduce((sum, u) => sum + u.prevCost, 0);
-  const prevRevenue = kbw.reduce((sum, u) => sum + u.prevRevenue, 0);
   const pct = revenue ? (cost / revenue) * 100 : 0;
-  const prevPct = prevRevenue ? (prevCost / prevRevenue) * 100 : 0;
-  const goal = prevPct;
-  const deltaPP = pct - goal;
-  const scale = foodcostGaugeScale(pct, goal);
+  const scale = foodcostGaugeScale(pct, null);
 
   return {
-    caption: 'Средняя себестоимость продаж за период',
+    caption: foodcostMiniCaption(period.year, period.month),
     pct,
-    goal,
-    deltaPP,
-    dir: (deltaPP >= 0 ? 'dn' : 'up') as LflDirection,
+    goal: null,
+    deltaPP: null,
+    dir: null,
     scaleMin: scale.min,
     scaleMax: scale.max,
-    units: KBW.map((key) => {
-      const unit = kbw.find((u) => u.key === key);
-      const unitPct = unit && unit.revenue ? (unit.cost / unit.revenue) * 100 : 0;
-      const unitPrev =
-        unit && unit.prevRevenue ? (unit.prevCost / unit.prevRevenue) * 100 : 0;
-      const unitDelta = unitPct - unitPrev;
-      return {
-        key,
-        name: CAT_NAME[key],
-        deltaPP: unitDelta,
-        dir: (unitDelta >= 0 ? 'dn' : 'up') as LflDirection,
-      };
-    }),
+    units: KBW.map((key) => ({
+      key,
+      name: CAT_NAME[key],
+      deltaPP: null,
+      dir: null,
+    })),
   };
 }
 
@@ -281,11 +305,14 @@ export function buildDashboardChartCore(
     revenueByDayMax: maxRevenue * 1.1,
     reviews: data.reviews,
     foodcostMini: options.foodcost
-      ? buildDashboardFoodcostMini(options.foodcost.units, options.foodcost.totals)
-      : buildFoodcostMini(data.units),
-    categories: options.foodcost
-      ? buildDashboardRevenueCategories(options.foodcost.units)
-      : buildCategories(data.units),
+      ? buildDashboardFoodcostMini(
+          options.foodcost.units,
+          options.foodcost.totals,
+          options.foodcost.period,
+        )
+      : buildFoodcostMini(data.units, period),
+    categories: buildCategories(data.units),
+    categoriesCaption: categoriesCaption(granularity),
     stock: options.stock ?? data.stock,
     details: {},
   };

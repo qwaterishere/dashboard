@@ -69,8 +69,9 @@ def test_chart_omits_kpi_payload(session, restaurant):
 
 def test_chart_week_mode_includes_week_kpi(session, restaurant):
     ingest_records(session, parse_records([
-        _sale('2026-06-09', 1, 'aaaaaaaa-0000-0000-0000-000000000001', paid=1000),
-        _sale('2026-06-10', 2, 'aaaaaaaa-0000-0000-0000-000000000002', paid=500),
+        _sale('2026-06-01', 1, 'aaaaaaaa-0000-0000-0000-000000000001', paid=2000, group='Бар'),
+        _sale('2026-06-09', 2, 'aaaaaaaa-0000-0000-0000-000000000002', paid=1000, group='Кухня'),
+        _sale('2026-06-10', 3, 'aaaaaaaa-0000-0000-0000-000000000003', paid=500, group='Кухня'),
     ]), restaurant_id=restaurant.id)
     session.commit()
 
@@ -90,8 +91,23 @@ def test_chart_week_mode_includes_week_kpi(session, restaurant):
         week_start=date(2026, 6, 9),
         week_end=date(2026, 6, 15),
     )
+    month_chart = build_dashboard_chart(
+        session,
+        restaurant.id,
+        year=2026,
+        month=6,
+    )
 
     assert chart.weekKpi is not None
     assert chart.weekKpi.weekStart == full.weekKpi.weekStart
     assert chart.weekKpi.weekEnd == full.weekKpi.weekEnd
     assert 'kpis' not in chart.model_dump()
+
+    # Week overlay units — только 9–15 июня (кухня 1500), без бар-продажи 1 июня.
+    by_key = {u.key: u for u in chart.units}
+    month_by_key = {u.key: u for u in month_chart.units}
+    assert by_key['k'].revenue == 1500
+    assert by_key['b'].revenue == 0
+    assert chart.units == full.units
+    assert month_by_key['b'].revenue == 2000
+    assert by_key['b'].revenue != month_by_key['b'].revenue
