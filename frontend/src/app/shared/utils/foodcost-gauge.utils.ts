@@ -11,14 +11,14 @@ export function foodcostGaugePosition(
 }
 
 /**
- * Диапазон шкалы вокруг факта и цели.
+ * Диапазон шкалы вокруг факта и (опционально) цели.
  * Округляет к шагу 5 п.п., минимум 10 п.п. ширины.
  */
 export function foodcostGaugeScale(
   pct: number,
-  goal: number,
+  goal: number | null = null,
 ): { min: number; max: number } {
-  const values = [pct, goal].filter((v) => Number.isFinite(v));
+  const values = [pct, goal].filter((v): v is number => v != null && Number.isFinite(v));
   if (values.length === 0) return { min: 15, max: 35 };
 
   const lo = Math.min(...values);
@@ -35,9 +35,9 @@ export function foodcostGaugeScale(
   return { min, max };
 }
 
-/** Тон fill: выше цели — плохо (инвертированный семафор). */
-export function foodcostGaugeTone(deltaPP: number): 'good' | 'mid' | 'bad' {
-  if (!Number.isFinite(deltaPP)) return 'mid';
+/** Тон fill: выше цели — плохо (инвертированный семафор). Без цели — нейтральный. */
+export function foodcostGaugeTone(deltaPP: number | null): 'good' | 'mid' | 'bad' {
+  if (deltaPP == null || !Number.isFinite(deltaPP)) return 'mid';
   if (deltaPP > 0.3) return 'bad';
   if (deltaPP < -0.3) return 'good';
   return 'mid';

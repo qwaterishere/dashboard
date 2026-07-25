@@ -31,13 +31,20 @@ import {
 
       <div class="fc-hero">
         <span class="fc-pct" [class]="toneClass()">{{ foodcost().pct | pct }}</span>
-        <div class="fc-meta">
-          <span>цель {{ foodcost().goal | pct }}</span>
-          <span class="fc-dot" aria-hidden="true">·</span>
-          <span [class.up]="foodcost().dir === 'up'" [class.dn]="foodcost().dir === 'dn'">
-            {{ foodcost().deltaPP | signedPp }}
-          </span>
-        </div>
+        @if (foodcost().goal != null) {
+          <div class="fc-meta">
+            <span>цель {{ foodcost().goal! | pct }}</span>
+            @if (foodcost().deltaPP != null) {
+              <span class="fc-dot" aria-hidden="true">·</span>
+              <span
+                [class.up]="foodcost().dir === 'up'"
+                [class.dn]="foodcost().dir === 'dn'"
+              >
+                {{ foodcost().deltaPP! | signedPp }}
+              </span>
+            }
+          </div>
+        }
       </div>
 
       <div
@@ -47,7 +54,9 @@ import {
       >
         <app-progress-track variant="fc">
           <app-progress-fill [width]="factPos()" [variant]="tone()" />
-          <app-mark-line [position]="goalPos()" variant="goal" />
+          @if (goalPos(); as goal) {
+            <app-mark-line [position]="goal" variant="goal" />
+          }
         </app-progress-track>
         <div class="fc-scale">
           <span>{{ foodcost().scaleMin | pct }}</span>
@@ -59,9 +68,11 @@ import {
         @for (unit of foodcost().units; track unit.key; let last = $last) {
           <span class="fc-chip">
             <span class="fc-chip__name">{{ unit.name }}</span>
-            <span [class.up]="unit.dir === 'up'" [class.dn]="unit.dir === 'dn'">
-              {{ chipDelta(unit.deltaPP) }}
-            </span>
+            @if (unit.deltaPP != null) {
+              <span [class.up]="unit.dir === 'up'" [class.dn]="unit.dir === 'dn'">
+                {{ chipDelta(unit.deltaPP) }}
+              </span>
+            }
           </span>
           @if (!last) {
             <span class="fc-chip__sep" aria-hidden="true">·</span>
@@ -91,12 +102,14 @@ export class FoodcostMiniOrganismComponent {
 
   protected readonly goalPos = computed(() => {
     const fc = this.foodcost();
+    if (fc.goal == null) return null;
     return foodcostGaugePosition(fc.goal, fc.scaleMin, fc.scaleMax);
   });
 
   protected readonly gaugeLabel = computed(() => {
     const fc = this.foodcost();
     const fmt = (n: number) => `${n.toFixed(1).replace('.', ',')} %`;
+    if (fc.goal == null) return `Фудкост ${fmt(fc.pct)}`;
     return `Фудкост ${fmt(fc.pct)}, цель ${fmt(fc.goal)}`;
   });
 

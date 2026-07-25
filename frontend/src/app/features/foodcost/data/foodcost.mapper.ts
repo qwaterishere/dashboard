@@ -217,9 +217,16 @@ function buildFoodcostMiniUnits(units: UnitCost[]): DashboardData['foodcostMini'
   return KBW.map((key) => {
     const unit = units.find((entry) => entry.key === key);
     const pct = unit ? fcPct(unit.cost, unit.revenueWithCost) : 0;
-    const prevPct = unit ? prevFcPct(unit) : null;
-    const goal = resolveGoal(unit?.goal ?? null, prevPct);
-    const deltaPP = pct - goal;
+    const explicitGoal = unit?.goal ?? null;
+    if (explicitGoal === null) {
+      return {
+        key,
+        name: CAT_NAME[key],
+        deltaPP: null,
+        dir: null,
+      };
+    }
+    const deltaPP = pct - explicitGoal;
     return {
       key,
       name: CAT_NAME[key],
@@ -274,8 +281,9 @@ export function buildDashboardFoodcostMini(
     : aggregateUnitsFoodcost(units);
 
   const pct = fromTotals.pct;
-  const goal = resolveGoal(fromTotals.goal, fromTotals.prevPct);
-  const deltaPP = pct - goal;
+  /** Только явная цель из targets — без fallback на прошлый период. */
+  const goal = fromTotals.goal;
+  const deltaPP = goal != null ? pct - goal : null;
   const scale = foodcostGaugeScale(pct, goal);
   const year = period?.year ?? new Date().getFullYear();
   const month = period?.month;
@@ -285,7 +293,7 @@ export function buildDashboardFoodcostMini(
     pct,
     goal,
     deltaPP,
-    dir: foodcostDir(deltaPP),
+    dir: deltaPP != null ? foodcostDir(deltaPP) : null,
     scaleMin: scale.min,
     scaleMax: scale.max,
     units: buildFoodcostMiniUnits(units),

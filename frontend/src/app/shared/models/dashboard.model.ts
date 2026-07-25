@@ -84,18 +84,19 @@ export interface DashboardData {
     caption: string;
     /** Общий clean foodcost, %. */
     pct: number;
-    goal: number;
-    deltaPP: number;
-    dir: LflMetric['dir'];
+    /** Цель из targets; null — не настроена, UI не показывает. */
+    goal: number | null;
+    deltaPP: number | null;
+    dir: LflMetric['dir'] | null;
     /** Границы горизонтального gauge (не 0–100). */
     scaleMin: number;
     scaleMax: number;
-    /** Дельты k/b/w к цели (чипы). */
+    /** Дельты k/b/w к цели (чипы); deltaPP null — цели unit нет. */
     units: {
       key: CategoryKey;
       name: string;
-      deltaPP: number;
-      dir: LflMetric['dir'];
+      deltaPP: number | null;
+      dir: LflMetric['dir'] | null;
     }[];
   };
   categories: { key: CategoryKey; name: string; pct: number }[];

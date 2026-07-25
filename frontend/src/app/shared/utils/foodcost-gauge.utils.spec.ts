@@ -24,5 +24,6 @@ describe('foodcost-gauge.utils', () => {
     expect(foodcostGaugeTone(1.4)).toBe('bad');
     expect(foodcostGaugeTone(-1.2)).toBe('good');
     expect(foodcostGaugeTone(0.1)).toBe('mid');
+    expect(foodcostGaugeTone(null)).toBe('mid');
   });
 });

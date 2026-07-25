@@ -198,35 +198,23 @@ function buildFoodcostMini(
   const kbw = units.filter((u) => KBW.includes(u.key as CategoryKey));
   const cost = kbw.reduce((sum, u) => sum + u.cost, 0);
   const revenue = kbw.reduce((sum, u) => sum + u.revenue, 0);
-  const prevCost = kbw.reduce((sum, u) => sum + u.prevCost, 0);
-  const prevRevenue = kbw.reduce((sum, u) => sum + u.prevRevenue, 0);
   const pct = revenue ? (cost / revenue) * 100 : 0;
-  const prevPct = prevRevenue ? (prevCost / prevRevenue) * 100 : 0;
-  const goal = prevPct;
-  const deltaPP = pct - goal;
-  const scale = foodcostGaugeScale(pct, goal);
+  const scale = foodcostGaugeScale(pct, null);
 
   return {
     caption: foodcostMiniCaption(period.year, period.month),
     pct,
-    goal,
-    deltaPP,
-    dir: (deltaPP >= 0 ? 'dn' : 'up') as LflDirection,
+    goal: null,
+    deltaPP: null,
+    dir: null,
     scaleMin: scale.min,
     scaleMax: scale.max,
-    units: KBW.map((key) => {
-      const unit = kbw.find((u) => u.key === key);
-      const unitPct = unit && unit.revenue ? (unit.cost / unit.revenue) * 100 : 0;
-      const unitPrev =
-        unit && unit.prevRevenue ? (unit.prevCost / unit.prevRevenue) * 100 : 0;
-      const unitDelta = unitPct - unitPrev;
-      return {
-        key,
-        name: CAT_NAME[key],
-        deltaPP: unitDelta,
-        dir: (unitDelta >= 0 ? 'dn' : 'up') as LflDirection,
-      };
-    }),
+    units: KBW.map((key) => ({
+      key,
+      name: CAT_NAME[key],
+      deltaPP: null,
+      dir: null,
+    })),
   };
 }
 
