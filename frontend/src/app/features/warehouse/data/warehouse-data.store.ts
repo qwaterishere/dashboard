@@ -1,4 +1,4 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, untracked } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { rxResource } from '@angular/core/rxjs-interop';
 
@@ -6,6 +6,7 @@ import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync
 import { StockRepository } from '../../../core/data/stock.repository';
 import type { WarehouseData } from '../../../shared/models/warehouse.model';
 import { buildWarehouseViewModel } from './warehouse.mapper';
+import { WarehousePeriodService } from './warehouse-period.service';
 
 export interface WarehouseResourceFacade {
   hasValue(): boolean;
@@ -26,13 +27,11 @@ function isNotFound(error: unknown): boolean {
 export class WarehouseDataStore {
   private readonly sync = inject(AnalyticsDataSyncService);
   private readonly stockRepository = inject(StockRepository);
-
-  /** ISO-дата слепка (`?date`); null — latest с бэка. */
-  readonly selectedDate = signal<string | null>(null);
+  private readonly warehousePeriod = inject(WarehousePeriodService);
 
   private readonly raw = rxResource({
     params: () => ({
-      date: this.selectedDate() ?? undefined,
+      date: this.warehousePeriod.queryDate(),
     }),
     stream: ({ params }) => this.stockRepository.getSnapshot(params),
   });
@@ -53,9 +52,23 @@ export class WarehouseDataStore {
 
   constructor() {
     this.sync.register('warehouse', this.data);
-  }
 
-  setSelectedDate(iso: string | null): void {
-    this.selectedDate.set(iso);
+    // Если в sessionStorage день без слепка — откат на latest.
+    effect(() => {
+      const vm = this.viewModel();
+      const selected = this.warehousePeriod.selection();
+      if (!vm || !selected) return;
+      const available = new Set(vm.dataBounds.availableDates);
+      if (!available.has(selected)) {
+        untracked(() => this.warehousePeriod.selectLatest());
+      }
+    });
+
+    effect(() => {
+      const selected = this.warehousePeriod.selection();
+      if (selected && isNotFound(this.raw.error())) {
+        untracked(() => this.warehousePeriod.selectLatest());
+      }
+    });
   }
 }

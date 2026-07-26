@@ -1,0 +1,31 @@
+<div class="warehouse-period-bar">
+  <app-segment-control
+    [options]="quickOptions"
+    [value]="quickValue()"
+    (valueChange)="onQuickChange($event)"
+  />
+  <div class="warehouse-period-bar__date">
+    <div class="picker" (click)="$event.stopPropagation()">
+      <app-date-pill
+        [label]="label()"
+        [note]="note()"
+        [interactive]="true"
+        [ariaExpanded]="panelOpen()"
+        ariaHasPopup="dialog"
+        (pressed)="togglePanel()"
+      />
+      @if (panelOpen()) {
+        <div class="picker__panel" role="dialog" aria-label="День слепка склада">
+          <app-warehouse-day-calendar
+            [selectedIso]="selection()"
+            [highlightIso]="highlightIso()"
+            [availableDates]="bounds().availableDates"
+            [earliest]="bounds().earliest"
+            [latest]="bounds().latest"
+            (daySelected)="onDaySelected($event)"
+          />
+        </div>
+      }
+    </div>
+  </div>
+</div>
