@@ -5,6 +5,7 @@ from __future__ import annotations
 import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -26,6 +27,7 @@ from src.schemas.targets import (
     TargetsUpsertRequest,
     TargetsWriteoffUnit,
 )
+from src.services.analytics.money import money, money_float
 from src.services.targets_plan import build_month_day_plans
 
 UNIT_KEYS = ("k", "b", "w", "o")
@@ -124,7 +126,7 @@ def build_targets(
         week_profile = _DEFAULT_WEEK_PROFILE[:]
 
     daily_overrides = {
-        str(int(k)): float(v)
+        str(int(k)): money_float(v)
         for k, v in (row.daily_overrides or {}).items()
     }
 
@@ -133,7 +135,7 @@ def build_targets(
         TargetsFoodcostUnit(
             key=key,  # type: ignore[arg-type]
             name=_UNIT_NAMES[key],
-            goalPct=float(foodcost_goals.get(key, 0.0)),
+            goalPct=_pct_float(foodcost_goals.get(key, 0)),
             factPct=foodcost_facts.get(key, 0.0),
         )
         for key in _DEFAULT_FOODCOST_KEYS
@@ -145,8 +147,8 @@ def build_targets(
             key=item.get("key", "k"),
             name=item.get("name") or _UNIT_NAMES.get(item.get("key", "k"), item.get("key", "")),
             mode=item.get("mode", "pct"),
-            pct=float(item.get("pct", 0.0)),
-            rub=float(item.get("rub", 0.0)),
+            pct=_pct_float(item.get("pct", 0)),
+            rub=money_float(item.get("rub", 0)),
         )
         for item in writeoffs_raw
         if item.get("key") in _UNIT_NAMES
@@ -158,7 +160,7 @@ def build_targets(
         period=TargetsPeriod(year=y, month=m, label=_period_label(y, m)),
         reference=reference,
         revenue=TargetsRevenue(
-            monthPlan=float(row.revenue_month_plan or 0.0),
+            monthPlan=money_float(row.revenue_month_plan or 0),
             weekProfile=week_profile,
         ),
         dailyOverrides=daily_overrides,
@@ -166,15 +168,15 @@ def build_targets(
         writeoffs=writeoffs,
         compliments=TargetsCompliments(
             mode=_amount_mode(getattr(row, "compliments_mode", None)),
-            goalPct=float(row.compliments_goal_pct or 0.0),
-            goalRub=float(getattr(row, "compliments_goal_rub", 0.0) or 0.0),
+            goalPct=_pct_float(row.compliments_goal_pct or 0),
+            goalRub=money_float(getattr(row, "compliments_goal_rub", 0) or 0),
             factPct=0.0,
             factRub=0.0,
         ),
         inventory=TargetsInventory(
             mode=_amount_mode(getattr(row, "inventory_mode", None)),
-            goalPct=float(row.inventory_goal_pct or 0.0),
-            goalRub=float(getattr(row, "inventory_goal_rub", 0.0) or 0.0),
+            goalPct=_pct_float(row.inventory_goal_pct or 0),
+            goalRub=money_float(getattr(row, "inventory_goal_rub", 0) or 0),
             note="пока недоступен",
         ),
         locked=bool(getattr(row, "locked", False)),
@@ -201,28 +203,32 @@ def save_targets(
         )
         session.add(row)
 
-    row.revenue_month_plan = float(payload.revenue.monthPlan)
+    row.revenue_month_plan = money(payload.revenue.monthPlan)
     row.week_profile = list(payload.revenue.weekProfile)
-    row.daily_overrides = dict(payload.dailyOverrides)
+    row.daily_overrides = {
+        str(k): money_float(v) for k, v in dict(payload.dailyOverrides).items()
+    }
     row.foodcost_goals = {
-        unit.key: float(unit.goalPct) for unit in payload.foodcost if unit.key in UNIT_KEYS
+        unit.key: _pct_float(unit.goalPct)
+        for unit in payload.foodcost
+        if unit.key in UNIT_KEYS
     }
     row.writeoffs = [
         {
             "key": unit.key,
             "name": unit.name,
             "mode": unit.mode,
-            "pct": float(unit.pct),
-            "rub": float(unit.rub),
+            "pct": _pct_float(unit.pct),
+            "rub": money_float(unit.rub),
         }
         for unit in payload.writeoffs
     ]
     row.compliments_mode = payload.compliments.mode
-    row.compliments_goal_pct = float(payload.compliments.pct)
-    row.compliments_goal_rub = float(payload.compliments.rub)
+    row.compliments_goal_pct = Decimal(str(payload.compliments.pct))
+    row.compliments_goal_rub = money(payload.compliments.rub)
     row.inventory_mode = payload.inventory.mode
-    row.inventory_goal_pct = float(payload.inventory.pct)
-    row.inventory_goal_rub = float(payload.inventory.rub)
+    row.inventory_goal_pct = Decimal(str(payload.inventory.pct))
+    row.inventory_goal_rub = money(payload.inventory.rub)
 
     session.commit()
     session.refresh(row)
@@ -337,8 +343,8 @@ def load_revenue_plans(
     week_profile = list(row.week_profile or _DEFAULT_WEEK_PROFILE)
     if len(week_profile) != 7:
         week_profile = _DEFAULT_WEEK_PROFILE[:]
-    overrides = {int(k): float(v) for k, v in (row.daily_overrides or {}).items()}
-    month_plan = float(row.revenue_month_plan)
+    overrides = {int(k): money(v) for k, v in (row.daily_overrides or {}).items()}
+    month_plan = money(row.revenue_month_plan)
 
     plans = build_month_day_plans(
         year,
@@ -350,7 +356,7 @@ def load_revenue_plans(
     updated = row.updated_at
     ts = int(updated.timestamp()) if updated is not None else 0
     return TargetsRevenuePlans(
-        month_plan=month_plan,
+        month_plan=money_float(month_plan),
         day_plans={p.day: p.amount for p in plans},
         updated_at_ts=ts,
     )
@@ -369,18 +375,18 @@ def load_foodcost_goals(
         return TargetsFoodcostGoals(None, {}, None, None)
 
     unit_goal_pct = {
-        key: float(value)
+        key: _pct_float(value)
         for key, value in (row.foodcost_goals or {}).items()
         if key in UNIT_KEYS
     }
     totals_goal = _weighted_goal_pct(unit_goal_pct, unit_revenues or {}) if unit_goal_pct else None
 
-    month_plan = float(row.revenue_month_plan or 0.0)
+    month_plan = money(row.revenue_month_plan or 0)
     writeoffs_goal = _writeoffs_goal_rub(row.writeoffs or [], month_plan)
     compliments_goal = _amount_goal_rub(
         mode=_amount_mode(getattr(row, "compliments_mode", None)),
-        pct=float(row.compliments_goal_pct or 0.0),
-        rub=float(getattr(row, "compliments_goal_rub", 0.0) or 0.0),
+        pct=_pct_float(row.compliments_goal_pct or 0),
+        rub=money(getattr(row, "compliments_goal_rub", 0) or 0),
         month_plan=month_plan,
     )
 
@@ -419,9 +425,19 @@ def _load_row(
     )
 
 
+def _pct_float(value: object) -> float:
+    if value is None:
+        return 0.0
+    return float(Decimal(str(value)))
+
+
+def _rubles_float(value: Decimal | float | int) -> float:
+    return money_float(money(value).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
 def _is_customized(row: MonthlyTarget | None) -> bool:
     """Месяц настроен, только если сохранён положительный план выручки."""
-    return row is not None and float(row.revenue_month_plan or 0.0) > 0
+    return row is not None and money(row.revenue_month_plan or 0) > 0
 
 
 def _empty_targets(
@@ -487,7 +503,7 @@ def _build_reference(
 
     d_from = date(prev_year, prev_month, 1)
     d_to = prev_last
-    fact = float(
+    fact = money(
         session.scalar(
             select(func.coalesce(func.sum(Order.paid_total), 0)).where(
                 Order.restaurant_id == restaurant_id,
@@ -495,7 +511,7 @@ def _build_reference(
                 Order.day <= d_to,
             )
         )
-        or 0.0
+        or 0
     )
 
     latest = session.scalar(
@@ -508,13 +524,13 @@ def _build_reference(
         and latest.day < prev_days
         and latest.day > 0
     ):
-        pace = round(fact / latest.day * prev_days)
+        pace = _rubles_float(fact / Decimal(latest.day) * Decimal(prev_days))
     else:
-        pace = round(fact)
+        pace = _rubles_float(fact)
 
     return TargetsReference(
         label=_MONTH_GENITIVE[prev_month],
-        revenueFact=round(fact),
+        revenueFact=_rubles_float(fact),
         revenuePace=pace,
     )
 
@@ -526,12 +542,12 @@ def _foodcost_facts(
     month: int,
 ) -> dict[str, float]:
     """Факт фудкоста % предыдущего месяца по юнитам — для зелёных подсказок."""
-    from src.services.foodcost import _unit_cost_sums
+    from src.services.foodcost import unit_cost_sums
 
     first = date(year, month, 1)
     prev_last = first - timedelta(days=1)
     d_from = date(prev_last.year, prev_last.month, 1)
-    units = _unit_cost_sums(session, restaurant_id, d_from, prev_last)
+    units = unit_cost_sums(session, restaurant_id, d_from, prev_last)
     result: dict[str, float] = {}
     for key in _DEFAULT_FOODCOST_KEYS:
         u = units.get(key, {"cost": 0.0, "revenueWithCost": 0.0})
@@ -555,24 +571,27 @@ def _weighted_goal_pct(
     return round(sum(unit_goals.values()) / len(unit_goals), 2)
 
 
-def _writeoffs_goal_rub(writeoffs: list[dict], month_plan: float) -> float | None:
+def _writeoffs_goal_rub(
+    writeoffs: list[dict],
+    month_plan: Decimal,
+) -> float | None:
     if month_plan <= 0 and not writeoffs:
         return None
-    total = 0.0
+    total = Decimal("0")
     has_any = False
     for item in writeoffs:
         mode = item.get("mode", "pct")
         if mode == "rub":
-            rub = float(item.get("rub", 0.0))
+            rub = money(item.get("rub", 0))
             if rub > 0:
                 has_any = True
                 total += rub
         else:
-            pct = float(item.get("pct", 0.0))
+            pct = Decimal(str(item.get("pct", 0) or 0))
             if pct > 0 and month_plan > 0:
                 has_any = True
-                total += month_plan * pct / 100.0
-    return round(total) if has_any else None
+                total += month_plan * pct / Decimal("100")
+    return _rubles_float(total) if has_any else None
 
 
 def _amount_mode(raw: object) -> Literal["pct", "rub"]:
@@ -583,11 +602,12 @@ def _amount_goal_rub(
     *,
     mode: Literal["pct", "rub"],
     pct: float,
-    rub: float,
-    month_plan: float,
+    rub: Decimal | float | int,
+    month_plan: Decimal,
 ) -> float | None:
     if mode == "rub":
-        return round(rub) if rub > 0 else None
+        rub_d = money(rub)
+        return _rubles_float(rub_d) if rub_d > 0 else None
     if month_plan > 0 and pct > 0:
-        return round(month_plan * pct / 100.0)
+        return _rubles_float(month_plan * Decimal(str(pct)) / Decimal("100"))
     return None

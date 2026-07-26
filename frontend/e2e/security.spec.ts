@@ -3,7 +3,7 @@ import { ensureE2eUserSession, expect, test } from './fixtures';
 test.describe('security', () => {
   test('API responses include security headers', async ({ page }) => {
     await ensureE2eUserSession(page);
-    const response = await page.request.get('/api/dashboard');
+    const response = await page.request.get('/api/base-metrics/bounds');
     expect(response.ok()).toBeTruthy();
     const headers = response.headers();
     expect(headers['x-content-type-options']).toBe('nosniff');
@@ -49,7 +49,7 @@ test.describe('security', () => {
     const logs: string[] = [];
     page.on('console', (msg) => logs.push(msg.text()));
 
-    await page.route('**/api/sales', (route) => route.abort());
+    await page.route('**/api/sales/snapshot**', (route) => route.abort());
     await page.goto('/sales');
     await expect(page.getByText('Не удалось загрузить данные продаж')).toBeVisible();
     expect(logs.join('')).not.toMatch(/stack|trace|internal/i);

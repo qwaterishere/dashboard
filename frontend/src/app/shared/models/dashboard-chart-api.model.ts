@@ -1,4 +1,4 @@
-/** Контракт GET /api/dashboard/chart (backend/src/schemas/dashboard.py). */
+/** Chart-слой view-model (сборка из /api/base-metrics series/units). */
 
 import type { ApiPeriod, DataBounds } from './api-period.model';
 import type { RevenueDayFact, RevenueMonthFact, UnitSums, WeekKpiContext } from './dashboard-api.model';

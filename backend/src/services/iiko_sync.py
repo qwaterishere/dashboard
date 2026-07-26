@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.db.models.restaurant import Restaurant
@@ -208,27 +208,116 @@ def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+QUEUED_STATUSES = frozenset({"queued", "queued_full"})
+
+
 def normalize_sync_status(restaurant: Restaurant) -> tuple[str, str | None]:
-    """Сбрасывает зависший running после рестарта процесса."""
-    if restaurant.sync_status != "running" or restaurant.sync_started_at is None:
-        return restaurant.sync_status, restaurant.last_sync_error
+    """Публичный статус: queued* → pending; stale running → error."""
+    raw = restaurant.sync_status
+    if raw in QUEUED_STATUSES:
+        return "pending", restaurant.last_sync_error
+
+    if raw != "running" or restaurant.sync_started_at is None:
+        return raw, restaurant.last_sync_error
 
     started = restaurant.sync_started_at
     if started.tzinfo is None:
         started = started.replace(tzinfo=UTC)
     if _utc_now() - started.astimezone(UTC) > timedelta(minutes=STALE_SYNC_MINUTES):
         return "error", "Sync was interrupted — try again"
-    return restaurant.sync_status, restaurant.last_sync_error
+    return raw, restaurant.last_sync_error
+
+
+def _is_stale_running(restaurant: Restaurant) -> bool:
+    if restaurant.sync_status != "running" or restaurant.sync_started_at is None:
+        return False
+    started = restaurant.sync_started_at
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=UTC)
+    return _utc_now() - started.astimezone(UTC) > timedelta(minutes=STALE_SYNC_MINUTES)
+
+
+def enqueue_sync(
+    session: Session,
+    restaurant_id: uuid.UUID,
+    *,
+    full: bool = False,
+) -> bool:
+    """FOR UPDATE; queue sync. False if busy (running non-stale or already queued*).
+
+    Stale running → mark error, then queue. Sets ``queued_full``|``queued``.
+    """
+    restaurant = session.scalar(
+        select(Restaurant).where(Restaurant.id == restaurant_id).with_for_update()
+    )
+    if restaurant is None or not restaurant.iiko_configured:
+        return False
+
+    if restaurant.sync_status in QUEUED_STATUSES:
+        return False
+
+    if restaurant.sync_status == "running":
+        if not _is_stale_running(restaurant):
+            return False
+        restaurant.sync_status = "error"
+        restaurant.last_sync_error = "Sync was interrupted — try again"
+        _clear_sync_progress(restaurant)
+        session.flush()
+
+    restaurant.sync_status = "queued_full" if full else "queued"
+    restaurant.last_sync_error = None
+    session.commit()
+    return True
+
+
+def claim_queued_sync(session: Session, restaurant_id: uuid.UUID) -> tuple[bool, bool]:
+    """FOR UPDATE; if queued|queued_full → set running.
+
+    Returns ``(claimed, full)``.
+    """
+    restaurant = session.scalar(
+        select(Restaurant).where(Restaurant.id == restaurant_id).with_for_update()
+    )
+    if restaurant is None:
+        return False, False
+
+    if restaurant.sync_status == "queued_full":
+        full = True
+    elif restaurant.sync_status == "queued":
+        full = False
+    else:
+        return False, False
+
+    restaurant.sync_status = "running"
+    restaurant.sync_started_at = _utc_now()
+    restaurant.last_sync_error = None
+    session.commit()
+    return True, full
 
 
 def acquire_sync_lock(session: Session, restaurant_id: uuid.UUID) -> bool:
-    """Ставит sync_status=running; False если ресторан занят или не настроен."""
-    restaurant = session.get(Restaurant, restaurant_id)
+    """Атомарно ставит sync_status=running; False если занят или не настроен.
+
+    SELECT … FOR UPDATE: при stale running сначала фиксирует error в БД,
+    затем перехватывает лок (running). Отказывает при queued* (другой путь).
+    """
+    restaurant = session.scalar(
+        select(Restaurant).where(Restaurant.id == restaurant_id).with_for_update()
+    )
     if restaurant is None or not restaurant.iiko_configured:
         return False
-    status, _ = normalize_sync_status(restaurant)
-    if status == "running":
+
+    if restaurant.sync_status in QUEUED_STATUSES:
         return False
+
+    if restaurant.sync_status == "running":
+        if not _is_stale_running(restaurant):
+            return False
+        restaurant.sync_status = "error"
+        restaurant.last_sync_error = "Sync was interrupted — try again"
+        _clear_sync_progress(restaurant)
+        session.flush()
+
     restaurant.sync_status = "running"
     restaurant.sync_started_at = _utc_now()
     restaurant.last_sync_error = None
@@ -340,3 +429,15 @@ def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
             session.commit()
     finally:
         session.close()
+
+
+def process_queued_sync(restaurant_id: uuid.UUID) -> None:
+    """Claim a queued sync and run ``run_sync_job``."""
+    session = db_manager.get_session()
+    try:
+        claimed, full = claim_queued_sync(session, restaurant_id)
+    finally:
+        session.close()
+    if not claimed:
+        return
+    run_sync_job(restaurant_id, full=full)

@@ -212,7 +212,7 @@ export class DashboardDataStore {
   /** Категории продаж — из dashboard units (в т.ч. weekStart/weekEnd). */
   readonly categoriesCardLoadingState = computed(() => this.chartLoadingState());
 
-  /** Остаток на складе — httpResource warehouse. */
+  /** Остаток на складе — StockRepository via WarehouseDataStore. */
   readonly stockCardLoadingState = computed(() => this.warehouse.isLoading());
 
   readonly salesQuery = this.periodService.salesQuery;

@@ -51,7 +51,7 @@ def test_login_rejects_invalid_password(client):
         headers=_auth_headers(),
     )
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid email or password"
+    assert response.json()["detail"]["message"] == "Invalid email or password"
 
 
 @pytest.mark.no_auth
@@ -64,7 +64,7 @@ def test_register_rejects_duplicate_email_without_enumeration(client):
         headers=_auth_headers(),
     )
     assert duplicate.status_code == 400
-    assert duplicate.json()["detail"] == "Registration failed"
+    assert duplicate.json()["detail"]["message"] == "Registration failed"
 
 
 @pytest.mark.no_auth
@@ -178,6 +178,14 @@ def test_csrf_rejects_untrusted_origin_in_production(client, monkeypatch):
     monkeypatch.setenv("DB_URL", "postgresql+psycopg://user:pass@localhost/db")
     monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
     monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
+    monkeypatch.setenv("CREDENTIALS_ENCRYPTION_KEY", "y" * 32)
+    monkeypatch.setenv("AUTH_ENABLED", "true")
+    monkeypatch.setenv("SYNC_EMBEDDED_WORKER", "false")
+    monkeypatch.setenv("SYNC_RUN_IN_API", "false")
+    monkeypatch.setenv("SYNC_SCHEDULER_TOKEN", "a" * 32)
+    monkeypatch.setenv("RATE_LIMIT_STORAGE_URI", "memory://")
+    monkeypatch.setenv("TRUSTED_PROXIES", "127.0.0.1")
+    monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
     get_settings.cache_clear()
 
     response = client.post(
@@ -191,5 +199,5 @@ def test_csrf_rejects_untrusted_origin_in_production(client, monkeypatch):
 
 @pytest.mark.no_auth
 def test_protected_api_requires_auth(client):
-    response = client.get("/api/dashboard")
+    response = client.get("/api/base-metrics/bounds")
     assert response.status_code == 401

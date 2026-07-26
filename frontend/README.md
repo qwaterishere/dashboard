@@ -67,7 +67,7 @@ cd frontend && npm run storybook   # http://localhost:6006
 - **PeriodService** — granularity, chart/compare period (dashboard / foodcost / targets)
 - **SalesPeriodService** — изолированный date range на `/sales`
 - **Analytics data layer** — root stores + TTL polling + `AnalyticsRouteReuseStrategy`
-- **WarehouseDataStore** — единый fetch `/api/warehouse` для dashboard + warehouse
+- **WarehouseDataStore** — единый fetch `/api/stock/snapshot` для dashboard + warehouse
 - **Per-page layout templates** — dashboard, sales, warehouse, foodcost
 - **Theme toggle** — `localStorage` + `[data-theme]`
 - **Mobile sidebar** — drawer на `<900px`

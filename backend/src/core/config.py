@@ -57,6 +57,12 @@ class Settings(BaseSettings):
     )
     rate_limit: str = Field(default="60/minute", validation_alias="RATE_LIMIT")
     rate_limit_enabled: bool = Field(default=True, validation_alias="RATE_LIMIT_ENABLED")
+    rate_limit_storage_uri: str | None = Field(
+        default=None,
+        validation_alias="RATE_LIMIT_STORAGE_URI",
+    )
+    trusted_proxies: str = Field(default="", validation_alias="TRUSTED_PROXIES")
+    log_json: bool | None = Field(default=None, validation_alias="LOG_JSON")
     hsts_enabled: bool | None = Field(default=None, validation_alias="HSTS_ENABLED")
     hsts_max_age: int = Field(default=31_536_000, validation_alias="HSTS_MAX_AGE", ge=0)
 
@@ -102,7 +108,6 @@ class Settings(BaseSettings):
     sync_scheduler_token: str | None = Field(
         default=None,
         validation_alias="SYNC_SCHEDULER_TOKEN",
-        min_length=16,
     )
     sync_default_timezone: str = Field(
         default="Asia/Bishkek",
@@ -136,10 +141,28 @@ class Settings(BaseSettings):
         default=False,
         validation_alias="SYNC_EMBEDDED_WORKER",
     )
+    sync_run_in_api: bool = Field(
+        default=True,
+        validation_alias="SYNC_RUN_IN_API",
+    )
 
     @field_validator("db_url", mode="before")
     @classmethod
     def empty_db_url_to_none(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
+        return value
+
+    @field_validator("credentials_encryption_key", mode="before")
+    @classmethod
+    def empty_credentials_key_to_none(cls, value: str | None) -> str | None:
+        if value is None or value == "":
+            return None
+        return value
+
+    @field_validator("sync_scheduler_token", mode="before")
+    @classmethod
+    def empty_sync_scheduler_token_to_none(cls, value: str | None) -> str | None:
         if value is None or value == "":
             return None
         return value
@@ -179,7 +202,105 @@ class Settings(BaseSettings):
                 "JWT_COOKIE_SECURE must be true when APP_ENV=production",
             )
 
+        if self.is_production and not self.auth_enabled:
+            raise ValueError(
+                "AUTH_ENABLED must be true when APP_ENV=production",
+            )
+
+        if self.is_production and self.sync_embedded_worker:
+            raise ValueError(
+                "SYNC_EMBEDDED_WORKER must be false when APP_ENV=production "
+                "(run the sync worker as a separate process)",
+            )
+
+        if self.is_production and self.sync_run_in_api:
+            raise ValueError(
+                "SYNC_RUN_IN_API must be false when APP_ENV=production "
+                "(API only enqueues; run `python -m src.cli.sync_worker`)",
+            )
+
+        if self.rate_limit_storage_uri is None or self.rate_limit_storage_uri.strip() == "":
+            if self.is_production:
+                raise ValueError(
+                    "RATE_LIMIT_STORAGE_URI is required when APP_ENV=production "
+                    "(use redis://… or explicitly memory:// for single-node)",
+                )
+            object.__setattr__(self, "rate_limit_storage_uri", "memory://")
+        else:
+            object.__setattr__(
+                self,
+                "rate_limit_storage_uri",
+                self.rate_limit_storage_uri.strip(),
+            )
+
+        if self.is_production and not self.credentials_encryption_key:
+            raise ValueError(
+                "CREDENTIALS_ENCRYPTION_KEY is required when APP_ENV=production",
+            )
+
+        if self.log_json is None:
+            object.__setattr__(self, "log_json", self.is_production)
+
+        if self.jwt_algorithm != "HS256":
+            raise ValueError('JWT_ALGORITHM must be "HS256"')
+
+        if self.is_production and not self.rate_limit_enabled:
+            raise ValueError(
+                "RATE_LIMIT_ENABLED must be true when APP_ENV=production",
+            )
+
+        if self.is_production:
+            proxies = {
+                p.strip()
+                for p in (self.trusted_proxies or "").split(",")
+                if p.strip()
+            }
+            if not proxies:
+                raise ValueError(
+                    "TRUSTED_PROXIES is required when APP_ENV=production "
+                    "(comma-separated proxy IPs; '*' is forbidden)",
+                )
+            if "*" in proxies:
+                raise ValueError(
+                    "TRUSTED_PROXIES must not contain '*' when APP_ENV=production",
+                )
+
+        if self.is_production:
+            token = (self.sync_scheduler_token or "").strip()
+            if not token:
+                raise ValueError(
+                    "SYNC_SCHEDULER_TOKEN is required when APP_ENV=production "
+                    "(min 32 characters)",
+                )
+            if len(token) < 32:
+                raise ValueError(
+                    "SYNC_SCHEDULER_TOKEN must be at least 32 characters "
+                    "when APP_ENV=production",
+                )
+            lowered = token.lower()
+            if "change-me" in lowered or "your-long-random" in lowered:
+                raise ValueError(
+                    "SYNC_SCHEDULER_TOKEN must not be a placeholder value "
+                    "when APP_ENV=production",
+                )
+
+        # CORS wildcard is incompatible with credentials and is never allowed.
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if any(o == "*" for o in origins):
+            raise ValueError(
+                "CORS_ORIGINS must not contain '*' "
+                "(credentials require an explicit origin whitelist)",
+            )
+        if self.is_production:
+            for origin in origins:
+                if not origin.startswith("https://"):
+                    raise ValueError(
+                        "CORS_ORIGINS must use https:// when APP_ENV=production "
+                        "(http://localhost is allowed only in non-production)",
+                    )
+
         return self
+
 
     @property
     def is_production(self) -> bool:
@@ -209,7 +330,13 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if any(o == "*" for o in origins):
+            raise ValueError(
+                "CORS_ORIGINS must not contain '*' "
+                "(credentials require an explicit origin whitelist)",
+            )
+        return origins
 
 
 @lru_cache

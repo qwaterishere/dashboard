@@ -34,7 +34,7 @@ export class FoodcostRepository {
     }
 
     return this.http
-      .get<FoodcostApi>(`${this.api.apiBase}/foodcost`, {
+      .get<FoodcostApi>(`${this.api.apiBase}/foodcost/snapshot`, {
         params,
         headers,
         observe: 'response',

@@ -16,6 +16,8 @@ class DataBaseManager:
         engine_kwargs: dict = {"connect_args": connect_args}
         if ":memory:" in url:
             engine_kwargs["poolclass"] = StaticPool
+        elif not url.startswith("sqlite"):
+            engine_kwargs["pool_pre_ping"] = True
         self.engine = create_engine(url, **engine_kwargs)
         self.Session = sessionmaker(bind=self.engine, autoflush=False)
 
@@ -37,5 +39,8 @@ def get_db():
     db = db_manager.get_session()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

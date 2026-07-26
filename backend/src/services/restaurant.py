@@ -6,7 +6,7 @@ import uuid
 
 from datetime import UTC, datetime
 
-from fastapi import HTTPException, status
+from starlette import status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,13 @@ from src.services.data_freshness import (
     resolve_restaurant_timezone,
     resolve_sync_phase,
 )
-from src.services.iiko_sync import normalize_sync_status, sync_progress_percent
+from src.services.errors import RestaurantError
+from src.services.iiko_sync import (
+    enqueue_sync,
+    normalize_sync_status,
+    process_queued_sync,
+    sync_progress_percent,
+)
 from src.services.warehouse_sync import get_stock_domain_status, latest_stock_day
 
 
@@ -91,14 +97,16 @@ def _verify_iiko_credentials(url: str, login: str, password: str) -> None:
         with IikoClient(url=url, login=login, password=password, timeout=30) as _client:
             pass
     except IikoAuthError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid iiko credentials",
+        raise RestaurantError(
+            status.HTTP_400_BAD_REQUEST,
+            "Invalid iiko credentials",
+            "invalid_iiko_credentials",
         ) from exc
     except IikoError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Could not reach iiko server",
+        raise RestaurantError(
+            status.HTTP_502_BAD_GATEWAY,
+            "Could not reach iiko server",
+            "iiko_unreachable",
         ) from exc
 
 
@@ -112,9 +120,10 @@ def update_iiko_settings(
     password = payload.iiko_password
     if not password:
         if not restaurant.iiko_configured:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="iiko_password is required for initial setup",
+            raise RestaurantError(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "iiko_password is required for initial setup",
+                "iiko_password_required",
             )
         _, _, password = restaurant.iiko_credentials()
 
@@ -130,42 +139,43 @@ def build_iiko_client(restaurant: Restaurant) -> IikoClient:
     return IikoClient(url=url, login=login, password=password)
 
 
-def start_iiko_sync(db: Session, user: User) -> IikoSyncStartResponse:
+def start_iiko_sync(
+    db: Session,
+    user: User,
+    *,
+    full: bool = False,
+) -> IikoSyncStartResponse:
     restaurant = get_or_create_restaurant(db, user)
     if not restaurant.iiko_configured:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Configure iiko connection first",
+        raise RestaurantError(
+            status.HTTP_400_BAD_REQUEST,
+            "Configure iiko connection first",
+            "iiko_not_configured",
         )
 
-    status_value, _ = normalize_sync_status(restaurant)
-    if status_value == "running":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Sync already in progress",
+    if not enqueue_sync(db, restaurant.id, full=full):
+        raise RestaurantError(
+            status.HTTP_409_CONFLICT,
+            "Sync already in progress",
+            "sync_in_progress",
         )
 
-    started_at = datetime.now(UTC)
-    restaurant.sync_status = "running"
-    restaurant.sync_started_at = started_at
-    restaurant.last_sync_error = None
-    db.commit()
-
-    return IikoSyncStartResponse(started_at=started_at)
+    db.refresh(restaurant)
+    return IikoSyncStartResponse(started_at=datetime.now(UTC))
 
 
 def schedule_iiko_sync(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
-    """Вызывается из BackgroundTasks после commit статуса running."""
-    from src.services.iiko_sync import run_sync_job
-
-    run_sync_job(restaurant_id, full=full)
+    """Совместимость: обрабатывает очередь (full уже учтён при enqueue)."""
+    del full  # enqueue already recorded queued vs queued_full
+    process_queued_sync(restaurant_id)
 
 
 def resolve_restaurant_id_for_user(db: Session, user_id: uuid.UUID) -> uuid.UUID:
     restaurant = db.scalar(select(Restaurant.id).where(Restaurant.user_id == user_id))
     if restaurant is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Restaurant not found",
+        raise RestaurantError(
+            status.HTTP_404_NOT_FOUND,
+            "Restaurant not found",
+            "restaurant_not_found",
         )
     return restaurant

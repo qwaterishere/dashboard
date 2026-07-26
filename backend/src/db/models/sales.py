@@ -17,6 +17,7 @@ class Order(Base):
             name="uq_order_restaurant",
         ),
         Index("ix_orders_restaurant_id", "restaurant_id"),
+        Index("ix_orders_restaurant_day", "restaurant_id", "day"),
     )
 
     id = Column(Integer, index=True, primary_key=True, autoincrement=True)
@@ -68,7 +69,7 @@ class DishSale(Base):
     group_id = Column(Uuid, nullable=True)
     category_id = Column(Uuid, nullable=True)
 
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, index=True)
 
     order = relationship("Order", back_populates="dish_sales")
 

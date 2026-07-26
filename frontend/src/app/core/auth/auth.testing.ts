@@ -10,6 +10,7 @@ export const MOCK_AUTH_USER: UserPublic = {
   first_name: 'Артём',
   last_name: 'Ким',
   position: 'Управляющий',
+  role: 'manager',
   created_at: '2026-01-01T00:00:00Z',
 };
 

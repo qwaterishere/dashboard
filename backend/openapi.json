@@ -1,0 +1,5896 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Сезоны — API дашборда",
+    "description": "Аналитика продаж ресторана из iiko.\n\nКонтракты: бэкенд отдаёт факты, представление — зона фронтенда. docs/frontend-handoff.md",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness probe",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness probe (API)",
+        "operationId": "apiHealth",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ready": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Readiness probe (database)",
+        "operationId": "ready",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/internal/v1/sync/iiko": {
+      "post": {
+        "tags": [
+          "Internal"
+        ],
+        "summary": "Запуск scheduled incremental sync (worker/cron)",
+        "operationId": "triggerInternalIikoSync",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InternalSyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalSyncResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Регистрация",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Вход по email и паролю",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Обновление access token (refresh rotation)",
+        "operationId": "refresh",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Выход (revoke refresh token)",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Текущий пользователь",
+        "operationId": "me",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Обновление профиля",
+        "operationId": "updateMe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "tags": [
+          "Авторизация"
+        ],
+        "summary": "Смена пароля (новая сессия)",
+        "operationId": "changePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/integrations/iiko": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Настройки подключения iiko",
+        "operationId": "getIikoIntegration",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IikoSettingsPublic"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Сохранить подключение iiko",
+        "operationId": "putIikoIntegration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIikoSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IikoSettingsPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/integrations/iiko/sync": {
+      "post": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Загрузить продажи и склад из iiko",
+        "operationId": "syncIikoIntegration",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "full",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Full"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IikoSyncStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sales/snapshot": {
+      "get": {
+        "tags": [
+          "Продажи"
+        ],
+        "summary": "Снимок продаж: период + позиции (1 RTT)",
+        "operationId": "getSalesSnapshot",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sales/positions": {
+      "get": {
+        "tags": [
+          "Продажи"
+        ],
+        "summary": "Позиции продаж за период",
+        "operationId": "getSalesPositions",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SalesPosition"
+                  },
+                  "title": "Response Getsalespositions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/bounds": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Края истории слепков склада",
+        "operationId": "getStockBounds",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Getstockbounds"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/stock/snapshot": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Снимок склада: totals + positions + dynamics (1 RTT)",
+        "operationId": "getStockSnapshot",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Начало dynamics",
+              "title": "Date From"
+            },
+            "description": "Начало dynamics"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Конец dynamics",
+              "title": "Date To"
+            },
+            "description": "Конец dynamics"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshot"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/totals": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Get Stock Totals",
+        "operationId": "getStockTotals",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StoreValue"
+                  },
+                  "title": "Response Getstocktotals"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/positions": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Get Stock Positions",
+        "operationId": "getStockPositions",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StockPosition"
+                  },
+                  "title": "Response Getstockpositions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/negative": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Get Stock Negative",
+        "operationId": "getStockNegative",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegativeStock"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock/dynamics": {
+      "get": {
+        "tags": [
+          "Склад"
+        ],
+        "summary": "Get Stock Dynamics",
+        "operationId": "getStockDynamics",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DynamicsPoint"
+                  },
+                  "title": "Response Getstockdynamics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/data-freshness": {
+      "get": {
+        "tags": [
+          "Ops"
+        ],
+        "summary": "Актуальность продаж в БД относительно закрытого дня",
+        "operationId": "getDataFreshness",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataFreshness"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/targets": {
+      "get": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Цели: месяц (query) или список ?status=locked|configured",
+        "operationId": "listOrGetTargets",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TargetsData"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TargetsLockedList"
+                    }
+                  ],
+                  "title": "Response Listorgettargets"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/targets/{year}/{month}": {
+      "get": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Цели на месяц",
+        "operationId": "getTargetsMonth",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Сохранить цели месяца",
+        "operationId": "putTargetsMonth",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Month"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TargetsUpsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Delete Targets Month",
+        "operationId": "deleteTargetsMonth",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/targets/{year}/{month}/lock": {
+      "post": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Post Lock Month",
+        "operationId": "lockTargetsMonth",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Цели"
+        ],
+        "summary": "Снять блокировку (DELETE lock)",
+        "operationId": "unlockTargetsMonth",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsData"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/foodcost/snapshot": {
+      "get": {
+        "tags": [
+          "Фудкост"
+        ],
+        "summary": "Снимок фудкоста (1 RTT)",
+        "operationId": "getFoodcostSnapshot",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Foodcost"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/foodcost/totals": {
+      "get": {
+        "tags": [
+          "Фудкост"
+        ],
+        "summary": "Get Totals",
+        "operationId": "getFoodcostTotals",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostTotals"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/foodcost/units": {
+      "get": {
+        "tags": [
+          "Фудкост"
+        ],
+        "summary": "Get Units",
+        "operationId": "getFoodcostUnits",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnitCost"
+                  },
+                  "title": "Response Getfoodcostunits"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/foodcost/groups": {
+      "get": {
+        "tags": [
+          "Фудкост"
+        ],
+        "summary": "Get Groups",
+        "operationId": "getFoodcostGroups",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupCost"
+                  },
+                  "title": "Response Getfoodcostgroups"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/foodcost/products": {
+      "get": {
+        "tags": [
+          "Фудкост"
+        ],
+        "summary": "Get Products",
+        "operationId": "getFoodcostProducts",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductCost"
+                  },
+                  "title": "Response Getfoodcostproducts"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/base-metrics/bounds": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Края истории данных",
+        "operationId": "getBaseMetricsBounds",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricBounds"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/base-metrics/period/default": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Период по умолчанию (месяц последних данных)",
+        "operationId": "getBaseMetricsDefaultPeriod",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultPeriod"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/base-metrics/snapshot": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Снимок метрик для дашборда (один round-trip)",
+        "description": "Собирает bounds, batch+compare, units, day/month series и forecast за один запрос. mode=full|chart|kpi. Период: date_from+date_to, либо year[/month], либо месяц последних данных. Спан ≤ 1830 дней.",
+        "operationId": "getBaseMetricsSnapshot",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Явный период (вместе с date_to)",
+              "title": "Date From"
+            },
+            "description": "Явный период (вместе с date_to)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SnapshotMode",
+              "default": "full"
+            }
+          },
+          {
+            "name": "base_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base From"
+            }
+          },
+          {
+            "name": "base_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base To"
+            }
+          },
+          {
+            "name": "week_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Week Start"
+            }
+          },
+          {
+            "name": "week_end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Week End"
+            }
+          },
+          {
+            "name": "anchor_year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2100,
+                  "minimum": 2000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Anchor Year"
+            }
+          },
+          {
+            "name": "anchor_month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 12,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Anchor Month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricSnapshot"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/batch": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Несколько метрик за один запрос",
+        "operationId": "getBaseMetricsBatch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metrics",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "CSV имён: revenue,checks,guests,avg-check (≤10)",
+              "examples": [
+                "revenue,checks,avg-check"
+              ],
+              "title": "Metrics"
+            },
+            "description": "CSV имён: revenue,checks,guests,avg-check (≤10)"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "include_compare",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Compare"
+            }
+          },
+          {
+            "name": "base_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base From"
+            }
+          },
+          {
+            "name": "base_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricBatch"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/units": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Выручка и себестоимость по юнитам k/b/w/o",
+        "operationId": "getBaseMetricsUnits",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "include_compare",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Compare"
+            }
+          },
+          {
+            "name": "base_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base From"
+            }
+          },
+          {
+            "name": "base_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/{metric}": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Факт метрики за период",
+        "operationId": "getBaseMetricFact",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MetricName"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricFact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/{metric}/compare": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Метрика против базового периода",
+        "operationId": "getBaseMetricCompare",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MetricName"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "base_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base From"
+            }
+          },
+          {
+            "name": "base_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Base To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricCompare"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/{metric}/series": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Ряд метрики (график)",
+        "operationId": "getBaseMetricSeries",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MetricName"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SeriesGranularity",
+              "default": "day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricSeries"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    },
+    "/api/base-metrics/{metric}/forecast": {
+      "get": {
+        "tags": [
+          "Базовые метрики (REST)"
+        ],
+        "summary": "Прогноз метрики (weekday model)",
+        "operationId": "getBaseMetricForecast",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "metric",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MetricName"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Начало периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-01"
+              ],
+              "title": "Date From"
+            },
+            "description": "Начало периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "description": "Конец периода включительно (YYYY-MM-DD)",
+              "examples": [
+                "2026-06-30"
+              ],
+              "title": "Date To"
+            },
+            "description": "Конец периода включительно (YYYY-MM-DD)"
+          },
+          {
+            "name": "year_mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Year Mode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricForecast"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation error"
+          },
+          "304": {
+            "description": "Not Modified"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChangePasswordRequest": {
+        "properties": {
+          "current_password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Current Password"
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "New Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "title": "ChangePasswordRequest"
+      },
+      "Compliments": {
+        "properties": {
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Реальные затраты заведения (по техкартам)"
+          },
+          "priceValue": {
+            "type": "number",
+            "title": "Pricevalue",
+            "description": "Упущенная выручка по прайсу"
+          },
+          "qty": {
+            "type": "number",
+            "title": "Qty",
+            "description": "Порций; дробное у весовых блюд"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cost",
+          "priceValue",
+          "qty"
+        ],
+        "title": "Compliments",
+        "description": "Комплименты/представительские через кассу: paid = 0, price > 0."
+      },
+      "CostTotals": {
+        "properties": {
+          "revenue": {
+            "type": "number",
+            "title": "Revenue",
+            "description": "Выручка разреза за period (строки paid > 0)"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Себестоимость фудкост-строк (paid > 0 и cost > 0): строки без техкарт в фудкосте не участвуют"
+          },
+          "revenueWithCost": {
+            "type": "number",
+            "title": "Revenuewithcost",
+            "description": "Выручка фудкост-строк — знаменатель фудкоста; revenueWithCost / revenue = покрытие техкартами"
+          },
+          "prevRevenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenue",
+            "description": "Те же три числа за compare-период; null — сравнивать не с чем (в compare нет платных чеков)"
+          },
+          "prevCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevcost",
+            "description": "Себестоимость за compare"
+          },
+          "prevRevenueWithCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenuewithcost",
+            "description": "Выручка фудкост-строк за compare"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal",
+            "description": "Цель фудкоста, %; null — цели не внесены (до модуля targets)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revenue",
+          "cost",
+          "revenueWithCost",
+          "prevRevenue",
+          "prevCost",
+          "prevRevenueWithCost",
+          "goal"
+        ],
+        "title": "CostTotals",
+        "description": "Тоталы страницы: факты + цель."
+      },
+      "DataFreshness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "fresh",
+              "stale",
+              "stale_manual",
+              "syncing",
+              "error",
+              "empty",
+              "unconfigured"
+            ],
+            "title": "Status"
+          },
+          "expectedDay": {
+            "type": "string",
+            "format": "date",
+            "title": "Expectedday",
+            "description": "Ожидаемый последний закрытый день (вчера в TZ)"
+          },
+          "latestSalesDay": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestsalesday",
+            "description": "Фактический последний день с продажами в БД"
+          },
+          "lagDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lagdays",
+            "description": "Отставание продаж в календарных днях; null — нет данных"
+          },
+          "lastSyncAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastsyncat",
+            "description": "Завершение последней синхронизации iiko"
+          },
+          "syncStatus": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "success",
+              "error",
+              "noop"
+            ],
+            "title": "Syncstatus",
+            "description": "Текущий статус sync job"
+          },
+          "syncError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncerror",
+            "description": "Сообщение об ошибке sync; null — нет ошибки"
+          },
+          "autoSyncEnabled": {
+            "type": "boolean",
+            "title": "Autosyncenabled",
+            "description": "Автосинхронизация включена и iiko настроен"
+          },
+          "syncProgressPercent": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncprogresspercent",
+            "description": "Прогресс текущей синхронизации; null — sync не идёт"
+          },
+          "syncPhase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sales",
+                  "stock"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncphase",
+            "description": "Фаза текущего job: продажи или склад; null — sync не идёт"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/StockFreshness",
+            "description": "Актуальность домена склада"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "expectedDay",
+          "latestSalesDay",
+          "lagDays",
+          "lastSyncAt",
+          "syncStatus",
+          "syncError",
+          "autoSyncEnabled",
+          "stock"
+        ],
+        "title": "DataFreshness",
+        "description": "Актуальность продаж (+ склад) в БД относительно закрытого дня (TZ ресторана)."
+      },
+      "DefaultPeriod": {
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "mode": {
+            "type": "string",
+            "const": "month",
+            "title": "Mode",
+            "default": "month"
+          },
+          "bounds": {
+            "$ref": "#/components/schemas/MetricBounds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to",
+          "bounds"
+        ],
+        "title": "DefaultPeriod"
+      },
+      "Discounts": {
+        "properties": {
+          "discountSum": {
+            "type": "number",
+            "title": "Discountsum",
+            "description": "Недополученная выручка: sum(discount) по строкам paid > 0"
+          },
+          "discountedRevenue": {
+            "type": "number",
+            "title": "Discountedrevenue",
+            "description": "Выручка скидочных строк (paid > 0 и discount > 0)"
+          },
+          "discountedRevenueWithCost": {
+            "type": "number",
+            "title": "Discountedrevenuewithcost",
+            "description": "Выручка скидочных строк с cost > 0 — знаменатель их фудкоста"
+          },
+          "discountSumWithCost": {
+            "type": "number",
+            "title": "Discountsumwithcost",
+            "description": "Скидки строк с cost > 0 — для влияния скидок на ОБЩИЙ фудкост"
+          },
+          "discountedCost": {
+            "type": "number",
+            "title": "Discountedcost",
+            "description": "Себестоимость скидочных строк с cost > 0"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "discountSum",
+          "discountedRevenue",
+          "discountedRevenueWithCost",
+          "discountSumWithCost",
+          "discountedCost"
+        ],
+        "title": "Discounts",
+        "description": "Скидки — легитимный инструмент (не потери): что они делают с фудкостом.\nФронт считает: фудкост скидочных = discountedCost / discountedRevenueWithCost;\nвлияние на общий = fc − cost / (revenueWithCost + discountSumWithCost)."
+      },
+      "DynamicsPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "День слепка"
+          },
+          "byStore": {
+            "items": {
+              "$ref": "#/components/schemas/StoreValue"
+            },
+            "type": "array",
+            "title": "Bystore",
+            "description": "Всегда все три юнита k/b/w (нулевые включены); total фронт суммирует сам"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "byStore"
+        ],
+        "title": "DynamicsPoint",
+        "description": "Одна точка ГРАФИКА «стоимость склада во времени» (блок dynamics).\n\nЗачем: остатки — замороженные деньги, ценность в ТРЕНДЕ, не в разовом\nчисле. Линия вверх = закупаем быстрее, чем расходуем (деньги мертвеют\nна полках, риск порчи — виден ДО инвентаризации); ступенька вверх =\nкрупная закупка (можно открыть слепок того дня). Разрез по юнитам\nв каждой точке — чтобы фронт рисовал и общую линию (сумма byStore),\nи линии по складам из одних данных. Гранулярность неделя/месяц —\nпрореживание точек на фронте, не отдельные данные."
+      },
+      "Foodcost": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/src__schemas__base__Period",
+            "description": "Показываемый период: месяц последнего закрытого дня (или ?year/?month)"
+          },
+          "compare": {
+            "$ref": "#/components/schemas/src__schemas__base__Period",
+            "description": "Период сравнения: непосредственно предшествующий период той же формы"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/CostTotals",
+            "description": "Тоталы страницы («чистый фудкост» в сырье); равны сумме units по построению"
+          },
+          "dirty": {
+            "type": "null",
+            "title": "Dirty",
+            "description": "Фудкост с учётом потерь — null до фазы 2: без списаний число было бы занижено"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitCost"
+            },
+            "type": "array",
+            "title": "Units",
+            "description": "Всегда четыре элемента: k, b, w, o (нулевые включены)"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupCost"
+            },
+            "type": "array",
+            "title": "Groups",
+            "description": "Группы с продажами в period, по убыванию выручки; группа без продаж в этом периоде не отдаётся"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/ProductCost"
+            },
+            "type": "array",
+            "title": "Products",
+            "description": "ВСЕ позиции с техкартами за period (без топ-N и порога шума — рейтинг и фильтры строит фронт), по убыванию выручки. Кормит диаграмму «Выгодность позиций»"
+          },
+          "discounts": {
+            "$ref": "#/components/schemas/Discounts"
+          },
+          "losses": {
+            "$ref": "#/components/schemas/Losses"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "period",
+          "compare",
+          "totals",
+          "units",
+          "groups",
+          "products",
+          "discounts",
+          "losses"
+        ],
+        "title": "Foodcost"
+      },
+      "ForecastPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "ForecastPoint"
+      },
+      "GroupCost": {
+        "properties": {
+          "revenue": {
+            "type": "number",
+            "title": "Revenue",
+            "description": "Выручка разреза за period (строки paid > 0)"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Себестоимость фудкост-строк (paid > 0 и cost > 0): строки без техкарт в фудкосте не участвуют"
+          },
+          "revenueWithCost": {
+            "type": "number",
+            "title": "Revenuewithcost",
+            "description": "Выручка фудкост-строк — знаменатель фудкоста; revenueWithCost / revenue = покрытие техкартами"
+          },
+          "prevRevenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenue",
+            "description": "Те же три числа за compare-период; null — сравнивать не с чем (в compare нет платных чеков)"
+          },
+          "prevCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevcost",
+            "description": "Себестоимость за compare"
+          },
+          "prevRevenueWithCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenuewithcost",
+            "description": "Выручка фудкост-строк за compare"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Unit",
+            "description": "Юнит группы"
+          },
+          "group": {
+            "type": "string",
+            "title": "Group",
+            "description": "Группа iiko — папка, в которой лежит блюдо (живой разрез, терминология — frontend-handoff §0)"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal",
+            "description": "Цель % (наследуется от юнита в Целях); null — нет цели"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revenue",
+          "cost",
+          "revenueWithCost",
+          "prevRevenue",
+          "prevCost",
+          "prevRevenueWithCost",
+          "unit",
+          "group"
+        ],
+        "title": "GroupCost"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse"
+      },
+      "IikoSettingsPublic": {
+        "properties": {
+          "restaurant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Restaurant Id"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "iiko_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iiko Url"
+          },
+          "iiko_login": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iiko Login"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "sync": {
+            "$ref": "#/components/schemas/IikoSyncPublic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "restaurant_id",
+          "configured",
+          "sync"
+        ],
+        "title": "IikoSettingsPublic"
+      },
+      "IikoSyncPublic": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "success",
+              "error",
+              "noop"
+            ],
+            "title": "Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To"
+          },
+          "days_loaded": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Loaded"
+          },
+          "plan_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan From"
+          },
+          "plan_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan To"
+          },
+          "days_done": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Done"
+          },
+          "current_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Day"
+          },
+          "progress_percent": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Percent"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sales",
+                  "stock"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase",
+            "description": "sales | stock во время running; иначе null"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "stock": {
+            "$ref": "#/components/schemas/StockSyncPublic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "stock"
+        ],
+        "title": "IikoSyncPublic"
+      },
+      "IikoSyncStartResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "running",
+            "title": "Status",
+            "default": "running"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "started_at"
+        ],
+        "title": "IikoSyncStartResponse"
+      },
+      "InternalSyncOutcomePublic": {
+        "properties": {
+          "restaurant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Restaurant Id"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "restaurant_id",
+          "result"
+        ],
+        "title": "InternalSyncOutcomePublic"
+      },
+      "InternalSyncRequest": {
+        "properties": {
+          "restaurant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restaurant Id",
+            "description": "Один ресторан; null — все настроенные iiko"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InternalSyncRequest"
+      },
+      "InternalSyncResponse": {
+        "properties": {
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/InternalSyncOutcomePublic"
+            },
+            "type": "array",
+            "title": "Outcomes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "outcomes"
+        ],
+        "title": "InternalSyncResponse"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "Losses": {
+        "properties": {
+          "compliments": {
+            "$ref": "#/components/schemas/Compliments"
+          },
+          "staff": {
+            "$ref": "#/components/schemas/Staff"
+          },
+          "writeoffs": {
+            "type": "null",
+            "title": "Writeoffs",
+            "description": "Акты списания (порча, бой, бракераж) — null до фазы 2: источник OLAP TRANSACTIONS ещё не загружается"
+          },
+          "writeoffsGoal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Writeoffsgoal",
+            "description": "Цель списаний в ₽ за месяц из Целей; null — не задана"
+          },
+          "complimentsGoal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Complimentsgoal",
+            "description": "Цель представительских в ₽ за месяц из Целей; null — не задана"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "compliments",
+          "staff"
+        ],
+        "title": "Losses"
+      },
+      "MetricBatch": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MetricBatchItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "MetricBatch"
+      },
+      "MetricBatchItem": {
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/MetricName"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MetricUnit"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "base_date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Date From"
+          },
+          "base_date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Date To"
+          },
+          "base_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Value"
+          },
+          "base_incomplete": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Incomplete"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "unit",
+          "date_from",
+          "date_to",
+          "value"
+        ],
+        "title": "MetricBatchItem"
+      },
+      "MetricBounds": {
+        "properties": {
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Первый день с заказами; null — пусто"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "Последний день с заказами в БД; null — пусто"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to"
+        ],
+        "title": "MetricBounds"
+      },
+      "MetricCompare": {
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/MetricName"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MetricUnit"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Суммы/счётчики: 0 = нет продаж. Дроби (avg-*): null = делить не на что. Деньги — квант 0.0001 без серверного round()"
+          },
+          "base_date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Base Date From"
+          },
+          "base_date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Base Date To"
+          },
+          "base_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Value"
+          },
+          "base_incomplete": {
+            "type": "boolean",
+            "title": "Base Incomplete",
+            "description": "True, если база раньше начала истории или данных нет"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "unit",
+          "date_from",
+          "date_to",
+          "value",
+          "base_date_from",
+          "base_date_to",
+          "base_value",
+          "base_incomplete"
+        ],
+        "title": "MetricCompare"
+      },
+      "MetricFact": {
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/MetricName"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MetricUnit"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value",
+            "description": "Суммы/счётчики: 0 = нет продаж. Дроби (avg-*): null = делить не на что. Деньги — квант 0.0001 без серверного round()"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "unit",
+          "date_from",
+          "date_to",
+          "value"
+        ],
+        "title": "MetricFact"
+      },
+      "MetricForecast": {
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "revenue",
+              "checks",
+              "guests"
+            ],
+            "title": "Metric"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "horizon_end": {
+            "type": "string",
+            "format": "date",
+            "title": "Horizon End"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast"
+          },
+          "forecast_today": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Today"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "date_from",
+          "date_to",
+          "horizon_end",
+          "ready",
+          "forecast",
+          "forecast_today",
+          "points"
+        ],
+        "title": "MetricForecast"
+      },
+      "MetricName": {
+        "type": "string",
+        "enum": [
+          "revenue",
+          "checks",
+          "guests",
+          "avg-check",
+          "avg-check-per-guest"
+        ],
+        "title": "MetricName"
+      },
+      "MetricSeries": {
+        "properties": {
+          "metric": {
+            "$ref": "#/components/schemas/MetricName"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MetricUnit"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "granularity": {
+            "$ref": "#/components/schemas/SeriesGranularity",
+            "default": "day"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "metric",
+          "unit",
+          "date_from",
+          "date_to",
+          "points"
+        ],
+        "title": "MetricSeries"
+      },
+      "MetricSnapshot": {
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SnapshotMode"
+          },
+          "bounds": {
+            "$ref": "#/components/schemas/MetricBounds"
+          },
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "compare_date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Compare Date From"
+          },
+          "compare_date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Compare Date To"
+          },
+          "batch": {
+            "$ref": "#/components/schemas/MetricBatch"
+          },
+          "units": {
+            "$ref": "#/components/schemas/UnitsResponse"
+          },
+          "day_series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSeries"
+            },
+            "type": "array",
+            "title": "Day Series"
+          },
+          "month_series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSeries"
+            },
+            "type": "array",
+            "title": "Month Series"
+          },
+          "forecasts": {
+            "items": {
+              "$ref": "#/components/schemas/MetricForecast"
+            },
+            "type": "array",
+            "title": "Forecasts"
+          },
+          "week_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Start"
+          },
+          "week_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week End"
+          },
+          "week_batch": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetricBatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "week_units": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "week_day_series": {
+            "items": {
+              "$ref": "#/components/schemas/MetricSeries"
+            },
+            "type": "array",
+            "title": "Week Day Series"
+          },
+          "month_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Month Revenue"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "bounds",
+          "date_from",
+          "date_to",
+          "compare_date_from",
+          "compare_date_to",
+          "batch",
+          "units"
+        ],
+        "title": "MetricSnapshot",
+        "description": "Один ответ для сборки дашборда: bounds + KPI + units + series + forecast."
+      },
+      "MetricUnit": {
+        "type": "string",
+        "enum": [
+          "money",
+          "count",
+          "ratio"
+        ],
+        "title": "MetricUnit"
+      },
+      "NegativeStock": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Позиций с отрицательным остатком"
+          },
+          "valueAbs": {
+            "type": "number",
+            "title": "Valueabs",
+            "description": "Суммарная «дыра» по модулю (сколько списано сверх оприходованного в деньгах). Округлено до 2 знаков"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "count",
+          "valueAbs"
+        ],
+        "title": "NegativeStock",
+        "description": "Готовое предупреждение о минусовых остатках.\n\nПравило «минус не входит в totals» применяет бэкенд. Полный список\nминусовых строк — фильтр positions по qty < 0 (они там есть).\nНоль везде — честный ноль: учёт чистый."
+      },
+      "ProductCost": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "UUID блюда в iiko — стабильная идентичность позиции (имя меняется, id — никогда; как productId на складе). null — историческая строка без dish_id (база до пересоздания)"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Актуальное имя: из ПОСЛЕДНЕЙ продажи периода — переименованное блюдо не двоится, отдаётся одной строкой под новым именем (идентичность по id)"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Unit",
+            "description": "Юнит позиции; 'o' — вне подразделений (в фильтрах юнитов на фронте не участвует, в режиме «Всё» — да)"
+          },
+          "qty": {
+            "type": "number",
+            "title": "Qty",
+            "description": "Порций за период; дробное у весовых"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue",
+            "description": "Выручка фудкост-строк позиции (= её revenueWithCost: множество строк одно)"
+          },
+          "listValue": {
+            "type": "number",
+            "title": "Listvalue",
+            "description": "Прейскурантная выручка тех же строк (Σ цен меню, БЕЗ скидок). Цена меню порции = listValue / qty — её показывать «Ценой» в тултипе (решение 17.07); скидки позиции = listValue − revenue. fc считать от revenue (фактическая экономика), НЕ от listValue"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Себестоимость фудкост-строк позиции"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "unit",
+          "qty",
+          "revenue",
+          "listValue",
+          "cost"
+        ],
+        "title": "ProductCost",
+        "description": "Позиция диаграммы «Выгодность позиций по фудкосту».\n\nТолько фудкост-строки (правило №3: paid > 0 и cost > 0) — позиция\nбез техкарты в рейтинге выгодности лгала бы (fc 0%). Производные —\nзона фронтенда: цена порции = revenue / qty, себестоимость порции =\ncost / qty, fc = cost / revenue; топ-N и порог шума — представление."
+      },
+      "ReadyResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ReadyResponse"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Password"
+          },
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name"
+          },
+          "position": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Position"
+          },
+          "invite_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Invite Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "first_name",
+          "last_name",
+          "position",
+          "invite_key"
+        ],
+        "title": "RegisterRequest"
+      },
+      "SalesPage": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/src__schemas__sales__Period"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/SalesPosition"
+            },
+            "type": "array",
+            "title": "Positions",
+            "description": "Агрегат по блюдам за период; позиции с нулевой оплатой (проработки, включённые в банкет) исключены"
+          }
+        },
+        "type": "object",
+        "required": [
+          "period",
+          "positions"
+        ],
+        "title": "SalesPage"
+      },
+      "SalesPosition": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Название блюда (как в iiko, пробелы подстрижены)"
+          },
+          "sub": {
+            "type": "string",
+            "title": "Sub",
+            "description": "Подкатегория для второго уровня детализации (категория блюда из iiko)"
+          },
+          "cat": {
+            "type": "string",
+            "title": "Cat",
+            "description": "Юнит: k кухня, b бар, w вино, o «вне подразделений» (в донат не входит, в таблице и общей выручке — участвует)"
+          },
+          "qty": {
+            "type": "number",
+            "title": "Qty",
+            "description": "Продано порций за период; дробное у весовых блюд (4.5 кг)"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue",
+            "description": "Выручка позиции за период — СУММА фактических оплат (не произведение qty*price: точность не теряется на округлении)"
+          },
+          "listValue": {
+            "type": "number",
+            "title": "Listvalue",
+            "description": "Прейскурантная выручка (Σ цен меню без скидок): цена меню = listValue/qty (круглая, если цена в периоде не менялась); скидки позиции = listValue − revenue"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Суммарная себестоимость проданного за период; 0 = техкарты нет (fc и gp позиции показывать «—», не 0%)"
+          },
+          "price": {
+            "type": "number",
+            "title": "Price",
+            "description": "Средняя фактическая цена порции (со скидками, = выручка/qty)"
+          },
+          "unitCost": {
+            "type": "number",
+            "title": "Unitcost",
+            "description": "Средняя себестоимость порции"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "sub",
+          "cat",
+          "qty",
+          "revenue",
+          "listValue",
+          "cost",
+          "price",
+          "unitCost"
+        ],
+        "title": "SalesPosition",
+        "description": "Строка таблицы позиций. Производные считает фронт:\nprice = rev/qty, unitCost= cost/qty, gp = rev-cost, fc = cost/rev."
+      },
+      "SeriesGranularity": {
+        "type": "string",
+        "enum": [
+          "day",
+          "month"
+        ],
+        "title": "SeriesGranularity"
+      },
+      "SeriesPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Календарный день или 1-е число месяца"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "value"
+        ],
+        "title": "SeriesPoint"
+      },
+      "SnapshotMode": {
+        "type": "string",
+        "enum": [
+          "full",
+          "chart",
+          "kpi"
+        ],
+        "title": "SnapshotMode"
+      },
+      "Staff": {
+        "properties": {
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Реальные затраты заведения"
+          },
+          "paidSum": {
+            "type": "number",
+            "title": "Paidsum",
+            "description": "Внутренняя «выручка» по спеццене"
+          },
+          "qty": {
+            "type": "number",
+            "title": "Qty",
+            "description": "Порций"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "cost",
+          "paidSum",
+          "qty"
+        ],
+        "title": "Staff",
+        "description": "Питание персонала через кассу. Нули до решения по staff-механике\n(backend-todo №9, отложено 13.07.2026)."
+      },
+      "StockDataBounds": {
+        "properties": {
+          "earliest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earliest",
+            "description": "Самый ранний слепок (глубина бэкфила) = min(availableDates); null — слепков нет. Для нижней границы календаря"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest",
+            "description": "Самый свежий слепок (последний закрытый день) = max(availableDates); null — слепков нет. Дефолт asOf и верхняя граница календаря"
+          },
+          "availableDates": {
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
+            "type": "array",
+            "title": "Availabledates",
+            "description": "Точный список дней, за которые слепок есть — day-picker гасит даты вне списка. Кодирует и ретеншн (воскресенья глубже года), и дыры (нерабочие дни, сбои синка)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "earliest",
+          "latest",
+          "availableDates"
+        ],
+        "title": "StockDataBounds",
+        "description": "Контракт day-picker'а: какие дни можно выбрать.\n\nearliest/latest задают границы календаря, availableDates — точный\nнабор пикабельных дней внутри них. Day-picker гасит всё, чего нет\nв availableDates, поэтому запрос ?date всегда попадает в имеющийся\nслепок (404 при корректном пикере не случается).\n\nРетеншн виден прямо в availableDates: свежая история — все дни,\nстарше скользящего года — только воскресенья; плюс возможны дыры\n(заведение не работало, синк не прошёл)."
+      },
+      "StockFreshness": {
+        "properties": {
+          "latestDay": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestday",
+            "description": "Последний день со слепком остатков; null — слепков нет"
+          },
+          "lagDays": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lagdays",
+            "description": "Отставание склада в календарных днях; null — нет данных"
+          },
+          "syncStatus": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "success",
+              "error",
+              "skipped"
+            ],
+            "title": "Syncstatus",
+            "description": "Статус домена stock"
+          },
+          "syncError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syncerror",
+            "description": "Ошибка синка склада; null — нет"
+          },
+          "daysDone": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daysdone",
+            "description": "Дней склада, уже загруженных в текущем job; null — не stock-фаза"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "latestDay",
+          "lagDays",
+          "syncStatus",
+          "syncError"
+        ],
+        "title": "StockFreshness",
+        "description": "Актуальность слепков склада (домен stock)."
+      },
+      "StockPosition": {
+        "properties": {
+          "productId": {
+            "type": "string",
+            "title": "Productid",
+            "description": "UUID продукта в iiko — стабильная идентичность позиции: имя может меняться, id — никогда. Связь позиции между слепками разных дней — только по нему"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Продукт — имя на момент синка. При переименовании в iiko новые слепки получают новое имя, старые хранят старое (история как была); идентичность — productId"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория: ближайшая папка номенклатуры iiko (тоже слепок на момент синка)"
+          },
+          "store": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w"
+            ],
+            "title": "Store",
+            "description": "Юнит склада"
+          },
+          "qty": {
+            "type": "number",
+            "title": "Qty",
+            "description": "Остаток; дробное у весовых (4.5 кг); может быть ОТРИЦАТЕЛЬНЫМ — грязный складской учёт (см. negativeStock). Округлено до 3 знаков (точность весовых)"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit",
+            "description": "Единица измерения: кг / л / шт / уп / …"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "Стоимость остатка; цена за единицу = value / qty (фронт). Округлено до 2 знаков — чтобы производная цена за единицу не теряла точность"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "productId",
+          "name",
+          "category",
+          "store",
+          "qty",
+          "unit",
+          "value"
+        ],
+        "title": "StockPosition",
+        "description": "Позиция слепка дня — как есть в учёте, ВКЛЮЧАЯ отрицательные."
+      },
+      "StockSnapshot": {
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date",
+            "title": "Asof",
+            "description": "День показываемого слепка (конец этого закрытого дня); выбирается ?date, дефолт — latest. ?date обязан быть из dataBounds.availableDates, иначе 404"
+          },
+          "dataBounds": {
+            "$ref": "#/components/schemas/StockDataBounds",
+            "description": "Контракт day-picker'а: границы календаря + точный список пикабельных дней (availableDates)"
+          },
+          "totals": {
+            "items": {
+              "$ref": "#/components/schemas/StoreValue"
+            },
+            "type": "array",
+            "title": "Totals",
+            "description": "Всегда три элемента k/b/w (нулевые включены); только положительные остатки"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/StockPosition"
+            },
+            "type": "array",
+            "title": "Positions",
+            "description": "ПОЛНЫЙ состав слепка, включая минусовые строки (~300–700 позиций), по убыванию value; сортировка/поиск — фронт. ВНИМАНИЕ: сумма positions ≠ totals — totals считает только положительные строки"
+          },
+          "negativeStock": {
+            "$ref": "#/components/schemas/NegativeStock"
+          },
+          "dynamics": {
+            "items": {
+              "$ref": "#/components/schemas/DynamicsPoint"
+            },
+            "type": "array",
+            "title": "Dynamics",
+            "description": "ДАННЫЕ ГРАФИКА динамики стоимости склада — единственный источник линии (снапшот-блоки её не кормят). Точки по дням за ?from/?to (дефолт — 30 дней до asOf); режим недели/месяца — прореживание на фронте"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "asOf",
+          "dataBounds",
+          "totals",
+          "positions",
+          "negativeStock",
+          "dynamics"
+        ],
+        "title": "StockSnapshot"
+      },
+      "StockSyncPublic": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "running",
+              "success",
+              "error",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "latest_day": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Day"
+          },
+          "lag_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lag Days"
+          },
+          "days_done": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Done"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "StockSyncPublic"
+      },
+      "StoreValue": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w"
+            ],
+            "title": "Key",
+            "description": "Юнит склада: k кухня, b бар, w вино. Источник — маппинг физических складов при онбординге (по id); стандарт требует склады зеркально продажам (паспорт §9). В деньгах со своим юнитом продаж не сходится: сырьё одного блюда может хранится на разных складах"
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "Стоимость ПОЛОЖИТЕЛЬНЫХ остатков; минусовые строки сюда не входят (см. negativeStock). Округлено до целой единицы валюты (агрегатные деньги)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "value"
+        ],
+        "title": "StoreValue",
+        "description": "Стоимость остатков одного юнита складов."
+      },
+      "TargetsAmountGoalUpsert": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "rub"
+            ],
+            "title": "Mode"
+          },
+          "pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pct"
+          },
+          "rub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rub"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "pct",
+          "rub"
+        ],
+        "title": "TargetsAmountGoalUpsert",
+        "description": "Цель в % или в валюте — как у списаний."
+      },
+      "TargetsCompliments": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "rub"
+            ],
+            "title": "Mode",
+            "default": "pct"
+          },
+          "goalPct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Goalpct"
+          },
+          "goalRub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Goalrub"
+          },
+          "factPct": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Factpct"
+          },
+          "factRub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Factrub"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "goalPct",
+          "goalRub",
+          "factPct",
+          "factRub"
+        ],
+        "title": "TargetsCompliments"
+      },
+      "TargetsData": {
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/TargetsPeriod"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/TargetsReference"
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/TargetsRevenue"
+          },
+          "dailyOverrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Dailyoverrides",
+            "description": "Дневные override: ключ — день месяца (\"1\"…\"31\")"
+          },
+          "foodcost": {
+            "items": {
+              "$ref": "#/components/schemas/TargetsFoodcostUnit"
+            },
+            "type": "array",
+            "title": "Foodcost"
+          },
+          "writeoffs": {
+            "items": {
+              "$ref": "#/components/schemas/TargetsWriteoffUnit"
+            },
+            "type": "array",
+            "title": "Writeoffs"
+          },
+          "compliments": {
+            "$ref": "#/components/schemas/TargetsCompliments"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/TargetsInventory"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "period",
+          "reference",
+          "revenue",
+          "foodcost",
+          "writeoffs",
+          "compliments",
+          "inventory"
+        ],
+        "title": "TargetsData"
+      },
+      "TargetsFoodcostUnit": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "goalPct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Goalpct"
+          },
+          "factPct": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Factpct"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "goalPct",
+          "factPct"
+        ],
+        "title": "TargetsFoodcostUnit",
+        "description": "GET: goalPct может быть 0 до настройки."
+      },
+      "TargetsFoodcostUnitUpsert": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "goalPct": {
+            "type": "number",
+            "maximum": 100.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Goalpct"
+          },
+          "factPct": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Factpct"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "goalPct",
+          "factPct"
+        ],
+        "title": "TargetsFoodcostUnitUpsert"
+      },
+      "TargetsInventory": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "rub"
+            ],
+            "title": "Mode",
+            "default": "pct"
+          },
+          "goalPct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Goalpct"
+          },
+          "goalRub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Goalrub"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "goalPct",
+          "goalRub",
+          "note"
+        ],
+        "title": "TargetsInventory"
+      },
+      "TargetsLockedList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TargetsLockedPeriod"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TargetsLockedList"
+      },
+      "TargetsLockedPeriod": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Year"
+          },
+          "month": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Month"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "label"
+        ],
+        "title": "TargetsLockedPeriod"
+      },
+      "TargetsPeriod": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Year"
+          },
+          "month": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Month"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "label"
+        ],
+        "title": "TargetsPeriod"
+      },
+      "TargetsReference": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "revenueFact": {
+            "type": "number",
+            "title": "Revenuefact"
+          },
+          "revenuePace": {
+            "type": "number",
+            "title": "Revenuepace"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "revenueFact",
+          "revenuePace"
+        ],
+        "title": "TargetsReference",
+        "description": "Подсказки «факт / темп» — read-only, считаются с бэкенда."
+      },
+      "TargetsRevenue": {
+        "properties": {
+          "monthPlan": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Monthplan"
+          },
+          "weekProfile": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Weekprofile"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "monthPlan",
+          "weekProfile"
+        ],
+        "title": "TargetsRevenue",
+        "description": "GET: план может быть 0, если месяц ещё не настроен."
+      },
+      "TargetsRevenueUpsert": {
+        "properties": {
+          "monthPlan": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Monthplan"
+          },
+          "weekProfile": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "maxItems": 7,
+            "minItems": 7,
+            "title": "Weekprofile"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "monthPlan",
+          "weekProfile"
+        ],
+        "title": "TargetsRevenueUpsert",
+        "description": "PUT: все поля обязательны и > 0."
+      },
+      "TargetsUpsertRequest": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Year"
+          },
+          "month": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Month"
+          },
+          "revenue": {
+            "$ref": "#/components/schemas/TargetsRevenueUpsert"
+          },
+          "dailyOverrides": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Dailyoverrides"
+          },
+          "foodcost": {
+            "items": {
+              "$ref": "#/components/schemas/TargetsFoodcostUnitUpsert"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Foodcost"
+          },
+          "writeoffs": {
+            "items": {
+              "$ref": "#/components/schemas/TargetsWriteoffUnitUpsert"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Writeoffs"
+          },
+          "compliments": {
+            "$ref": "#/components/schemas/TargetsAmountGoalUpsert"
+          },
+          "inventory": {
+            "$ref": "#/components/schemas/TargetsAmountGoalUpsert"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "revenue",
+          "foodcost",
+          "writeoffs",
+          "compliments",
+          "inventory"
+        ],
+        "title": "TargetsUpsertRequest",
+        "description": "Тело PUT — все обязательные поля заполнены (> 0)."
+      },
+      "TargetsWriteoffUnit": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "rub"
+            ],
+            "title": "Mode"
+          },
+          "pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pct"
+          },
+          "rub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rub"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "mode",
+          "pct",
+          "rub"
+        ],
+        "title": "TargetsWriteoffUnit",
+        "description": "GET: суммы могут быть 0 до настройки."
+      },
+      "TargetsWriteoffUnitUpsert": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "pct",
+              "rub"
+            ],
+            "title": "Mode"
+          },
+          "pct": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pct"
+          },
+          "rub": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rub"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "mode",
+          "pct",
+          "rub"
+        ],
+        "title": "TargetsWriteoffUnitUpsert"
+      },
+      "TokenResponse": {
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expires_in"
+        ],
+        "title": "TokenResponse"
+      },
+      "UnitCost": {
+        "properties": {
+          "revenue": {
+            "type": "number",
+            "title": "Revenue",
+            "description": "Выручка разреза за period (строки paid > 0)"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost",
+            "description": "Себестоимость фудкост-строк (paid > 0 и cost > 0): строки без техкарт в фудкосте не участвуют"
+          },
+          "revenueWithCost": {
+            "type": "number",
+            "title": "Revenuewithcost",
+            "description": "Выручка фудкост-строк — знаменатель фудкоста; revenueWithCost / revenue = покрытие техкартами"
+          },
+          "prevRevenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenue",
+            "description": "Те же три числа за compare-период; null — сравнивать не с чем (в compare нет платных чеков)"
+          },
+          "prevCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevcost",
+            "description": "Себестоимость за compare"
+          },
+          "prevRevenueWithCost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prevrevenuewithcost",
+            "description": "Выручка фудкост-строк за compare"
+          },
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key",
+            "description": "Юнит: k кухня, b бар, w вино, o «вне подразделений» (группы iiko вне папок Кухня/Бар/Вино)"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal",
+            "description": "Цель фудкоста юнита, %; null — цель не задана в Целях"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revenue",
+          "cost",
+          "revenueWithCost",
+          "prevRevenue",
+          "prevCost",
+          "prevRevenueWithCost",
+          "key"
+        ],
+        "title": "UnitCost"
+      },
+      "UnitSums": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "k",
+              "b",
+              "w",
+              "o"
+            ],
+            "title": "Key"
+          },
+          "revenue": {
+            "type": "number",
+            "title": "Revenue"
+          },
+          "cost": {
+            "type": "number",
+            "title": "Cost"
+          },
+          "prev_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Revenue"
+          },
+          "prev_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev Cost"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "revenue",
+          "cost"
+        ],
+        "title": "UnitSums"
+      },
+      "UnitsResponse": {
+        "properties": {
+          "date_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Date From"
+          },
+          "date_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Date To"
+          },
+          "base_date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Date From"
+          },
+          "base_date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Date To"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitSums"
+            },
+            "type": "array",
+            "title": "Units"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date_from",
+          "date_to",
+          "units"
+        ],
+        "title": "UnitsResponse"
+      },
+      "UpdateIikoSettingsRequest": {
+        "properties": {
+          "iiko_url": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Iiko Url"
+          },
+          "iiko_login": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Iiko Login"
+          },
+          "iiko_password": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Iiko Password",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "iiko_url",
+          "iiko_login"
+        ],
+        "title": "UpdateIikoSettingsRequest"
+      },
+      "UpdateProfileRequest": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Last Name"
+          },
+          "position": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Position"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "position"
+        ],
+        "title": "UpdateProfileRequest"
+      },
+      "UserPublic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "position": {
+            "type": "string",
+            "title": "Position"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "RBAC: manager | accountant | warehouse"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "first_name",
+          "last_name",
+          "position",
+          "role",
+          "created_at"
+        ],
+        "title": "UserPublic"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "src__schemas__base__Period": {
+        "properties": {
+          "year": {
+            "type": "integer",
+            "title": "Year",
+            "description": "Год, например 2026"
+          },
+          "month": {
+            "type": "integer",
+            "title": "Month",
+            "description": "Месяц 1..12"
+          },
+          "dayFrom": {
+            "type": "integer",
+            "title": "Dayfrom",
+            "description": "Первое число периода (обычно 1)"
+          },
+          "dayTo": {
+            "type": "integer",
+            "title": "Dayto",
+            "description": "Последний закрытый день периода"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "year",
+          "month",
+          "dayFrom",
+          "dayTo"
+        ],
+        "title": "Period",
+        "description": "Период календарными числами — имя месяца и падежи форматирует фронт."
+      },
+      "src__schemas__sales__Period": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "LEGACY: готовая подпись периода (\"02.06 — 01.07.2026\"); умирает в такте 5 — фронт будет форматировать сам из dateFrom/dateTo"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "LEGACY: подстрока-пояснение, умирает вместе с label"
+          },
+          "dateFrom": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datefrom",
+            "description": "Начало ФАКТИЧЕСКИ покрытого периода — после дефолта и усечения краями данных (кейс: запросили по 31-е, закрыто по 16-е). null — данных нет вовсе"
+          },
+          "dateTo": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dateto",
+            "description": "Конец фактически покрытого периода (последний закрытый день при усечении); null — данных нет"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "note"
+        ],
+        "title": "Period"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Liveness / load balancer probes"
+    },
+    {
+      "name": "Авторизация",
+      "description": "JWT, профиль, настройки iiko"
+    },
+    {
+      "name": "Цели",
+      "description": "Месячные планы и цели (БД)"
+    },
+    {
+      "name": "Internal",
+      "description": "Worker/cron (bearer token)"
+    },
+    {
+      "name": "Продажи",
+      "description": "Продажи (БД)"
+    },
+    {
+      "name": "Склад",
+      "description": "Остатки и динамика запасов (БД)"
+    },
+    {
+      "name": "Фудкост",
+      "description": "Фудкост (БД)"
+    },
+    {
+      "name": "Базовые метрики (REST)",
+      "description": "Головные показатели заведения: выручка, чеки, гости, средний чек (БД)"
+    }
+  ]
+}

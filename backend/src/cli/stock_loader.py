@@ -15,6 +15,7 @@ import argparse
 import sys
 import uuid
 
+from src.db.bootstrap import ensure_dev_schema
 from src.db.models.restaurant import Restaurant
 from src.db.session import db_manager
 from src.services.warehouse_sync import BACKFILL_DAYS, sync_restaurant_stock
@@ -41,7 +42,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    db_manager.create_all()
+    ensure_dev_schema()
 
     session = db_manager.get_session()
     try:

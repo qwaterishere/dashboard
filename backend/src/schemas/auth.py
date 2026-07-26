@@ -58,6 +58,7 @@ class UserPublic(StrictModel):
     first_name: str
     last_name: str
     position: str
+    role: str = Field(description="RBAC: manager | accountant | warehouse")
     created_at: datetime
 
 

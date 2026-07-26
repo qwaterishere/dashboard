@@ -1,4 +1,4 @@
-/** Настройки подключения iiko — GET/PUT /api/auth/me/iiko */
+/** Настройки подключения iiko — GET/PUT /api/integrations/iiko */
 
 export type IikoSyncStatus = 'idle' | 'running' | 'success' | 'error' | 'noop';
 export type IikoSyncPhase = 'sales' | 'stock';

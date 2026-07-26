@@ -23,8 +23,8 @@ from sqlalchemy.orm import Session
 from src.domain.constants import CAT_OTHER, resolve_unit
 from src.db.models.sales import Order, DishSale
 from src.schemas.sales import SaleRecord, SalesPage, SalesPosition, Period
-# TODO(№12): периодные правила просятся в общий src/services/periods.py
-from src.services.dashboard import _data_bounds
+from src.services.analytics.money import money, money_float
+from src.services.analytics.queries import data_bounds
 
 def parse_records(raw_records: list[dict]) -> list[SaleRecord]:
     """Валидирует сырые записи выгрузки. Кривая запись -> ValidationError."""
@@ -188,34 +188,36 @@ def replace_day(
     ingest_records(session, day_records, restaurant_id=restaurant_id)
 
 
-def build_sales(
+def _resolve_sales_period(
+    session: Session,
+    restaurant_id: UUID,
+    date_from: date | None,
+    date_to: date | None,
+) -> tuple[date, date] | None:
+    """Эффективный период продаж или None (пустая база / вне данных)."""
+    earliest, latest = data_bounds(session, restaurant_id)
+    if latest is None or earliest is None:
+        return None
+    date_from = date_from or latest.replace(day=1)
+    date_to = date_to or latest
+    date_from = max(date_from, earliest)
+    date_to = min(date_to, latest)
+    if date_from > date_to:
+        return None
+    return date_from, date_to
+
+
+def list_sales_positions(
     session: Session,
     restaurant_id: UUID,
     date_from: date | None = None,
     date_to: date | None = None,
-) -> SalesPage:
-    """Страница «Продажи»: агрегат по позициям (контракт SalesPage).
-
-    Период: канон — явные date_from/date_to от фронта (во всех режимах);
-    дефолт без параметров — месяц последнего закрытого дня (страховка:
-    «вся история» без дат не отдаётся никогда, v2-такт 2). Явные даты
-    усекаются краями данных, эффективные границы видны в period.
-    qty/revenue/cost — суммы-факты; price/unitCost — legacy-средние
-    до миграции фронта.
-    """
-    earliest, latest = _data_bounds(session, restaurant_id)
-    if latest is None:      # пустая база
-        return SalesPage(period=Period(label='Нет данных', note=''), positions=[])
-
-    # дефолт: текущий месяц (месяц последнего закрытого дня)
-    date_from = date_from or latest.replace(day=1)
-    date_to = date_to or latest
-    # усечение краями данных: будущее и «глубже истории» не запрашиваются
-    date_from = max(date_from, earliest)
-    date_to = min(date_to, latest)
-    if date_from > date_to:  # запрошенный период целиком вне данных
-        return SalesPage(period=Period(label='Нет данных за период', note=''),
-                         positions=[])
+) -> list[SalesPosition]:
+    """Агрегат позиций продаж за период (только платные строки)."""
+    resolved = _resolve_sales_period(session, restaurant_id, date_from, date_to)
+    if resolved is None:
+        return []
+    d_from, d_to = resolved
 
     rows = (
         session.query(
@@ -230,8 +232,8 @@ def build_sales(
         .join(Order)
         .filter(
             Order.restaurant_id == restaurant_id,
-            Order.day >= date_from,
-            Order.day <= date_to,
+            Order.day >= d_from,
+            Order.day <= d_to,
         )
         # Бесплатные строки (комплименты, проработки, включённые в банкет)
         # не входят в продажные qty и средние цены — они не продажи.
@@ -242,26 +244,51 @@ def build_sales(
         .all()
     )
 
-    positions = [
+    return [
         SalesPosition(
             name=name,
             sub=category,
             # юнит = папка 1-го уровня в iiko; вне папок -> «вне подразделений»
             cat=resolve_unit(top_group),
             qty=round(float(qty), 2),
-            revenue=round(float(paid), 2),
-            listValue=round(float(list_value), 2),
-            cost=round(float(cost), 2),
+            revenue=money_float(paid),
+            listValue=money_float(list_value),
+            cost=money_float(cost),
             # legacy: средние для фронта до миграции на v2 (revenue/cost)
-            price=round(float(paid) / float(qty), 2),
-            unitCost=round(float(cost) / float(qty), 2),
+            price=money_float(money(paid) / Decimal(str(qty))) if qty else 0.0,
+            unitCost=money_float(money(cost) / Decimal(str(qty))) if qty else 0.0,
         )
         for name, category, top_group, qty, paid, list_value, cost in rows
     ]
+
+
+def build_sales(
+    session: Session,
+    restaurant_id: UUID,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> SalesPage:
+    """Снимок продаж: период + позиции (контракт SalesPage).
+
+    Период: канон — явные date_from/date_to от фронта (во всех режимах);
+    дефолт без параметров — месяц последнего закрытого дня (страховка:
+    «вся история» без дат не отдаётся никогда, v2-такт 2). Явные даты
+    усекаются краями данных, эффективные границы видны в period.
+    """
+    earliest, latest = data_bounds(session, restaurant_id)
+    if latest is None:
+        return SalesPage(period=Period(label='Нет данных', note=''), positions=[])
+
+    resolved = _resolve_sales_period(session, restaurant_id, date_from, date_to)
+    if resolved is None:
+        return SalesPage(period=Period(label='Нет данных за период', note=''), positions=[])
+
+    d_from, d_to = resolved
+    positions = list_sales_positions(session, restaurant_id, d_from, d_to)
     period = Period(
-        label=f'{date_from:%d.%m} — {date_to:%d.%m.%Y}',
+        label=f'{d_from:%d.%m} — {d_to:%d.%m.%Y}',
         note='реальные данные iiko',
-        dateFrom=date_from,      # уже после дефолта и усечения —
-        dateTo=date_to,          # ответ описывает фактически покрытый период
+        dateFrom=d_from,
+        dateTo=d_to,
     )
     return SalesPage(period=period, positions=positions)

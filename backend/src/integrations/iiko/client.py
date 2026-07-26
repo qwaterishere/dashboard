@@ -73,7 +73,11 @@ class IikoClient:
 
     def __enter__(self):
         self._ensure_safe_outbound()
-        password_hash = hashlib.sha1(self._password.encode('utf-8')).hexdigest()
+        # iiko REST auth requires SHA-1 of password (vendor API contract, not local storage).
+        password_hash = hashlib.sha1(
+            self._password.encode('utf-8'),
+            usedforsecurity=False,
+        ).hexdigest()
 
         response = self._http.get('resto/api/auth', params={'login': self._login, 'pass': password_hash})
 
@@ -155,7 +159,11 @@ class IikoClient:
     def fetch_stores(self) -> list[tuple[str, str]]:
         """Склады заведения: [(id, name)] (corporation/stores, XML)."""
         import xml.etree.ElementTree as ET
-        root = ET.fromstring(self._get('resto/api/corporation/stores').text)
+
+        # Trusted iiko HTTPS response after SSRF host checks; not user-supplied XML.
+        root = ET.fromstring(  # nosec B314
+            self._get('resto/api/corporation/stores').text
+        )
         return [(el.findtext('id'), (el.findtext('name') or '').strip())
                 for el in root if el.findtext('id')]
 

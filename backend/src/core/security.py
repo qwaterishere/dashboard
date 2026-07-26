@@ -36,6 +36,14 @@ def verify_password(plain: str, password_hash: str) -> bool:
         return False
 
 
+def check_needs_rehash(password_hash: str) -> bool:
+    return _password_hasher.check_needs_rehash(password_hash)
+
+
+# Constant-time login path when email is unknown (same Argon2 cost as real verify).
+DUMMY_PASSWORD_HASH = hash_password("__seasons_timing_dummy_v1__")
+
+
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 

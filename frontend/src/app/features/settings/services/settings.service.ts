@@ -61,7 +61,9 @@ export class SettingsService {
       this.iikoSettingsLoadError.set(false);
     }
 
-    return this.http.get<IikoSettingsPublic>(this.url('me/iiko'), { withCredentials: true }).pipe(
+    return this.http
+      .get<IikoSettingsPublic>(this.integrationsUrl('iiko'), { withCredentials: true })
+      .pipe(
       tap((settings) => {
         this.iikoSettings.set(settings);
         this.propagateSyncLifecycle(settings);
@@ -81,7 +83,7 @@ export class SettingsService {
 
   updateIikoSettings(payload: UpdateIikoSettingsRequest): Observable<IikoSettingsPublic> {
     return this.http
-      .put<IikoSettingsPublic>(this.url('me/iiko'), payload, {
+      .put<IikoSettingsPublic>(this.integrationsUrl('iiko'), payload, {
         withCredentials: true,
       })
       .pipe(
@@ -95,7 +97,7 @@ export class SettingsService {
   syncIiko(full = false): Observable<IikoSyncStartResponse> {
     const params = full ? { full: 'true' } : undefined;
     return this.http
-      .post<IikoSyncStartResponse>(this.url('me/iiko/sync'), null, {
+      .post<IikoSyncStartResponse>(this.integrationsUrl('iiko/sync'), null, {
         withCredentials: true,
         params,
       })
@@ -108,7 +110,7 @@ export class SettingsService {
   }
 
   /**
-   * Связывает статус sync из /me/iiko с badge свежести:
+   * Связывает статус sync из /integrations/iiko с badge свежести:
    * вход в running → быстрый poll; выход → немедленный refresh и обычный интервал.
    */
   private propagateSyncLifecycle(settings: IikoSettingsPublic): void {
@@ -125,5 +127,9 @@ export class SettingsService {
 
   private url(path: string): string {
     return `${this.api.apiBase}/auth/${path}`;
+  }
+
+  private integrationsUrl(path: string): string {
+    return `${this.api.apiBase}/integrations/${path}`;
   }
 }

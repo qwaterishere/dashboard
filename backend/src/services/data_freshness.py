@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 
 from src.core.config import get_settings
 from src.db.models.restaurant import Restaurant
-from src.schemas.dashboard import DataFreshness, StockFreshness
-from src.services.dashboard import _data_bounds
+from src.schemas.data_freshness import DataFreshness, StockFreshness
+from src.services.analytics.queries import data_bounds
 from src.services.iiko_sync import normalize_sync_status, sync_progress_percent
 from src.services.warehouse_sync import get_stock_domain_status, latest_stock_day
 
@@ -93,7 +93,7 @@ def build_data_freshness(
     moment = now or datetime.now(UTC)
     tz = resolve_restaurant_timezone(restaurant.timezone)
     expected = expected_closed_sales_day(tz, now=moment)
-    earliest, latest = _data_bounds(session, restaurant.id)
+    earliest, latest = data_bounds(session, restaurant.id)
     sync_status, sync_error = normalize_sync_status(restaurant)
     stock = build_stock_freshness(session, restaurant, expected=expected)
 
@@ -143,7 +143,7 @@ def _resolve_status(
         return "unconfigured"
     if latest is None:
         return "empty"
-    if sync_status == "running":
+    if sync_status in ("running", "pending"):
         return "syncing"
     if sync_status == "error" or stock.syncStatus == "error":
         return "error"

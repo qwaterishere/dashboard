@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 
+from src.api.errors import http_error
 from src.core.config import get_settings
 
 
@@ -29,7 +30,12 @@ def assert_trusted_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     if origin:
         if not _origin_allowed(origin, allowed):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid origin")
+            raise http_error(
+                status.HTTP_403_FORBIDDEN,
+                "Invalid origin",
+                "invalid_origin",
+                request,
+            )
         return
 
     referer = request.headers.get("referer")
@@ -37,7 +43,14 @@ def assert_trusted_origin(request: Request) -> None:
         return
 
     if settings.is_production:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Origin required",
+        raise http_error(
+            status.HTTP_403_FORBIDDEN,
+            "Origin required",
+            "origin_required",
+            request,
         )
+
+
+def require_trusted_origin(request: Request) -> None:
+    """FastAPI dependency wrapper around ``assert_trusted_origin``."""
+    assert_trusted_origin(request)

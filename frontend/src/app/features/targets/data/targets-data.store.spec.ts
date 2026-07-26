@@ -57,18 +57,18 @@ describe('TargetsDataStore', () => {
   function flushConfigured(
     items: { year: number; month: number; label: string }[] = [],
   ): void {
-    const req = http.expectOne((r) => r.url.includes('/targets/configured'));
+    const req = http.expectOne(
+      (r) =>
+        r.url.endsWith('/targets') &&
+        r.params.get('status') === 'configured',
+    );
     expect(req.request.method).toBe('GET');
     req.flush({ items });
   }
 
   function flushTargets(year: number, month: number, label: string, refLabel: string): void {
     const req = http.expectOne(
-      (r) =>
-        r.url.includes('/targets') &&
-        !r.url.includes('/configured') &&
-        r.params.get('year') === String(year) &&
-        r.params.get('month') === String(month),
+      (r) => r.url.endsWith(`/targets/${year}/${month}`) && r.method === 'GET',
     );
     expect(req.request.method).toBe('GET');
     req.flush(emptyTargetsBody(year, month, label, refLabel));

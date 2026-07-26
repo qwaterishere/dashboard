@@ -1,8 +1,9 @@
-"""Tenant isolation for sales/dashboard data."""
+"""Tenant isolation for sales / base-metrics data."""
 
 import pytest
 
-from src.services.dashboard import build_dashboard
+from src.schemas.base_metrics import MetricName
+from src.services.base_metrics import metric_snapshot
 from src.services.sales import build_sales, ingest_records, parse_records
 from tests.factories import create_restaurant
 from tests.sales.test_ingest import RAW
@@ -34,14 +35,21 @@ def test_users_see_only_their_sales(session):
     assert page_b.positions == []
 
 
-def test_dashboard_is_scoped_by_restaurant(session):
+def _revenue(snap) -> float:
+    for item in snap.batch.items:
+        if item.metric == MetricName.revenue:
+            return float(item.value or 0)
+    return 0.0
+
+
+def test_base_metrics_are_scoped_by_restaurant(session):
     restaurant_a = create_restaurant(session)
     restaurant_b = create_restaurant(session)
     ingest_records(session, parse_records([RAW]), restaurant_id=restaurant_a.id)
     session.commit()
 
-    dash_a = build_dashboard(session, restaurant_a.id)
-    dash_b = build_dashboard(session, restaurant_b.id)
+    snap_a = metric_snapshot(session, restaurant_a.id)
+    snap_b = metric_snapshot(session, restaurant_b.id)
 
-    assert dash_a.kpis.revenue.value > 0
-    assert dash_b.kpis.revenue.value == 0
+    assert _revenue(snap_a) > 0
+    assert _revenue(snap_b) == 0

@@ -5,7 +5,7 @@ import type { PeriodGranularity } from '../../../shared/models/common.model';
 import type { ApiPeriod, DataBounds } from '../../../shared/models/api-period.model';
 import { resolveEffectiveChartSelection } from '../../dashboard/data/dashboard-chart.utils';
 
-/** Параметры GET /api/foodcost из period bar (неделя → месячный срез). */
+/** Параметры GET /api/foodcost/snapshot из period bar (неделя → месячный срез). */
 export function resolveFoodcostQuery(
   granularity: PeriodGranularity,
   chartPeriod: ChartPeriodSelection | null,

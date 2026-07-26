@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from sqlalchemy.orm import Session
@@ -14,8 +14,9 @@ from src.api.cookies import (
     set_access_cookie,
     set_refresh_cookie,
 )
-from src.api.csrf import assert_trusted_origin
+from src.api.csrf import require_trusted_origin
 from src.api.deps import CurrentUser, get_db
+from src.api.errors import http_error
 from src.core.config import get_settings
 from src.schemas.auth import (
     ChangePasswordRequest,
@@ -24,11 +25,6 @@ from src.schemas.auth import (
     TokenResponse,
     UpdateProfileRequest,
     UserPublic,
-)
-from src.schemas.restaurant import (
-    IikoSettingsPublic,
-    IikoSyncStartResponse,
-    UpdateIikoSettingsRequest,
 )
 from src.services.auth import (
     AuthError,
@@ -40,13 +36,6 @@ from src.services.auth import (
     update_user_profile,
     user_to_public,
 )
-from src.services.restaurant import (
-    get_or_create_restaurant,
-    restaurant_to_iiko_public,
-    schedule_iiko_sync,
-    start_iiko_sync,
-    update_iiko_settings,
-)
 
 
 def create_auth_router(limiter: Limiter) -> APIRouter:
@@ -57,7 +46,12 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         """401 + удаление битых cookies (raise HTTPException теряет Set-Cookie)."""
         payload = JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"detail": "Invalid refresh token"},
+            content={
+                "detail": {
+                    "message": "Invalid refresh token",
+                    "code": "invalid_refresh",
+                }
+            },
         )
         clear_refresh_cookie(payload)
         clear_access_cookie(payload)
@@ -78,6 +72,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response_model=TokenResponse,
         status_code=status.HTTP_201_CREATED,
         summary="Регистрация",
+        operation_id="register",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("5/minute")
     def register(
@@ -86,8 +82,10 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse:
-        assert_trusted_origin(request)
-        tokens, raw_refresh, access_token, _user = register_user(db, payload)
+        try:
+            tokens, raw_refresh, access_token, _user = register_user(db, payload)
+        except AuthError as exc:
+            raise http_error(exc.status_code, exc.detail, exc.code) from None
         _apply_session_cookies(
             response,
             access_token=access_token,
@@ -100,6 +98,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         "/login",
         response_model=TokenResponse,
         summary="Вход по email и паролю",
+        operation_id="login",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("10/minute")
     def login(
@@ -108,8 +108,12 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse:
-        assert_trusted_origin(request)
-        tokens, raw_refresh, access_token, _user = login_user(db, payload.email, payload.password)
+        try:
+            tokens, raw_refresh, access_token, _user = login_user(
+                db, payload.email, payload.password
+            )
+        except AuthError as exc:
+            raise http_error(exc.status_code, exc.detail, exc.code) from None
         _apply_session_cookies(
             response,
             access_token=access_token,
@@ -122,6 +126,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         "/refresh",
         response_model=TokenResponse,
         summary="Обновление access token (refresh rotation)",
+        operation_id="refresh",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("30/minute")
     def refresh(
@@ -129,7 +135,6 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         response: Response,
         db: Session = Depends(get_db),
     ) -> TokenResponse | JSONResponse:
-        assert_trusted_origin(request)
         raw = read_refresh_cookie(request)
         if not raw:
             return _unauthorized_refresh_response()
@@ -148,24 +153,28 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
     @router.post(
         "/logout",
         status_code=status.HTTP_204_NO_CONTENT,
+        response_class=Response,
         summary="Выход (revoke refresh token)",
+        operation_id="logout",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("30/minute")
     def logout(
         request: Request,
-        response: Response,
         db: Session = Depends(get_db),
-    ) -> None:
-        assert_trusted_origin(request)
+    ) -> Response:
         raw = read_refresh_cookie(request)
         logout_user(db, raw)
+        response = Response(status_code=status.HTTP_204_NO_CONTENT)
         clear_refresh_cookie(response)
         clear_access_cookie(response)
+        return response
 
     @router.get(
         "/me",
         response_model=UserPublic,
         summary="Текущий пользователь",
+        operation_id="me",
     )
     @limiter.limit(settings.rate_limit)
     def me(request: Request, user: CurrentUser) -> UserPublic:
@@ -175,6 +184,8 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         "/me",
         response_model=UserPublic,
         summary="Обновление профиля",
+        operation_id="updateMe",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("10/minute")
     def update_me(
@@ -183,13 +194,14 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         user: CurrentUser,
         db: Session = Depends(get_db),
     ) -> UserPublic:
-        assert_trusted_origin(request)
         return update_user_profile(db, user, payload)
 
     @router.post(
         "/change-password",
         response_model=TokenResponse,
         summary="Смена пароля (новая сессия)",
+        operation_id="changePassword",
+        dependencies=[Depends(require_trusted_origin)],
     )
     @limiter.limit("5/minute")
     def change_password(
@@ -199,13 +211,15 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
         user: CurrentUser,
         db: Session = Depends(get_db),
     ) -> TokenResponse:
-        assert_trusted_origin(request)
-        tokens, raw_refresh, access_token = change_user_password(
-            db,
-            user,
-            current_password=payload.current_password,
-            new_password=payload.new_password,
-        )
+        try:
+            tokens, raw_refresh, access_token = change_user_password(
+                db,
+                user,
+                current_password=payload.current_password,
+                new_password=payload.new_password,
+            )
+        except AuthError as exc:
+            raise http_error(exc.status_code, exc.detail, exc.code) from None
         _apply_session_cookies(
             response,
             access_token=access_token,
@@ -213,57 +227,5 @@ def create_auth_router(limiter: Limiter) -> APIRouter:
             raw_refresh=raw_refresh,
         )
         return tokens
-
-    @router.get(
-        "/me/iiko",
-        response_model=IikoSettingsPublic,
-        summary="Настройки подключения iiko",
-    )
-    @limiter.limit(settings.rate_limit)
-    def get_iiko_settings(
-        request: Request,
-        user: CurrentUser,
-        db: Session = Depends(get_db),
-    ) -> IikoSettingsPublic:
-        restaurant = get_or_create_restaurant(db, user)
-        return restaurant_to_iiko_public(restaurant, db)
-
-    @router.put(
-        "/me/iiko",
-        response_model=IikoSettingsPublic,
-        summary="Сохранить подключение iiko",
-    )
-    @limiter.limit("5/minute")
-    def save_iiko_settings(
-        request: Request,
-        payload: UpdateIikoSettingsRequest,
-        user: CurrentUser,
-        db: Session = Depends(get_db),
-    ) -> IikoSettingsPublic:
-        assert_trusted_origin(request)
-        return update_iiko_settings(db, user, payload)
-
-    @router.post(
-        "/me/iiko/sync",
-        response_model=IikoSyncStartResponse,
-        status_code=status.HTTP_202_ACCEPTED,
-        summary="Загрузить продажи и склад из iiko (фоновая задача)",
-    )
-    @limiter.limit("3/minute")
-    def sync_iiko_sales(
-        request: Request,
-        background_tasks: BackgroundTasks,
-        user: CurrentUser,
-        db: Session = Depends(get_db),
-        full: bool = Query(
-            default=False,
-            description="true — перезагрузить все доступные дни с начала истории",
-        ),
-    ) -> IikoSyncStartResponse:
-        assert_trusted_origin(request)
-        restaurant = get_or_create_restaurant(db, user)
-        response = start_iiko_sync(db, user)
-        background_tasks.add_task(schedule_iiko_sync, restaurant.id, full=full)
-        return response
 
     return router

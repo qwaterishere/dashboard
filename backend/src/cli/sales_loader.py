@@ -8,6 +8,7 @@ import sys
 import uuid
 from datetime import date, timedelta
 
+from src.db.bootstrap import ensure_dev_schema
 from src.db.models.restaurant import Restaurant
 from src.db.session import db_manager
 from src.services.iiko_sync import resolve_sync_plan, sync_restaurant_sales
@@ -21,7 +22,7 @@ def main() -> None:
         type=uuid.UUID,
         required=True,
         metavar="UUID",
-        help="ресторан пользователя (см. GET /api/auth/me/iiko после настройки)",
+        help="ресторан пользователя (см. GET /api/integrations/iiko после настройки)",
     )
     parser.add_argument(
         "--from",
@@ -45,7 +46,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    db_manager.create_all()
+    ensure_dev_schema()
 
     session = db_manager.get_session()
     try:

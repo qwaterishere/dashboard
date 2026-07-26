@@ -3,6 +3,7 @@ export * from './common.model';
 export * from './api-period.model';
 export * from './dashboard.model';
 export * from './dashboard-api.model';
+export * from './base-metrics-api.model';
 export * from './sales.model';
 export * from './warehouse.model';
 export * from './warehouse-api.model';

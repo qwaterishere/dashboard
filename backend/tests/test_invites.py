@@ -30,7 +30,7 @@ def test_register_rejects_invalid_invite_key(client):
         headers=_headers(),
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid invite key"
+    assert response.json()["detail"]["message"] == "Invalid invite key"
 
 
 @pytest.mark.no_auth
@@ -42,7 +42,7 @@ def test_register_rejects_used_invite_key(client):
     second = register_payload(email="second-invite@example.com", invite_key=key)
     reused = client.post("/api/auth/register", json=second, headers=_headers())
     assert reused.status_code == 400
-    assert reused.json()["detail"] == "Invalid invite key"
+    assert reused.json()["detail"]["message"] == "Invalid invite key"
 
 
 @pytest.mark.no_auth
@@ -61,7 +61,7 @@ def test_register_rejects_expired_invite_key(client):
         headers=_headers(),
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid invite key"
+    assert response.json()["detail"]["message"] == "Invalid invite key"
 
 
 @pytest.mark.no_auth

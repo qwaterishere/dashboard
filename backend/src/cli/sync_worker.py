@@ -12,7 +12,7 @@ import time
 import uuid
 
 from src.core.config import get_settings
-from src.db.session import db_manager
+from src.db.bootstrap import ensure_dev_schema
 from src.services.iiko_sync_scheduler import run_scheduled_syncs
 
 
@@ -56,7 +56,7 @@ def main() -> None:
     if not args.once and not args.loop:
         parser.error("укажите --once или --loop")
 
-    db_manager.create_all()
+    ensure_dev_schema()
 
     if args.once:
         raise SystemExit(_run_once(args.restaurant_id))

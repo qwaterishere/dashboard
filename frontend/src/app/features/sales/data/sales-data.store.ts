@@ -1,12 +1,11 @@
 import { computed, effect, inject, Injectable, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 
-import { createPageResource } from '../../../core/api/page-data.resource';
 import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync.service';
 import { DataFreshnessService } from '../../../core/data/data-freshness.service';
-import type { SalesData } from '../../../shared/models';
+import { SalesRepository } from '../../../core/data/sales.repository';
 import { computeSalesRaw } from './sales-aggregation.utils';
 import { SalesPeriodService } from './sales-period.service';
 import { readSalesDayQuery } from './sales-route-query.utils';
@@ -17,6 +16,7 @@ export class SalesDataStore {
   private readonly freshness = inject(DataFreshnessService);
   private readonly router = inject(Router);
   private readonly sync = inject(AnalyticsDataSyncService);
+  private readonly salesRepository = inject(SalesRepository);
 
   private readonly dayQuery = toSignal(
     this.router.events.pipe(
@@ -27,14 +27,13 @@ export class SalesDataStore {
     { initialValue: readSalesDayQuery(this.router.url) },
   );
 
-  readonly data = createPageResource<SalesData>(() => 'sales', () => {
-    const range = this.salesPeriod.range();
-    if (!range) {
-      return { skip: true };
-    }
-    return {
-      query: { date_from: range.dateFrom, date_to: range.dateTo },
-    };
+  readonly data = rxResource({
+    params: () => {
+      const range = this.salesPeriod.range();
+      if (!range) return undefined;
+      return { dateFrom: range.dateFrom, dateTo: range.dateTo };
+    },
+    stream: ({ params }) => this.salesRepository.getSnapshot(params),
   });
 
   readonly positions = computed(() => {
@@ -65,10 +64,8 @@ export class SalesDataStore {
 
     // Синхронизация усечённых границ ответа API
     effect(() => {
-      if (this.data.status() !== 'resolved') return;
-      const value = this.data.value();
-      if (!value) return;
-      const period = value.period;
+      if (!this.data.hasValue()) return;
+      const period = this.data.value().period;
       untracked(() => {
         this.salesPeriod.applyApiPeriod(period.dateFrom ?? null, period.dateTo ?? null);
       });

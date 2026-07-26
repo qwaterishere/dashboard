@@ -46,6 +46,7 @@ describe('AuthService', () => {
       first_name: 'Иван',
       last_name: 'Петров',
       position: 'Управляющий',
+      role: 'manager',
       created_at: '2026-01-01T00:00:00Z',
     });
   });
@@ -77,6 +78,7 @@ describe('AuthService', () => {
       first_name: 'Новый',
       last_name: 'Пользователь',
       position: 'Управляющий',
+      role: 'manager',
       created_at: '2026-01-01T00:00:00Z',
     });
   });
@@ -90,6 +92,7 @@ describe('AuthService', () => {
       first_name: 'Иван',
       last_name: 'Петров',
       position: 'Управляющий',
+      role: 'manager',
       created_at: '2026-01-01T00:00:00Z',
     });
 
@@ -109,6 +112,7 @@ describe('AuthService', () => {
       first_name: 'Иван',
       last_name: 'Петров',
       position: 'Управляющий',
+      role: 'manager',
       created_at: '2026-01-01T00:00:00Z',
     });
     expect(service.isAuthenticated()).toBe(true);

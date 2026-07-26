@@ -17,7 +17,7 @@ def test_iiko_settings_initially_unconfigured(client):
     register = client.post("/api/auth/register", json=creds, headers=_auth_headers())
     assert register.status_code == 201
 
-    response = client.get("/api/auth/me/iiko")
+    response = client.get("/api/integrations/iiko")
     assert response.status_code == 200
     body = response.json()
     assert body["configured"] is False
@@ -44,7 +44,7 @@ def test_save_iiko_requires_password_on_first_setup(client, monkeypatch):
     monkeypatch.setattr("src.services.restaurant.IikoClient", FakeClient)
 
     missing_password = client.put(
-        "/api/auth/me/iiko",
+        "/api/integrations/iiko",
         json={
             "iiko_url": "https://demo.iiko.it:443",
             "iiko_login": "api",
@@ -55,7 +55,7 @@ def test_save_iiko_requires_password_on_first_setup(client, monkeypatch):
     assert missing_password.status_code == 422
 
     saved = client.put(
-        "/api/auth/me/iiko",
+        "/api/integrations/iiko",
         json={
             "iiko_url": "https://demo.iiko.it:443",
             "iiko_login": "api",
@@ -69,7 +69,7 @@ def test_save_iiko_requires_password_on_first_setup(client, monkeypatch):
     assert body["iiko_url"] == "https://demo.iiko.it:443"
     assert body["iiko_login"] == "api"
 
-    fetched = client.get("/api/auth/me/iiko")
+    fetched = client.get("/api/integrations/iiko")
     assert fetched.json()["configured"] is True
 
 
@@ -89,7 +89,7 @@ def test_save_iiko_rejects_unsafe_url(client, iiko_url: str):
     client.post("/api/auth/register", json=creds, headers=_auth_headers())
 
     response = client.put(
-        "/api/auth/me/iiko",
+        "/api/integrations/iiko",
         json={
             "iiko_url": iiko_url,
             "iiko_login": "api",

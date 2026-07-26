@@ -13,6 +13,7 @@
     "audit:security": "npm audit --audit-level=high",
     "lint:security": "node scripts/security-grep.mjs",
     "lint": "ng lint",
+    "generate:api": "npx --yes -p typescript@6.0.2 -p openapi-typescript openapi-typescript ../backend/openapi.json -o src/app/shared/api/openapi.d.ts",
     "test:security": "ng test --no-watch --include='**/shared/security/**/*.spec.ts'",
     "storybook": "ng run frontend:storybook",
     "build-storybook": "ng run frontend:build-storybook"

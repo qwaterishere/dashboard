@@ -47,7 +47,7 @@ def test_build_data_freshness_fresh(monkeypatch):
 
     from src.services import data_freshness as mod
 
-    monkeypatch.setattr(mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
+    monkeypatch.setattr(mod, "data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
     monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: expected)
     monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
 
@@ -74,7 +74,7 @@ def test_build_data_freshness_stale_when_behind(monkeypatch):
     from src.services import data_freshness as mod
 
     monkeypatch.setattr(
-        mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), date(2026, 3, 1))
+        mod, "data_bounds", lambda _session, _rid: (date(2026, 1, 1), date(2026, 3, 1))
     )
     monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: date(2026, 3, 1))
     monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
@@ -99,7 +99,7 @@ def test_build_data_freshness_stale_when_stock_behind(monkeypatch):
 
     from src.services import data_freshness as mod
 
-    monkeypatch.setattr(mod, "_data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
+    monkeypatch.setattr(mod, "data_bounds", lambda _session, _rid: (date(2026, 1, 1), expected))
     monkeypatch.setattr(mod, "latest_stock_day", lambda _session, _rid: date(2026, 3, 1))
     monkeypatch.setattr(mod, "get_stock_domain_status", lambda _session, _rid: None)
 
@@ -183,7 +183,7 @@ def test_internal_sync_requires_token(client, monkeypatch):
         lambda: get_settings().model_copy(update={"sync_scheduler_token": None}),
     )
 
-    response = client.post("/api/internal/iiko/sync", json={})
+    response = client.post("/api/internal/v1/sync/iiko", json={})
     assert response.status_code == 503
 
 
@@ -194,7 +194,7 @@ def test_internal_sync_rejects_missing_bearer(client, monkeypatch):
     monkeypatch.setenv("SYNC_SCHEDULER_TOKEN", "test-scheduler-token-32chars-min")
     get_settings.cache_clear()
 
-    response = client.post("/api/internal/iiko/sync", json={})
+    response = client.post("/api/internal/v1/sync/iiko", json={})
     assert response.status_code == 401
 
     get_settings.cache_clear()
@@ -208,12 +208,12 @@ def test_internal_sync_with_token(client, monkeypatch):
     get_settings.cache_clear()
 
     monkeypatch.setattr(
-        "src.api.routes.internal.run_scheduled_syncs",
+        "src.api.routes.internal.enqueue_due_syncs",
         lambda **kwargs: [],
     )
 
     response = client.post(
-        "/api/internal/iiko/sync",
+        "/api/internal/v1/sync/iiko",
         json={},
         headers={"Authorization": "Bearer test-scheduler-token-32chars-min"},
     )

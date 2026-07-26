@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
+from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, UniqueConstraint, Uuid, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import JSON
 
@@ -28,16 +29,26 @@ class MonthlyTarget(Base):
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    revenue_month_plan: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    revenue_month_plan: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, default=Decimal("0.00"),
+    )
     week_profile: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     daily_overrides: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     foodcost_goals: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     writeoffs: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
-    compliments_goal_pct: Mapped[float] = mapped_column(nullable=False, default=0.0)
-    compliments_goal_rub: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    compliments_goal_pct: Mapped[Decimal] = mapped_column(
+        Numeric(8, 4), nullable=False, default=Decimal("0.0000"),
+    )
+    compliments_goal_rub: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, default=Decimal("0.00"),
+    )
     compliments_mode: Mapped[str] = mapped_column(nullable=False, default="pct")
-    inventory_goal_pct: Mapped[float] = mapped_column(nullable=False, default=0.0)
-    inventory_goal_rub: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    inventory_goal_pct: Mapped[Decimal] = mapped_column(
+        Numeric(8, 4), nullable=False, default=Decimal("0.0000"),
+    )
+    inventory_goal_rub: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2), nullable=False, default=Decimal("0.00"),
+    )
     inventory_mode: Mapped[str] = mapped_column(nullable=False, default="pct")
     locked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 

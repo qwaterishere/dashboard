@@ -1,4 +1,4 @@
-/** Контракт GET /api/dashboard/kpi — только KPI-слой для LfL overlay. */
+/** KPI overlay view-model (сборка из /api/base-metrics batch/compare/forecast). */
 
 import type { ApiPeriod } from './api-period.model';
 import type { DashboardApi } from './dashboard-api.model';

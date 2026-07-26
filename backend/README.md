@@ -31,6 +31,19 @@ uvicorn src.main:app --reload --port 8000
 
 Локально по умолчанию `APP_ENV=development`: SQLite (`dashboard.db`), мягкая политика паролей (≥8 символов), без HSTS, `JWT_COOKIE_SECURE=false`.
 
+### Миграции БД (Alembic)
+
+В development / pytest схема поднимается через `DataBaseManager.create_all()` → `migrate.upgrade_schema` (SQLite-friendly). В production при старте приложения `create_all` **не** вызывается — ожидается схема, уже применённая Alembic.
+
+Для PostgreSQL в production:
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+Конфиг: `alembic.ini` + `alembic/env.py` (URL из `DB_URL` / `get_settings()`).
+
 ### Production profile
 
 В production задайте в окружении (см. комментарии в `.env.example`):
@@ -41,8 +54,15 @@ uvicorn src.main:app --reload --port 8000
 | `DB_URL` | PostgreSQL (`postgresql+psycopg://...`) — SQLite запрещён |
 | `JWT_SECRET_KEY` | уникальный секрет (`openssl rand -hex 32`) |
 | `JWT_COOKIE_SECURE` | `true` |
+| `AUTH_ENABLED` | `true` (обязательно) |
+| `CREDENTIALS_ENCRYPTION_KEY` | секрет ≥32 символов (`openssl rand -hex 32`) |
+| `SYNC_EMBEDDED_WORKER` | `false` (воркер — отдельный процесс) |
+| `SYNC_SCHEDULER_TOKEN` | секрет ≥32 символов (не placeholder) |
+| `RATE_LIMIT_ENABLED` | `true` (обязательно) |
 | `HSTS_ENABLED` | `true` (или опустить — включится автоматически) |
-| `CORS_ORIGINS` | whitelist вашего фронтенда |
+| `LOG_JSON` | `true` по умолчанию в production |
+| `TRUSTED_PROXIES` | IP прокси для X-Forwarded-For (без `*`) |
+| `CORS_ORIGINS` | whitelist `https://...` origins |
 
 При `APP_ENV=production` приложение не стартует с dev-секретом, SQLite или небезопасными cookies. Пароли: ≥12 символов, верхний/нижний регистр, цифра, спецсимвол.
 
@@ -62,11 +82,20 @@ python -m src.cli.sales_loader --restaurant-id <uuid>
 python -m src.cli.sales_loader --restaurant-id <uuid> --from 2026-01-01 --to 2026-01-31
 ```
 
-`restaurant_id` возвращается в `GET /api/auth/me/iiko` после регистрации.
-Регистрация требует `invite_key` из `cre    ate_invite`.
-iiko credentials задаются пользователем в настройках (`PUT /api/auth/me/iiko`).
-Загрузка продаж из UI: `POST /api/auth/me/iiko/sync` (фоновая задача, статус в `GET /api/auth/me/iiko`).
+`restaurant_id` возвращается в `GET /api/integrations/iiko` после регистрации.
+Регистрация требует `invite_key` из `create_invite`.
+iiko credentials: `PUT /api/integrations/iiko`.
+Синк: `POST /api/integrations/iiko/sync` (фоновая задача; статус в GET iiko).
 Переменные `IIKO_*` в `.env` — опциональный fallback для аудита/onboarding-тестов.
+
+OpenAPI → TypeScript:
+
+```bash
+python -m scripts.dump_openapi
+cd ../frontend && npm run generate:api
+```
+
+Канон analytics REST: `/api/base-metrics/snapshot`, `/api/sales/snapshot`, `/api/stock/snapshot`, `/api/foodcost/snapshot`.
 
 OLAP iiko часто обрывает большие ответы (`RemoteProtocolError: incomplete chunked read`).
 По умолчанию загрузчик бьёт диапазон **по 1 дню**; при стабильном сервере можно `--chunk-days 7`.

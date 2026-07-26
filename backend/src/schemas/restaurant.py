@@ -11,7 +11,7 @@ from pydantic import Field, field_validator
 from src.core.iiko_url import validate_iiko_url
 from src.schemas.base import StrictModel
 
-SyncStatus = Literal["idle", "running", "success", "error", "noop"]
+SyncStatus = Literal["idle", "pending", "running", "success", "error", "noop"]
 SyncPhase = Literal["sales", "stock"]
 StockDomainStatus = Literal["idle", "running", "success", "error", "skipped"]
 
@@ -54,7 +54,7 @@ class IikoSettingsPublic(StrictModel):
 
 
 class IikoSyncStartResponse(StrictModel):
-    status: Literal["running"] = "running"
+    status: Literal["pending"] = "pending"
     started_at: datetime
 
 

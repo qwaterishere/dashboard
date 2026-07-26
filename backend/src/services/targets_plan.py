@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
+from decimal import ROUND_HALF_UP, Decimal
+
+from src.services.analytics.money import money, money_float
 
 
 @dataclass(frozen=True)
@@ -26,21 +29,27 @@ def days_in_month(year: int, month: int) -> int:
     return calendar.monthrange(year, month)[1]
 
 
+def _as_rubles(value: Decimal | float | int) -> Decimal:
+    """План/override → целые рубли (как исторический round())."""
+    return money(value).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+
 def build_month_day_plans(
     year: int,
     month: int,
-    month_plan: float,
+    month_plan: Decimal | float | int,
     week_profile: list[float],
-    overrides: dict[int, float] | None = None,
+    overrides: dict[int, Decimal | float | int] | None = None,
 ) -> list[MonthDayPlan]:
     overrides = overrides or {}
     total_days = days_in_month(year, month)
     days = list(range(1, total_days + 1))
 
     override_total = sum(
-        float(overrides[day]) for day in days if day in overrides
+        (_as_rubles(overrides[day]) for day in days if day in overrides),
+        start=Decimal("0"),
     )
-    remaining_plan = max(0.0, round(month_plan) - override_total)
+    remaining_plan = max(Decimal("0"), _as_rubles(month_plan) - override_total)
     free_days = [day for day in days if day not in overrides]
 
     weights = []
@@ -55,7 +64,7 @@ def build_month_day_plans(
     by_day: dict[int, MonthDayPlan] = {}
     for day in days:
         if day in overrides:
-            by_day[day] = MonthDayPlan(day, round(float(overrides[day])), True)
+            by_day[day] = MonthDayPlan(day, money_float(_as_rubles(overrides[day])), True)
     for item in distributed:
         by_day.setdefault(item.day, item)
 
@@ -66,11 +75,11 @@ def _distribute_largest_remainder(
     days: list[int],
     weights: list[float],
     weight_sum: float,
-    total: float,
+    total: Decimal,
 ) -> list[MonthDayPlan]:
     if not days:
         return []
-    total_int = int(round(total))
+    total_int = int(total)
     raw = [
         (day, (total_int * weights[i]) / weight_sum)
         for i, day in enumerate(days)
@@ -87,6 +96,6 @@ def _distribute_largest_remainder(
         remainder -= 1
 
     return [
-        MonthDayPlan(day=item["day"], amount=float(item["amount"]), is_override=False)
+        MonthDayPlan(day=item["day"], amount=money_float(item["amount"]), is_override=False)
         for item in floored
     ]

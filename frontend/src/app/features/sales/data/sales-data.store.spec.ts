@@ -34,6 +34,19 @@ function freshness(partial: Partial<DataFreshness> = {}): DataFreshness {
   };
 }
 
+function isSalesSnapshot(
+  url: string,
+  params: { get(name: string): string | null },
+  dateFrom: string,
+  dateTo: string,
+): boolean {
+  return (
+    url.includes('/sales/snapshot') &&
+    params.get('date_from') === dateFrom &&
+    params.get('date_to') === dateTo
+  );
+}
+
 describe('SalesDataStore', () => {
   let store: SalesDataStore;
   let http: HttpTestingController;
@@ -83,11 +96,8 @@ describe('SalesDataStore', () => {
     period.setPreset('week', '2026-06-10');
     TestBed.flushEffects();
 
-    const req = http.expectOne(
-      (r) =>
-        r.url.includes('/sales') &&
-        r.url.includes('date_from=2026-06-08') &&
-        r.url.includes('date_to=2026-06-14'),
+    const req = http.expectOne((r) =>
+      isSalesSnapshot(r.url, r.params, '2026-06-08', '2026-06-14'),
     );
     expect(req.request.method).toBe('GET');
     req.flush({
@@ -102,11 +112,8 @@ describe('SalesDataStore', () => {
 
     expect(period.range()).toEqual({ dateFrom: '2026-06-01', dateTo: '2026-06-10' });
 
-    const req = http.expectOne(
-      (r) =>
-        r.url.includes('/sales') &&
-        r.url.includes('date_from=2026-06-01') &&
-        r.url.includes('date_to=2026-06-10'),
+    const req = http.expectOne((r) =>
+      isSalesSnapshot(r.url, r.params, '2026-06-01', '2026-06-10'),
     );
     req.flush({
       period: { dateFrom: '2026-06-01', dateTo: '2026-06-10', label: '', note: '' },
@@ -118,7 +125,7 @@ describe('SalesDataStore', () => {
     period.setPreset('month', '2026-06-30');
     TestBed.flushEffects();
 
-    const req = http.expectOne((r) => r.url.includes('/sales'));
+    const req = http.expectOne((r) => r.url.includes('/sales/snapshot'));
     req.flush({
       period: { dateFrom: '2026-06-01', dateTo: '2026-06-16', label: '', note: '' },
       positions: [],
@@ -128,11 +135,8 @@ describe('SalesDataStore', () => {
 
     expect(period.range()).toEqual({ dateFrom: '2026-06-01', dateTo: '2026-06-16' });
 
-    const followUp = http.expectOne(
-      (r) =>
-        r.url.includes('/sales') &&
-        r.url.includes('date_from=2026-06-01') &&
-        r.url.includes('date_to=2026-06-16'),
+    const followUp = http.expectOne((r) =>
+      isSalesSnapshot(r.url, r.params, '2026-06-01', '2026-06-16'),
     );
     followUp.flush({
       period: { dateFrom: '2026-06-01', dateTo: '2026-06-16', label: '', note: '' },
@@ -147,11 +151,8 @@ describe('SalesDataStore', () => {
     expect(period.preset()).toBe('custom');
     expect(period.range()).toEqual({ dateFrom: '2026-06-01', dateTo: '2026-06-03' });
 
-    const req = http.expectOne(
-      (r) =>
-        r.url.includes('/sales') &&
-        r.url.includes('date_from=2026-06-01') &&
-        r.url.includes('date_to=2026-06-03'),
+    const req = http.expectOne((r) =>
+      isSalesSnapshot(r.url, r.params, '2026-06-01', '2026-06-03'),
     );
     req.flush({
       period: { dateFrom: '2026-06-01', dateTo: '2026-06-03', label: '', note: '' },

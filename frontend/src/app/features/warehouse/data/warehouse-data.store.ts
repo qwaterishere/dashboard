@@ -1,9 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { rxResource } from '@angular/core/rxjs-interop';
 
-import { createPageResource } from '../../../core/api/page-data.resource';
 import { AnalyticsDataSyncService } from '../../../core/data/analytics-data-sync.service';
-import type { WarehouseApi } from '../../../shared/models/warehouse-api.model';
+import { StockRepository } from '../../../core/data/stock.repository';
 import type { WarehouseData } from '../../../shared/models/warehouse.model';
 import { buildWarehouseViewModel } from './warehouse.mapper';
 
@@ -25,13 +25,16 @@ function isNotFound(error: unknown): boolean {
 @Injectable({ providedIn: 'root' })
 export class WarehouseDataStore {
   private readonly sync = inject(AnalyticsDataSyncService);
+  private readonly stockRepository = inject(StockRepository);
 
   /** ISO-дата слепка (`?date`); null — latest с бэка. */
   readonly selectedDate = signal<string | null>(null);
 
-  private readonly raw = createPageResource<WarehouseApi>(() => 'warehouse', () => {
-    const date = this.selectedDate();
-    return date ? { query: { date } } : {};
+  private readonly raw = rxResource({
+    params: () => ({
+      date: this.selectedDate() ?? undefined,
+    }),
+    stream: ({ params }) => this.stockRepository.getSnapshot(params),
   });
 
   private readonly viewModel = computed(() => {

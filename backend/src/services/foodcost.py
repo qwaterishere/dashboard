@@ -21,13 +21,10 @@ from sqlalchemy.orm import Session
 from src.db.models.sales import DishSale, Order
 from src.domain.constants import CAT_OTHER, resolve_unit
 from src.schemas.foodcost import Foodcost
-# TODO(обсудить): периодные хелперы просятся из дашборда в общий
-# src/services/periods.py — пока импортируем как есть (пункт 1 обсуждения).
-from src.services.dashboard import (
-    _period_dict,
-    _resolve_dashboard_period,
-)
-from src.services.period_compare import previous_period as _previous_period
+from src.services.analytics.money import money_float
+from src.services.analytics.period_compare import previous_period as _previous_period
+from src.services.analytics.periods import period_dict as _period_dict
+from src.services.analytics.queries import resolve_period as _resolve_dashboard_period
 
 UNIT_KEYS = ('k', 'b', 'w', CAT_OTHER)
 
@@ -63,21 +60,21 @@ def _cost_rows(session: Session, restaurant_id: UUID,
     return query.group_by(*dimensions) if dimensions else query
 
 
-def _unit_cost_sums(session: Session, restaurant_id: UUID,
-                    d_from: date, d_to: date) -> dict[str, dict]:
+def unit_cost_sums(session: Session, restaurant_id: UUID,
+                   d_from: date, d_to: date) -> dict[str, dict]:
     """Факты по юнитам; все четыре ключа присутствуют всегда (нулевые тоже)."""
     sums = {key: _zero_sums() for key in UNIT_KEYS}
     rows = _cost_rows(session, restaurant_id, d_from, d_to, DishSale.top_group)
     for top_group, revenue, cost, rwc in rows:
         unit = sums[resolve_unit(top_group)]
-        unit['revenue'] += float(revenue)
-        unit['cost'] += float(cost)
-        unit['revenueWithCost'] += float(rwc)
+        unit['revenue'] += money_float(revenue)
+        unit['cost'] += money_float(cost)
+        unit['revenueWithCost'] += money_float(rwc)
     return sums
 
 
-def _group_cost_sums(session: Session, restaurant_id: UUID,
-                     d_from: date, d_to: date) -> dict[str, dict]:
+def group_cost_sums(session: Session, restaurant_id: UUID,
+                    d_from: date, d_to: date) -> dict[str, dict]:
     """Факты по группам (живой разрез). Ключ — group_id: склейка
     переименований папки (имя и юнит — из последней продажи периода);
     prev-период матчится тем же ключом — LfL группы переживает
@@ -98,9 +95,9 @@ def _group_cost_sums(session: Session, restaurant_id: UUID,
             **_zero_sums(), 'unit': resolve_unit(top_group),
             'group': group, 'last_day': last_day,
         })
-        entry['revenue'] += float(revenue)
-        entry['cost'] += float(cost)
-        entry['revenueWithCost'] += float(rwc)
+        entry['revenue'] += money_float(revenue)
+        entry['cost'] += money_float(cost)
+        entry['revenueWithCost'] += money_float(rwc)
         if last_day >= entry['last_day']:   # имя/юнит — из последней продажи
             entry.update(group=group, unit=resolve_unit(top_group),
                          last_day=last_day)
@@ -123,11 +120,11 @@ def _discount_sums(session: Session, restaurant_id: UUID,
         Order.day.between(d_from, d_to),
     ).one()
     return {
-        'discountSum': round(float(row[0])),
-        'discountedRevenue': round(float(row[1])),
-        'discountedRevenueWithCost': round(float(row[2])),
-        'discountSumWithCost': round(float(row[3])),
-        'discountedCost': round(float(row[4])),
+        'discountSum': money_float(row[0]),
+        'discountedRevenue': money_float(row[1]),
+        'discountedRevenueWithCost': money_float(row[2]),
+        'discountSumWithCost': money_float(row[3]),
+        'discountedCost': money_float(row[4]),
     }
 
 
@@ -144,13 +141,13 @@ def _compliment_sums(session: Session, restaurant_id: UUID,
         DishSale.paid_sum == 0,
         DishSale.price > 0,
     ).one()
-    return {'cost': round(float(cost)),
-            'priceValue': round(float(price_value)),
+    return {'cost': money_float(cost),
+            'priceValue': money_float(price_value),
             'qty': round(float(qty), 2)}       # порций, дробное у весовых
 
 
-def _product_sums(session: Session, restaurant_id: UUID,
-                  d_from: date, d_to: date) -> list[dict]:
+def product_sums(session: Session, restaurant_id: UUID,
+                 d_from: date, d_to: date) -> list[dict]:
     """Позиции диаграммы выгодности: ТОЛЬКО фудкост-строки (правило №3),
     поэтому revenue позиции здесь = её revenueWithCost. Идентичность —
     dish_id (склейка переименований: имя и юнит — из последней продажи
@@ -176,9 +173,9 @@ def _product_sums(session: Session, restaurant_id: UUID,
             'revenue': 0.0, 'listValue': 0.0, 'cost': 0.0, 'qty': 0.0,
             'last_day': last_day,
         })
-        entry['revenue'] += float(revenue)
-        entry['listValue'] += float(list_value)
-        entry['cost'] += float(cost)
+        entry['revenue'] += money_float(revenue)
+        entry['listValue'] += money_float(list_value)
+        entry['cost'] += money_float(cost)
         entry['qty'] += float(qty)
         if last_day >= entry['last_day']:   # имя/юнит — из последней продажи
             entry.update(name=name, unit=resolve_unit(top_group),
@@ -188,9 +185,9 @@ def _product_sums(session: Session, restaurant_id: UUID,
         {'id': str(entry['id']) if entry['id'] else None,
          'name': entry['name'], 'unit': entry['unit'],
          'qty': round(entry['qty'], 2),
-         'revenue': round(entry['revenue']),
-         'listValue': round(entry['listValue']),
-         'cost': round(entry['cost'])}
+         'revenue': money_float(entry['revenue']),
+         'listValue': money_float(entry['listValue']),
+         'cost': money_float(entry['cost'])}
         for entry in sorted(sums.values(), key=lambda e: -e['revenue'])
     ]
 
@@ -223,12 +220,14 @@ def _fold(units: dict[str, dict]) -> dict:
 def _facts(cur: dict, prev: dict | None) -> dict:
     """Поля BaseCost: факты периода + prev* (None — сравнивать не с чем)."""
     return {
-        'revenue': round(cur['revenue']),
-        'cost': round(cur['cost']),
-        'revenueWithCost': round(cur['revenueWithCost']),
-        'prevRevenue': round(prev['revenue']) if prev is not None else None,
-        'prevCost': round(prev['cost']) if prev is not None else None,
-        'prevRevenueWithCost': round(prev['revenueWithCost']) if prev is not None else None,
+        'revenue': money_float(cur['revenue']),
+        'cost': money_float(cur['cost']),
+        'revenueWithCost': money_float(cur['revenueWithCost']),
+        'prevRevenue': money_float(prev['revenue']) if prev is not None else None,
+        'prevCost': money_float(prev['cost']) if prev is not None else None,
+        'prevRevenueWithCost': (
+            money_float(prev['revenueWithCost']) if prev is not None else None
+        ),
     }
 
 
@@ -238,13 +237,13 @@ def build_food_cost(session: Session, restaurant_id: UUID,
         session, restaurant_id, year=year, month=month)
     p_from, p_to = _previous_period(d_from, d_to)
 
-    units = _unit_cost_sums(session, restaurant_id, d_from, d_to)
-    groups = _group_cost_sums(session, restaurant_id, d_from, d_to)
+    units = unit_cost_sums(session, restaurant_id, d_from, d_to)
+    groups = group_cost_sums(session, restaurant_id, d_from, d_to)
 
     # None — в compare-периоде нет ни одного платного чека (новый ресторан)
     has_prev = _has_paid_orders(session, restaurant_id, p_from, p_to)
-    prev_units = _unit_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
-    prev_groups = _group_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
+    prev_units = unit_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
+    prev_groups = group_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
 
     # model_validate на выходе: опечатка в ключе или дыра в структуре
     # ловится юнит-тестом на сборке, а не на HTTP-запросе.
@@ -282,7 +281,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
                    'goal': goals.unit_goal_pct.get(key)}
                   for key in UNIT_KEYS],
         'groups': groups_payload,
-        'products': _product_sums(session, restaurant_id, d_from, d_to),
+        'products': product_sums(session, restaurant_id, d_from, d_to),
         'discounts': _discount_sums(session, restaurant_id, d_from, d_to),
         'losses': {
             'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),
@@ -292,3 +291,100 @@ def build_food_cost(session: Session, restaurant_id: UUID,
             'complimentsGoal': goals.compliments_goal_rub,
         },
     })
+
+def _foodcost_period_ctx(
+    session: Session,
+    restaurant_id: UUID,
+    year: int | None,
+    month: int | None,
+):
+    """Период + compare + unit sums + goals — каркас лёгких срезов."""
+    d_from, d_to, _earliest, _latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    p_from, p_to = _previous_period(d_from, d_to)
+    has_prev = _has_paid_orders(session, restaurant_id, p_from, p_to)
+    units = unit_cost_sums(session, restaurant_id, d_from, d_to)
+    prev_units = (
+        unit_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
+    )
+    from src.services.targets import load_foodcost_goals
+    unit_revenues = {key: units[key]['revenue'] for key in UNIT_KEYS}
+    goals = load_foodcost_goals(
+        session, restaurant_id, d_from.year, d_from.month,
+        unit_revenues=unit_revenues,
+    )
+    return d_from, d_to, p_from, p_to, has_prev, units, prev_units, goals
+
+
+def foodcost_totals(
+    session: Session, restaurant_id: UUID,
+    year: int | None = None, month: int | None = None,
+):
+    from src.schemas.foodcost import CostTotals
+    _d_from, _d_to, _p_from, _p_to, has_prev, units, prev_units, goals = (
+        _foodcost_period_ctx(session, restaurant_id, year, month)
+    )
+    return CostTotals.model_validate({
+        **_facts(_fold(units), _fold(prev_units) if has_prev else None),
+        'goal': goals.totals_goal_pct,
+    })
+
+
+def foodcost_units(
+    session: Session, restaurant_id: UUID,
+    year: int | None = None, month: int | None = None,
+):
+    from src.schemas.foodcost import UnitCost
+    _d_from, _d_to, _p_from, _p_to, has_prev, units, prev_units, goals = (
+        _foodcost_period_ctx(session, restaurant_id, year, month)
+    )
+    return [
+        UnitCost.model_validate({
+            'key': key,
+            **_facts(units[key], prev_units[key] if has_prev else None),
+            'goal': goals.unit_goal_pct.get(key),
+        })
+        for key in UNIT_KEYS
+    ]
+
+
+def foodcost_groups(
+    session: Session, restaurant_id: UUID,
+    year: int | None = None, month: int | None = None,
+):
+    from src.schemas.foodcost import GroupCost
+    d_from, d_to, p_from, p_to, has_prev, _units, _prev_units, goals = (
+        _foodcost_period_ctx(session, restaurant_id, year, month)
+    )
+    groups = group_cost_sums(session, restaurant_id, d_from, d_to)
+    prev_groups = (
+        group_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
+    )
+    return [
+        GroupCost.model_validate({
+            'unit': cur['unit'],
+            'group': cur['group'],
+            **_facts(
+                cur,
+                (prev_groups.get(key, _zero_sums()) if has_prev else None),
+            ),
+            'goal': goals.unit_goal_pct.get(cur['unit']),
+        })
+        for key, cur in sorted(groups.items(), key=lambda kv: -kv[1]['revenue'])
+        if cur['revenue'] > 0
+    ]
+
+
+def foodcost_products(
+    session: Session, restaurant_id: UUID,
+    year: int | None = None, month: int | None = None,
+):
+    from src.schemas.foodcost import ProductCost
+    d_from, d_to, _earliest, _latest = _resolve_dashboard_period(
+        session, restaurant_id, year=year, month=month,
+    )
+    return [
+        ProductCost.model_validate(row)
+        for row in product_sums(session, restaurant_id, d_from, d_to)
+    ]

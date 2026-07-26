@@ -6,12 +6,14 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import HTTPException, status
+from starlette import status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.core.security import (
+    DUMMY_PASSWORD_HASH,
     INVALID_CREDENTIALS,
+    check_needs_rehash,
     create_access_token,
     generate_refresh_token,
     hash_password,
@@ -22,6 +24,7 @@ from src.core.security import (
 )
 from src.db.models.user import RefreshToken, User
 from src.schemas.auth import RegisterRequest, TokenResponse, UserPublic, UpdateProfileRequest, ChangePasswordRequest
+from src.services.errors import DomainError
 from src.services.invites import INVALID_INVITE, consume_invite
 
 logger = logging.getLogger(__name__)
@@ -37,9 +40,8 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-class AuthError(HTTPException):
-    def __init__(self, status_code: int, detail: str) -> None:
-        super().__init__(status_code=status_code, detail=detail)
+class AuthError(DomainError):
+    """Auth-specific domain error (same shape as DomainError)."""
 
 
 def user_to_public(user: User) -> UserPublic:
@@ -49,6 +51,7 @@ def user_to_public(user: User) -> UserPublic:
         first_name=user.first_name,
         last_name=user.last_name,
         position=user.position,
+        role=getattr(user, "role", None) or "manager",
         created_at=user.created_at,
     )
 
@@ -81,7 +84,11 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse,
     email = normalize_email(payload.email)
     exists = db.scalar(select(User.id).where(User.email == email))
     if exists is not None:
-        raise AuthError(status.HTTP_400_BAD_REQUEST, "Registration failed")
+        raise AuthError(
+            status.HTTP_400_BAD_REQUEST,
+            "Registration failed",
+            "registration_failed",
+        )
 
     user = User(
         email=email,
@@ -97,7 +104,11 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse,
         consume_invite(db, payload.invite_key, user_id=user.id)
     except ValueError:
         db.rollback()
-        raise AuthError(status.HTTP_400_BAD_REQUEST, INVALID_INVITE) from None
+        raise AuthError(
+            status.HTTP_400_BAD_REQUEST,
+            INVALID_INVITE,
+            "invalid_invite",
+        ) from None
 
     tokens, raw_refresh, access_token = _issue_token_pair(db, user)
     return tokens, raw_refresh, access_token, user_to_public(user)
@@ -106,10 +117,22 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[TokenResponse,
 def login_user(db: Session, email: str, password: str) -> tuple[TokenResponse, str, str, UserPublic]:
     normalized = normalize_email(email)
     user = db.scalar(select(User).where(User.email == normalized))
-    if user is None or not verify_password(password, user.password_hash):
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, INVALID_CREDENTIALS)
+    password_hash = user.password_hash if user is not None else DUMMY_PASSWORD_HASH
+    if user is None or not verify_password(password, password_hash):
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            INVALID_CREDENTIALS,
+            "invalid_credentials",
+        )
     if not user.is_active:
-        raise AuthError(status.HTTP_403_FORBIDDEN, "Account is disabled")
+        raise AuthError(
+            status.HTTP_403_FORBIDDEN,
+            "Account is disabled",
+            "account_disabled",
+        )
+
+    if check_needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
 
     tokens, raw_refresh, access_token = _issue_token_pair(db, user)
     return tokens, raw_refresh, access_token, user_to_public(user)
@@ -129,11 +152,19 @@ def _revoke_family(db: Session, family_id: uuid.UUID) -> None:
 
 def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str, str]:
     token_hash = hash_refresh_token(raw_refresh)
-    stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+    stored = db.scalar(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .with_for_update()
+    )
     now = _utc_now()
 
     if stored is None:
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid refresh token",
+            "invalid_refresh",
+        )
 
     if stored.revoked_at is not None:
         _revoke_family(db, stored.family_id)
@@ -142,18 +173,30 @@ def refresh_session(db: Session, raw_refresh: str) -> tuple[TokenResponse, str, 
             _invalidate_access_tokens(user)
         db.commit()
         logger.warning("Refresh token reuse detected for family %s", stored.family_id)
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid refresh token",
+            "invalid_refresh",
+        )
 
     if _as_utc(stored.expires_at) < now:
         stored.revoked_at = now
         db.commit()
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid refresh token",
+            "invalid_refresh",
+        )
 
     user = db.get(User, stored.user_id)
     if user is None or not user.is_active:
         stored.revoked_at = now
         db.commit()
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, "Invalid refresh token")
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid refresh token",
+            "invalid_refresh",
+        )
 
     stored.revoked_at = now
     new_raw = generate_refresh_token()
@@ -206,7 +249,11 @@ def change_user_password(
     new_password: str,
 ) -> tuple[TokenResponse, str, str]:
     if not verify_password(current_password, user.password_hash):
-        raise AuthError(status.HTTP_401_UNAUTHORIZED, INVALID_CURRENT_PASSWORD)
+        raise AuthError(
+            status.HTTP_401_UNAUTHORIZED,
+            INVALID_CURRENT_PASSWORD,
+            "invalid_current_password",
+        )
 
     user.password_hash = hash_password(new_password)
     _invalidate_access_tokens(user)
@@ -219,7 +266,11 @@ def logout_user(db: Session, raw_refresh: str | None) -> None:
     if not raw_refresh:
         return
     token_hash = hash_refresh_token(raw_refresh)
-    stored = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+    stored = db.scalar(
+        select(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash)
+        .with_for_update()
+    )
     if stored is None:
         return
     user = db.get(User, stored.user_id)

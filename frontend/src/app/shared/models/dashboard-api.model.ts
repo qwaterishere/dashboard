@@ -1,4 +1,7 @@
-/** Контракт GET /api/dashboard (backend/src/schemas/dashboard.py). */
+/**
+ * View-model слой дашборда (бывший BFF /api/dashboard).
+ * Собирается на клиенте из /api/base-metrics/* (+ /api/targets для планов).
+ */
 
 import type { ApiPeriod, DataBounds } from './api-period.model';
 
@@ -88,6 +91,6 @@ export interface DashboardApi {
   stock: null;
 }
 
-/** KPI overlay slice — compare cache + GET /api/dashboard/kpi. */
+/** KPI overlay slice — compare cache + KPI-сборка из base-metrics. */
 export type DashboardCompareSlice = Pick<DashboardApi, 'kpis' | 'compare' | 'weekKpi'>;
 

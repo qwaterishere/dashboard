@@ -1,4 +1,4 @@
-/** Контракт GET /api/foodcost (backend/src/schemas/foodcost.py). */
+/** Контракт GET /api/foodcost/snapshot (backend/src/schemas/foodcost.py). */
 
 import type { ApiPeriod } from './api-period.model';
 

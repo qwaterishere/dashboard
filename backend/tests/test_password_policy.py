@@ -1,12 +1,24 @@
 """Password policy and environment profile."""
 
-import os
-
 import pytest
 from pydantic import ValidationError
 
 from src.core.config import Settings, get_settings
 from src.core.password_policy import validate_password
+
+
+def _prod_password_env(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("DB_URL", "postgresql+psycopg://user:pass@localhost/db")
+    monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
+    monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
+    monkeypatch.setenv("CREDENTIALS_ENCRYPTION_KEY", "y" * 32)
+    monkeypatch.setenv("SYNC_SCHEDULER_TOKEN", "a" * 32)
+    monkeypatch.setenv("SYNC_RUN_IN_API", "false")
+    monkeypatch.setenv("RATE_LIMIT_STORAGE_URI", "memory://")
+    monkeypatch.setenv("TRUSTED_PROXIES", "127.0.0.1")
+    monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
+    get_settings.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -20,11 +32,7 @@ from src.core.password_policy import validate_password
     ],
 )
 def test_production_password_rejects_weak(password: str, monkeypatch):
-    monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("DB_URL", "postgresql+psycopg://user:pass@localhost/db")
-    monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
-    monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
-    get_settings.cache_clear()
+    _prod_password_env(monkeypatch)
 
     settings = get_settings()
     with pytest.raises(ValueError):
@@ -41,11 +49,7 @@ def test_development_allows_simple_password(monkeypatch):
 
 
 def test_production_accepts_strong_password(monkeypatch):
-    monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("DB_URL", "postgresql+psycopg://user:pass@localhost/db")
-    monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
-    monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
-    get_settings.cache_clear()
+    _prod_password_env(monkeypatch)
 
     settings = get_settings()
     assert validate_password("Str0ng!PassWord", settings) == "Str0ng!PassWord"
@@ -56,6 +60,7 @@ def test_production_rejects_sqlite(monkeypatch):
     monkeypatch.setenv("DB_URL", "sqlite:///dashboard.db")
     monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
     monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
+    monkeypatch.setenv("CREDENTIALS_ENCRYPTION_KEY", "y" * 32)
     get_settings.cache_clear()
 
     with pytest.raises(ValidationError, match="SQLite is not permitted"):
@@ -67,6 +72,7 @@ def test_production_requires_db_url(monkeypatch):
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("JWT_SECRET_KEY", "x" * 32)
     monkeypatch.setenv("JWT_COOKIE_SECURE", "true")
+    monkeypatch.setenv("CREDENTIALS_ENCRYPTION_KEY", "y" * 32)
     get_settings.cache_clear()
 
     with pytest.raises(ValidationError, match="DB_URL is required"):

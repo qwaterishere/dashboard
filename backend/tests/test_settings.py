@@ -82,7 +82,7 @@ def test_change_password_rejects_wrong_current(client):
         headers=_headers(),
     )
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid current password"
+    assert response.json()["detail"]["message"] == "Invalid current password"
 
 
 @pytest.mark.no_auth

@@ -48,7 +48,9 @@ def create_invite(
 def consume_invite(db: Session, raw_key: str, *, user_id: UUID) -> InviteKey:
     """Находит валидный ключ и помечает использованным. Иначе ValueError."""
     key_hash = hash_invite_key(raw_key)
-    invite = db.scalar(select(InviteKey).where(InviteKey.key_hash == key_hash))
+    invite = db.scalar(
+        select(InviteKey).where(InviteKey.key_hash == key_hash).with_for_update()
+    )
     now = datetime.now(UTC)
 
     if invite is None or invite.used_at is not None:
@@ -60,7 +62,12 @@ def consume_invite(db: Session, raw_key: str, *, user_id: UUID) -> InviteKey:
     if expires < now:
         raise ValueError(INVALID_INVITE)
 
+    # Re-check after lock (concurrent consumer may have marked used).
+    if invite.used_at is not None:
+        raise ValueError(INVALID_INVITE)
+
     invite.used_at = now
     invite.used_by_user_id = user_id
     db.flush()
     return invite
+

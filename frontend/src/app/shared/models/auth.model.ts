@@ -11,6 +11,8 @@ export interface UserPublic {
   first_name: string;
   last_name: string;
   position: string;
+  /** RBAC: manager | accountant | warehouse */
+  role: string;
   created_at: string;
 }
 

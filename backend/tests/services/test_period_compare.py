@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 
-from src.services.period_compare import previous_period, same_period_last_year
+from src.services.analytics.period_compare import previous_period, same_period_last_year
 
 
 def test_previous_period_partial_month():

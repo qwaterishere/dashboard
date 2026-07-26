@@ -17,10 +17,10 @@ const MONTHS_SHORT = [
 ] as const;
 
 const ROUTES = [
-  { path: '/dashboard', heading: 'Дашборд', panel: 'Выручка по дням', api: 'dashboard' },
-  { path: '/sales', heading: 'Продажи', panel: 'Структура продаж', api: 'sales' },
-  { path: '/warehouse', heading: 'Склад', panel: 'Общие товарные запасы', api: 'warehouse' },
-  { path: '/foodcost', heading: 'Фудкост', panel: 'Чистый фудкост', api: 'foodcost' },
+  { path: '/dashboard', heading: 'Дашборд', panel: 'Выручка по дням', api: 'base-metrics/snapshot' },
+  { path: '/sales', heading: 'Продажи', panel: 'Структура продаж', api: 'sales/snapshot' },
+  { path: '/warehouse', heading: 'Склад', panel: 'Общие товарные запасы', api: 'stock/snapshot' },
+  { path: '/foodcost', heading: 'Фудкост', panel: 'Чистый фудкост', api: 'foodcost/snapshot' },
 ] as const;
 
 function waitForPageApi(page: Page, api: string) {
@@ -47,11 +47,11 @@ test.describe('smoke', () => {
   }
 
   test('sidebar navigates between dashboard and sales', async ({ page }) => {
-    const dashboardReady = waitForPageApi(page, 'dashboard');
+    const dashboardReady = waitForPageApi(page, 'base-metrics/snapshot');
     await page.goto('/dashboard');
     await dashboardReady;
 
-    const salesReady = waitForPageApi(page, 'sales');
+    const salesReady = waitForPageApi(page, 'sales/snapshot');
     await page.getByRole('link', { name: 'Продажи', exact: true }).click();
     await expect(page).toHaveURL(/\/sales$/);
     await salesReady;
@@ -62,19 +62,22 @@ test.describe('smoke', () => {
   });
 
   test('period bar reflects dashboard API period', async ({ page }) => {
-    const apiReady = waitForPageApi(page, 'dashboard');
+    const apiReady = waitForPageApi(page, 'base-metrics/snapshot');
     await page.goto('/dashboard');
     await apiReady;
 
-    const api = await page.request.get('/api/dashboard');
+    const api = await page.request.get('/api/base-metrics/snapshot');
     expect(api.ok()).toBeTruthy();
     const body = await api.json();
-    const monthShort = MONTHS_SHORT[(body.period.month as number) - 1];
+    const dateFrom = body.date_from as string;
+    const year = Number(dateFrom.slice(0, 4));
+    const month = Number(dateFrom.slice(5, 7));
+    const monthShort = MONTHS_SHORT[month - 1];
 
     const periodBar = page.locator('app-period-bar');
     await expect(periodBar).not.toContainText('загрузка', { timeout: 15_000 });
     await expect(periodBar.locator('.date-pill').first()).toBeVisible();
-    await expect(periodBar).toContainText(String(body.period.year));
+    await expect(periodBar).toContainText(String(year));
     await expect(periodBar).toContainText(monthShort);
   });
 

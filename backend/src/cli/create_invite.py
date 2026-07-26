@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from src.db.bootstrap import ensure_dev_schema
 from src.db.session import db_manager
 from src.services.invites import DEFAULT_TTL_DAYS, create_invite
 
@@ -37,7 +38,7 @@ def main() -> None:
         print("ttl-days must be >= 1", file=sys.stderr)
         raise SystemExit(2)
 
-    db_manager.create_all()
+    ensure_dev_schema()
     session = db_manager.get_session()
     try:
         raw, invite = create_invite(session, ttl_days=args.ttl_days, note=args.note)
