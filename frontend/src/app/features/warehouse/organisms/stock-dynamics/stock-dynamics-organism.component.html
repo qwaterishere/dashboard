@@ -1,0 +1,158 @@
+<div class="block">
+  <div class="block-head">
+    <div class="block-head__titles">
+      <app-heading [level]="2" text="Динамика товарных запасов" />
+      <app-text tone="caption">{{ caption() }}</app-text>
+    </div>
+    <div class="controls">
+      <app-segment-control size="sm" [options]="storeOptions" [(value)]="store" />
+      <app-button
+        variant="pill"
+        type="button"
+        [disabled]="!canReset()"
+        (pressed)="resetView()"
+      >
+        Сброс
+      </app-button>
+    </div>
+  </div>
+
+  @if (chart().empty) {
+    <p class="empty">Недостаточно слепков для графика</p>
+  } @else {
+    <div
+      class="chart-shell"
+      [class.chart-shell--grab]="cursor() === 'grab'"
+      [class.chart-shell--grabbing]="cursor() === 'grabbing'"
+      [class.chart-shell--zoom]="cursor() === 'ew-resize'"
+    >
+      <svg
+        class="stock-chart"
+        [attr.viewBox]="'0 0 ' + chart().width + ' ' + chart().height"
+        preserveAspectRatio="none"
+        role="img"
+        [attr.aria-label]="ariaLabel()"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMoveHover($event)"
+        (pointerleave)="onPointerLeave()"
+      >
+        <defs>
+          <linearGradient id="stockArea" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" [attr.stop-color]="chart().color" stop-opacity="0.25" />
+            <stop offset="1" [attr.stop-color]="chart().color" stop-opacity="0" />
+          </linearGradient>
+          <clipPath [attr.id]="'stockPlotClip'">
+            <rect
+              [attr.x]="chart().plotClip.x"
+              [attr.y]="chart().plotClip.y"
+              [attr.width]="chart().plotClip.width"
+              [attr.height]="chart().plotClip.height"
+            />
+          </clipPath>
+        </defs>
+
+        @for (line of chart().gridLines; track line.label + line.y) {
+          <line
+            x1="70"
+            [attr.y1]="line.y"
+            x2="876"
+            [attr.y2]="line.y"
+            stroke="#1B2236"
+            pointer-events="none"
+          />
+          <text
+            x="62"
+            [attr.y]="line.y + 4"
+            text-anchor="end"
+            font-size="10"
+            fill="#5A6480"
+            font-family="Manrope, sans-serif"
+            pointer-events="none"
+          >
+            {{ line.label }}
+          </text>
+        }
+
+        <g clip-path="url(#stockPlotClip)">
+          @for (area of chart().areaSegments; track $index) {
+            <polygon
+              [attr.points]="area"
+              fill="url(#stockArea)"
+              pointer-events="none"
+            />
+          }
+          @for (pts of chart().polylineSegments; track $index) {
+            <polyline
+              [attr.points]="pts"
+              fill="none"
+              [attr.stroke]="chart().color"
+              stroke-width="2.5"
+              stroke-linejoin="round"
+              stroke-linecap="butt"
+              pointer-events="none"
+            />
+          }
+          @for (dot of chart().dots; track $index) {
+            <circle
+              [attr.cx]="dot.cx"
+              [attr.cy]="dot.cy"
+              r="3.5"
+              fill="#0D1220"
+              [attr.stroke]="chart().color"
+              stroke-width="2"
+              pointer-events="none"
+            />
+          }
+          @if (chart().selectedDot; as sel) {
+            <line
+              class="selected-guide"
+              [attr.x1]="sel.cx"
+              [attr.y1]="chart().plotClip.y"
+              [attr.x2]="sel.cx"
+              [attr.y2]="chart().plotClip.y + chart().plotClip.height"
+              [attr.stroke]="chart().color"
+              stroke-width="1"
+              stroke-dasharray="4 4"
+              opacity="0.45"
+              pointer-events="none"
+            />
+            <circle
+              class="selected-dot"
+              [attr.cx]="sel.cx"
+              [attr.cy]="sel.cy"
+              r="6"
+              [attr.fill]="chart().color"
+              stroke="#0D1220"
+              stroke-width="2.5"
+              pointer-events="none"
+            />
+          }
+        </g>
+
+        @for (label of chart().xLabels; track label.x + label.text) {
+          <text
+            [attr.x]="label.x"
+            y="268"
+            text-anchor="middle"
+            font-size="10"
+            fill="#8590A8"
+            font-family="Manrope, sans-serif"
+            pointer-events="none"
+          >
+            {{ label.text }}
+          </text>
+        }
+
+        <!-- Поверх всего: ловит pointer на всей площади графика -->
+        <rect
+          class="interaction-layer"
+          x="0"
+          y="0"
+          [attr.width]="chartWidth"
+          [attr.height]="chartHeight"
+          fill="transparent"
+        />
+      </svg>
+    </div>
+  }
+</div>

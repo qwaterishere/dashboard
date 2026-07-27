@@ -25,21 +25,52 @@ import { NegativeStockBannerOrganismComponent } from '../../organisms/negative-s
   template: `
     <app-warehouse-layout-template>
       @if (data.hasValue()) {
-        <p class="as-of">На {{ data.value().asOf.label }} · {{ data.value().asOf.note }}</p>
+        <p class="as-of" [class.as-of--loading]="cardsLoading()">
+          На {{ data.value().asOf.label }} · {{ data.value().asOf.note }}
+        </p>
 
         @if (data.value().negativeStock.count > 0) {
-          <app-negative-stock-banner-organism
-            [summary]="data.value().negativeStock"
-            [positions]="data.value().positions"
-          />
+          <div class="card-slot" [class.card-slot--loading]="cardsLoading()">
+            <app-negative-stock-banner-organism
+              [summary]="data.value().negativeStock"
+              [positions]="data.value().positions"
+            />
+            @if (cardsLoading()) {
+              <div class="card-slot__overlay" aria-live="polite" aria-busy="true">
+                <span class="card-slot__spinner" aria-hidden="true"></span>
+                <span class="card-slot__text">Загрузка…</span>
+              </div>
+            }
+          </div>
         }
 
-        <div class="row2">
+        <div class="row2 card-slot" [class.card-slot--loading]="cardsLoading()">
           <app-stock-totals-organism [totals]="data.value().totals" />
           <app-warehouse-categories-organism [stock]="stock()" />
+          @if (cardsLoading()) {
+            <div class="card-slot__overlay" aria-live="polite" aria-busy="true">
+              <span class="card-slot__spinner" aria-hidden="true"></span>
+              <span class="card-slot__text">Загрузка…</span>
+            </div>
+          }
         </div>
-        <app-stock-dynamics-organism [dynamics]="data.value().dynamics" />
-        <app-top-positions-organism [stock]="stock()" />
+
+        <app-stock-dynamics-organism
+          [points]="data.value().dynamicsPoints"
+          [asOf]="data.value().dataBounds.latest ?? data.value().asOf.iso"
+          [earliest]="data.value().dataBounds.earliest"
+          [selectedDate]="data.value().asOf.iso"
+        />
+
+        <div class="card-slot" [class.card-slot--loading]="cardsLoading()">
+          <app-top-positions-organism [stock]="stock()" />
+          @if (cardsLoading()) {
+            <div class="card-slot__overlay" aria-live="polite" aria-busy="true">
+              <span class="card-slot__spinner" aria-hidden="true"></span>
+              <span class="card-slot__text">Загрузка…</span>
+            </div>
+          }
+        </div>
       } @else if (data.isEmpty()) {
         <div class="empty">
           <p class="empty-title">Склад ещё не синхронизирован</p>
@@ -57,6 +88,8 @@ import { NegativeStockBannerOrganismComponent } from '../../organisms/negative-s
 export class WarehousePageComponent {
   private readonly warehouseStore = inject(WarehouseDataStore);
   readonly data = this.warehouseStore.data;
+
+  readonly cardsLoading = computed(() => this.data.cardsLoading());
 
   readonly stock = computed(() => {
     if (!this.data.hasValue()) return [];

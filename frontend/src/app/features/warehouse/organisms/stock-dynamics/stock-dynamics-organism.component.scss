@@ -8,21 +8,60 @@
 
 .block-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
 
+.block-head__titles {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
 .controls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.chart-shell {
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chart-shell--grab {
+  cursor: grab;
+}
+
+.chart-shell--grabbing {
+  cursor: grabbing;
+}
+
+.chart-shell--zoom {
+  cursor: ew-resize;
 }
 
 .stock-chart {
   width: 100%;
   height: 280px;
   display: block;
+  touch-action: none;
+}
+
+.interaction-layer {
+  pointer-events: all;
+  cursor: inherit;
+}
+
+.empty {
+  margin: 24px 0 8px;
+  color: var(--mut);
+  font-size: 0.85rem;
+  text-align: center;
 }

@@ -112,13 +112,7 @@ const warehouseSample: WarehouseData = {
   },
   positions: [],
   negativeStock: { count: 0, valueAbs: 0 },
-  dynamics: {
-    all: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
-    k: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
-    b: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
-    w: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
-    o: { week: { labels: [], values: [] }, month: { labels: [], values: [] } },
-  },
+  dynamicsPoints: [],
 };
 
 describe('dashboard.mapper', () => {

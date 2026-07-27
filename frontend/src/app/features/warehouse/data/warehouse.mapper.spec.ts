@@ -64,11 +64,11 @@ describe('warehouse.mapper', () => {
     expect(vm.negativeStock.count).toBe(1);
   });
 
-  it('maps dynamics for all stores and frequencies', () => {
+  it('maps dynamics points through', () => {
     const vm = buildWarehouseViewModel(sample);
-    expect(vm.dynamics.all.week.values).toEqual([150_000, 175_000]);
-    expect(vm.dynamics.k.week.values).toEqual([90_000, 100_000]);
-    expect(vm.dynamics.all.week.labels).toHaveLength(2);
+    expect(vm.dynamicsPoints).toHaveLength(2);
+    expect(vm.dynamicsPoints[0].date).toBe('2026-07-01');
+    expect(vm.dynamicsPoints[1].byStore[0].value).toBe(100_000);
   });
 
   it('keeps position value from API (not qty × price)', () => {

@@ -26,7 +26,8 @@ from src.schemas.stock import (
 from src.services.analytics.money import money_float
 
 UNIT_KEYS = ('k', 'b', 'w')
-DYNAMICS_DEFAULT_DAYS = 30
+# 30 месяцев оси «Месяцы» + запас (~31×30).
+DYNAMICS_DEFAULT_DAYS = 930
 
 
 class SnapshotNotFound(LookupError):

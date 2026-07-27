@@ -11,6 +11,11 @@
   margin: 0 0 12px;
   color: var(--mut2);
   font-size: 0.85rem;
+  transition: opacity 0.15s ease;
+}
+
+.as-of--loading {
+  opacity: 0.55;
 }
 
 .empty {
@@ -39,6 +44,48 @@
   gap: 16px;
   margin-bottom: 16px;
   align-items: stretch;
+}
+
+.card-slot {
+  position: relative;
+}
+
+.card-slot--loading > :not(.card-slot__overlay) {
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.card-slot__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 1;
+  border-radius: var(--r, 12px);
+}
+
+.card-slot__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--mut2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: warehouse-spin 0.8s linear infinite;
+}
+
+.card-slot__text {
+  color: var(--mut2);
+  font-size: 0.85rem;
+}
+
+@keyframes warehouse-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 900px) {

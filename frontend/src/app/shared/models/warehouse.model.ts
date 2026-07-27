@@ -1,5 +1,8 @@
 import type { CategoryKey } from './common.model';
-import type { WarehouseNegativeStock } from './warehouse-api.model';
+import type {
+  WarehouseDynamicsPoint,
+  WarehouseNegativeStock,
+} from './warehouse-api.model';
 
 /** View-model страницы «Склад» (после маппера из WarehouseApi). */
 
@@ -17,7 +20,8 @@ export interface WarehousePosition {
 
 export interface DynamicsSeries {
   labels: string[];
-  values: number[];
+  /** `null` — нет слепка на этот шаг оси (разрыв линии). */
+  values: Array<number | null>;
 }
 
 export interface WarehouseTotals {
@@ -36,5 +40,6 @@ export interface WarehouseData {
   totals: WarehouseTotals;
   positions: WarehousePosition[];
   negativeStock: WarehouseNegativeStock;
-  dynamics: Record<CategoryKey | 'all', Record<'week' | 'month', DynamicsSeries>>;
+  /** Сырые точки графика; агрегация day/week/month — в organism (zoom/pan). */
+  dynamicsPoints: WarehouseDynamicsPoint[];
 }
