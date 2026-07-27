@@ -2,7 +2,7 @@
  * Сборка DashboardApi из одного /api/base-metrics/snapshot (+ опционально /api/targets).
  */
 
-import { catchError, map, of, switchMap, type Observable } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap, type Observable } from 'rxjs';
 
 import type { DashboardQueryKey } from './analytics-cache-key';
 import type { BaseMetricsRepository } from './base-metrics.repository';
@@ -373,14 +373,56 @@ function buildWeekKpi(
   };
 }
 
+/** Месяцы из month_series (для year-view планов). Fallback — диапазон date_from…date_to. */
+export function monthsInRevenueSeries(snap: MetricSnapshotApi): number[] {
+  const revenue = seriesByMetric(snap.month_series).get('revenue');
+  if (revenue?.points.length) {
+    return [...new Set(revenue.points.map((point) => parseIsoDate(point.date).getMonth() + 1))];
+  }
+  const from = parseIsoDate(snap.date_from);
+  const to = parseIsoDate(snap.date_to);
+  if (from.getFullYear() !== to.getFullYear()) {
+    return Array.from({ length: 12 }, (_, i) => i + 1);
+  }
+  const start = from.getMonth() + 1;
+  const end = to.getMonth() + 1;
+  return Array.from({ length: Math.max(0, end - start + 1) }, (_, i) => start + i);
+}
+
+function loadMonthPlansMap(
+  targets: TargetsRepository,
+  year: number,
+  months: number[],
+): Observable<Map<number, number>> {
+  const unique = [...new Set(months)].filter((month) => month >= 1 && month <= 12);
+  if (unique.length === 0) return of(new Map());
+  return forkJoin(
+    unique.map((month) =>
+      targets.fetch({ year, month }).pipe(
+        map((data) => ({ month, plan: data.revenue.monthPlan })),
+        catchError(() => of({ month, plan: 0 })),
+      ),
+    ),
+  ).pipe(
+    map((rows) => {
+      const plans = new Map<number, number>();
+      for (const row of rows) {
+        if (row.plan > 0) plans.set(row.month, row.plan);
+      }
+      return plans;
+    }),
+  );
+}
+
 function snapshotToDashboard(
   snap: MetricSnapshotApi,
   targets: TargetsData | null,
   mode: SnapshotMode,
+  monthPlansOverride?: Map<number, number>,
 ): DashboardApi {
   const dayPlans = buildDayPlans(targets, snap.date_from, snap.date_to);
-  const monthPlans = new Map<number, number>();
-  if (targets && targets.revenue.monthPlan > 0) {
+  const monthPlans = monthPlansOverride ?? new Map<number, number>();
+  if (!monthPlansOverride && targets && targets.revenue.monthPlan > 0) {
     monthPlans.set(targets.period.month, targets.revenue.monthPlan);
   }
 
@@ -529,11 +571,28 @@ function assembleMode(
       const snap = response.body;
       if (!snap) throw new Error('snapshot body is empty');
       const year = parseIsoDate(snap.date_from).getFullYear();
-      const month = parseIsoDate(snap.date_from).getMonth() + 1;
-      return loadTargetsOptional(deps.targets, year, month).pipe(
+      const monthFrom = parseIsoDate(snap.date_from).getMonth() + 1;
+      const monthTo = parseIsoDate(snap.date_to).getMonth() + 1;
+      const etag = response.headers.get('ETag');
+      /** Year chart: date_from = Jan 1 — нельзя брать цели только января. */
+      const yearMode = query.year != null && query.month == null;
+
+      if (yearMode && mode !== 'kpi') {
+        return forkJoin({
+          monthPlans: loadMonthPlansMap(deps.targets, year, monthsInRevenueSeries(snap)),
+          dayTargets: loadTargetsOptional(deps.targets, year, monthTo),
+        }).pipe(
+          map(({ monthPlans, dayTargets }) => ({
+            data: snapshotToDashboard(snap, dayTargets, mode, monthPlans),
+            etag,
+          })),
+        );
+      }
+
+      return loadTargetsOptional(deps.targets, year, monthFrom).pipe(
         map((targets) => ({
           data: snapshotToDashboard(snap, targets, mode),
-          etag: response.headers.get('ETag'),
+          etag,
         })),
       );
     }),
