@@ -240,7 +240,7 @@ export function buildStockFromWarehouse(data: WarehouseData): NonNullable<Dashbo
   };
 }
 
-/** Преобразует контракт API в view-model для существующих organism-компонентов. */
+/** DashboardApi → DashboardData. */
 export function buildDashboardViewModel(
   data: DashboardApi,
   options: DashboardViewModelOptions = {},

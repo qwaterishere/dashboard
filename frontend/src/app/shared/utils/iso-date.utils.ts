@@ -41,7 +41,7 @@ export function shiftMonth(year: number, month: number, delta = -1): { year: num
   return { year: nextYear, month: nextMonth };
 }
 
-/** Зеркало backend previous_period. */
+/** Предыдущий период той же длины: полный месяц → полный предыдущий; иначе те же дни прошлого месяца. */
 export function previousPeriodRange(
   dateFrom: string,
   dateTo: string,

@@ -8,7 +8,7 @@ from uuid import UUID
 
 logger = logging.getLogger("src.audit")
 
-# Роли продукта (AGENTS §8.6)
+# Роли продукта: manager | accountant | warehouse
 ROLE_MANAGER = "manager"
 ROLE_ACCOUNTANT = "accountant"
 ROLE_WAREHOUSE = "warehouse"

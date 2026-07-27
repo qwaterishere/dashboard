@@ -30,7 +30,6 @@
   cursor: pointer;
 }
 
-/* Legacy: 208px | main | 296px */
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-width, 208px) minmax(0, 1fr) var(--right-panel-width, 296px);

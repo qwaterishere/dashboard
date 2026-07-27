@@ -373,7 +373,7 @@ function buildWeekKpi(
   };
 }
 
-/** Месяцы из month_series (для year-view планов). Fallback — диапазон date_from…date_to. */
+/** Месяцы точек revenue в month_series; иначе месяцы от date_from до date_to. */
 export function monthsInRevenueSeries(snap: MetricSnapshotApi): number[] {
   const revenue = seriesByMetric(snap.month_series).get('revenue');
   if (revenue?.points.length) {
@@ -574,7 +574,7 @@ function assembleMode(
       const monthFrom = parseIsoDate(snap.date_from).getMonth() + 1;
       const monthTo = parseIsoDate(snap.date_to).getMonth() + 1;
       const etag = response.headers.get('ETag');
-      /** Year chart: date_from = Jan 1 — нельзя брать цели только января. */
+      /** Год: планы нужны по каждому месяцу серии, не только по month(date_from). */
       const yearMode = query.year != null && query.month == null;
 
       if (yearMode && mode !== 'kpi') {

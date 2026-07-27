@@ -143,7 +143,7 @@ def create_app() -> FastAPI:
         description=(
             "Аналитика продаж ресторана из iiko.\n\n"
             "Контракты: бэкенд отдаёт факты, представление — зона фронтенда. "
-            "docs/frontend-handoff.md"
+            "Спецификация: docs/frontend-handoff.md"
         ),
         openapi_tags=[
             {"name": "Health", "description": "Liveness / load balancer probes"},

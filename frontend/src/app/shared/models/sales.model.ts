@@ -9,7 +9,7 @@ export interface SalesPosition {
   unitCost: number;
 }
 
-/** Период ответа GET /api/sales/snapshot (v2 факты + legacy label/note до такта 5). */
+/** Период GET /api/sales/snapshot: dateFrom/dateTo; label/note — готовые подписи с бэка. */
 export interface SalesPeriod {
   dateFrom: string | null;
   dateTo: string | null;

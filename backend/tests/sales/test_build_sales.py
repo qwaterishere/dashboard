@@ -43,7 +43,7 @@ def test_default_period_is_month_of_last_closed_day(session, restaurant):
     page = build_sales(session, restaurant.id)
     assert [p.name for p in page.positions] == ['Июньская']   # май не протёк
     assert page.period.label == '01.06 — 10.06.2026'          # эффективные границы
-    assert page.period.dateFrom == date(2026, 6, 1)           # факты периода (такт 4):
+    assert page.period.dateFrom == date(2026, 6, 1)           # факты периода:
     assert page.period.dateTo == date(2026, 6, 10)            # ответ самоописан и при дефолте
 
 
@@ -102,7 +102,7 @@ def test_positions_aggregate_and_map(session, restaurant):
     assert by_name['Контейнер'].revenue == 50.0       # 25 + 25 фактических оплат
     assert by_name['Контейнер'].listValue == 50.0     # прейскурант (скидок нет)
     assert by_name['Контейнер'].cost == pytest.approx(21.238)  # 10.619 * 2 via money_float
-    # legacy-средние (мост до миграции фронта): производные тех же сумм
+    # Средние на порцию (совместимость): производные тех же сумм
     assert by_name['Контейнер'].price == 25.0         # revenue / qty
     assert by_name['Контейнер'].cat == 'k'            # юнит = папка 1-го уровня
     assert by_name['Негрони'].cat == 'b'

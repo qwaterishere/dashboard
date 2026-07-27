@@ -329,7 +329,7 @@ def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
     """Фоновая задача: продажи + склад для ресторана (UI / шедулер).
 
     Порядок: sales → stock. Ошибка склада после успешных продаж
-    помечает весь job как error (решение product: 2A).
+    помечает весь job как error.
     """
     from src.services.warehouse_sync import resolve_stock_plan, sync_restaurant_stock
 

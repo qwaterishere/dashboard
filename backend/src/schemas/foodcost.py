@@ -1,4 +1,4 @@
-"""Контракт страницы «Фудкост», фаза 1 — backend-todo №9."""
+"""Контракт API страницы «Фудкост»."""
 
 from typing import Literal
 
@@ -35,7 +35,7 @@ class CostTotals(BaseCost):
     """Тоталы страницы: факты + цель."""
 
     goal: float | None = Field(
-        description="Цель фудкоста, %; null — цели не внесены (до модуля targets)"
+        description="Цель фудкоста, %; null — цель месяца не задана в Целях"
     )
 
 
@@ -54,7 +54,7 @@ class GroupCost(BaseCost):
     unit: Literal['k', 'b', 'w', 'o'] = Field(description="Юнит группы")
     group: str = Field(
         description="Группа iiko — папка, в которой лежит блюдо "
-        "(живой разрез, терминология — frontend-handoff §0)"
+        "(живой разрез номенклатуры)"
     )
     goal: float | None = Field(
         default=None,
@@ -65,7 +65,7 @@ class GroupCost(BaseCost):
 class ProductCost(StrictModel):
     """Позиция диаграммы «Выгодность позиций по фудкосту».
 
-    Только фудкост-строки (правило №3: paid > 0 и cost > 0) — позиция
+    Только фудкост-строки (paid > 0 и cost > 0) — позиция
     без техкарты в рейтинге выгодности лгала бы (fc 0%). Производные —
     зона фронтенда: цена порции = revenue / qty, себестоимость порции =
     cost / qty, fc = cost / revenue; топ-N и порог шума — представление.
@@ -93,9 +93,8 @@ class ProductCost(StrictModel):
     listValue: float = Field(
         description="Прейскурантная выручка тех же строк (Σ цен меню, "
         "БЕЗ скидок). Цена меню порции = listValue / qty — её показывать "
-        "«Ценой» в тултипе (решение 17.07); скидки позиции = "
-        "listValue − revenue. fc считать от revenue (фактическая "
-        "экономика), НЕ от listValue"
+        "«Ценой» в тултипе; скидки позиции = listValue − revenue. "
+        "fc считать от revenue (фактическая экономика), НЕ от listValue"
     )
     cost: float = Field(description="Себестоимость фудкост-строк позиции")
 
@@ -131,8 +130,7 @@ class Compliments(StrictModel):
 
 
 class Staff(StrictModel):
-    """Питание персонала через кассу. Нули до решения по staff-механике
-    (backend-todo №9, отложено 13.07.2026)."""
+    """Питание персонала через кассу. Пока всегда нули — фильтр is_staff не реализован."""
 
     cost: float = Field(description="Реальные затраты заведения")
     paidSum: float = Field(description="Внутренняя «выручка» по спеццене")
@@ -144,8 +142,8 @@ class Losses(StrictModel):
     staff: Staff
     writeoffs: None = Field(
         default=None,
-        description="Акты списания (порча, бой, бракераж) — null до фазы 2: "
-        "источник OLAP TRANSACTIONS ещё не загружается",
+        description="Акты списания (порча, бой, бракераж) — null, пока "
+        "OLAP TRANSACTIONS не загружаются",
     )
     writeoffsGoal: float | None = Field(
         default=None,
@@ -171,8 +169,8 @@ class Foodcost(StrictModel):
     )
     dirty: None = Field(
         default=None,
-        description="Фудкост с учётом потерь — null до фазы 2: без списаний "
-        "число было бы занижено",
+        description="Фудкост с учётом потерь — null, пока нет writeoffs: "
+        "без списаний число было бы занижено",
     )
     units: list[UnitCost] = Field(
         description="Всегда четыре элемента: k, b, w, o (нулевые включены)"

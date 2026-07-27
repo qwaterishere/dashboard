@@ -190,7 +190,7 @@ function shiftMonth(year: number, month: number, delta = -1): { year: number; mo
   return { year: nextYear, month: nextMonth };
 }
 
-/** Предыдущий период той же формы (зеркало backend previous_period для month-mode). */
+/** Предыдущий период той же формы (полный/частичный месяц). */
 export function inferComparePeriod(period: ApiPeriod): ApiPeriod {
   const monthDays = daysInMonth(period.year, period.month);
   const prev = shiftMonth(period.year, period.month);

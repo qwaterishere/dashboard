@@ -11,7 +11,7 @@ export interface StockSnapshotQuery {
   dateTo?: string;
 }
 
-/** REST /api/stock/* — складские слепки (без page-BFF /api/warehouse). */
+/** REST /api/stock/* — складские слепки. */
 @Injectable({ providedIn: 'root' })
 export class StockRepository {
   private readonly http = inject(HttpClient);

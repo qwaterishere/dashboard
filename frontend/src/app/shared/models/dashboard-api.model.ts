@@ -1,6 +1,6 @@
 /**
- * View-model слой дашборда (бывший BFF /api/dashboard).
- * Собирается на клиенте из /api/base-metrics/* (+ /api/targets для планов).
+ * View-model дашборда: собирается на клиенте из /api/base-metrics/*
+ * и /api/targets (планы выручки).
  */
 
 import type { ApiPeriod, DataBounds } from './api-period.model';

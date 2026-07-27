@@ -161,9 +161,8 @@ def replace_day(
     """
     day_records = [r for r in records if r.day == day]
 
-    # ItemSaleEvent.Id глобально уникален в iiko. После миграции на multi-tenant
-    # в БД могли остаться блюда без restaurant_id на заказе — их replace_day
-    # раньше не трогал, и INSERT падал с UNIQUE constraint failed: dish_sales.id.
+    # ItemSaleEvent.Id глобально уникален в iiko — перед insert удаляем
+    # строки с теми же id (иначе UNIQUE на dish_sales.id при replace дня).
     incoming_ids = {r.id for r in day_records}
     if incoming_ids:
         session.query(DishSale).filter(DishSale.id.in_(incoming_ids)).delete(
@@ -254,7 +253,7 @@ def list_sales_positions(
             revenue=money_float(paid),
             listValue=money_float(list_value),
             cost=money_float(cost),
-            # legacy: средние для фронта до миграции на v2 (revenue/cost)
+            # Средние на порцию: price = paid/qty, unitCost = cost/qty
             price=money_float(money(paid) / Decimal(str(qty))) if qty else 0.0,
             unitCost=money_float(money(cost) / Decimal(str(qty))) if qty else 0.0,
         )
@@ -270,10 +269,10 @@ def build_sales(
 ) -> SalesPage:
     """Снимок продаж: период + позиции (контракт SalesPage).
 
-    Период: канон — явные date_from/date_to от фронта (во всех режимах);
-    дефолт без параметров — месяц последнего закрытого дня (страховка:
-    «вся история» без дат не отдаётся никогда, v2-такт 2). Явные даты
-    усекаются краями данных, эффективные границы видны в period.
+    Период: канон — явные date_from/date_to от клиента (во всех режимах);
+    без параметров — месяц последнего закрытого дня (открытую «всю историю»
+    без дат не отдаём). Явные даты усекаются краями данных; эффективные
+    границы видны в period.
     """
     earliest, latest = data_bounds(session, restaurant_id)
     if latest is None:

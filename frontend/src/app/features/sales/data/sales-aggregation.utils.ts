@@ -48,7 +48,7 @@ export interface DonutCategorySlice {
 
 const CATEGORY_ORDER: CategoryKey[] = ['k', 'b', 'w'];
 
-/** Сырые метрики позиции — как legacy sales.js RAW. */
+/** Метрики позиции: revenue/cost/gp/fc из qty × price/unitCost. */
 export function computeSalesRaw(positions: SalesPosition[]): SalesPositionComputed[] {
   return positions.map((p) => {
     const rev = p.qty * p.price;

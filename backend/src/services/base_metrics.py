@@ -422,7 +422,7 @@ def metric_snapshot(
 
     need_kpi = snap_mode in (SnapshotMode.full, SnapshotMode.kpi)
     need_day = snap_mode in (SnapshotMode.full, SnapshotMode.chart) and d_from.month == d_to.month
-    # year span still wants day series if same request covers days; for year mode FE uses month
+    # Годовой span: дневная серия не нужна — клиент строит график из month_series.
     year_mode = d_from.month == 1 and d_from.day == 1 and (d_to - d_from).days > 40
     if year_mode:
         need_day = False

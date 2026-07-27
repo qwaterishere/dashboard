@@ -44,7 +44,7 @@ const CHART_WIDTH = 860;
 const CHART_HEIGHT = 230;
 const PADDING = { left: 46, right: 10, top: 14, bottom: 28 };
 
-/** Округлить до 1 знака (как legacy dashboard.js r1). */
+/** Округлить до одного знака после запятой. */
 export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }

@@ -9,8 +9,7 @@
 Производные (fc% = cost/revenueWithCost, покрытие = revenueWithCost/revenue,
 LfL, «фудкост без скидок») — зона фронтенда.
 
-TODO(staff): staff-механика отложена (карточка №9) — фильтров NOT is_staff
-нет, losses.staff отдаёт нули.
+TODO(staff): фильтр is_staff ещё не реализован — losses.staff всегда нули.
 """
 from datetime import date
 from uuid import UUID
@@ -38,7 +37,7 @@ def _zero_sums() -> dict:
 # --------------------------------------------------------------------------
 
 def _sum_columns():
-    """Тройка сумм правила №3: revenue / cost / revenueWithCost."""
+    """Тройка сумм: revenue / cost / revenueWithCost (paid>0; foodcost = paid>0 & cost>0)."""
     in_sale = DishSale.paid_sum > 0
     in_foodcost = in_sale & (func.coalesce(DishSale.cost, 0) > 0)
     return (
@@ -51,7 +50,7 @@ def _sum_columns():
 
 def _cost_rows(session: Session, restaurant_id: UUID,
                d_from: date, d_to: date, *dimensions):
-    """Базовый запрос страницы: тройка сумм правила №3 в разрезе dimensions
+    """Базовый запрос страницы: тройка сумм (paid>0 / foodcost) в разрезе dimensions
     (пусто — тоталы одной строкой, top_group — юниты, +dish_group — группы)."""
     query = session.query(*dimensions, *_sum_columns()).join(Order).filter(
         Order.restaurant_id == restaurant_id,
@@ -148,7 +147,7 @@ def _compliment_sums(session: Session, restaurant_id: UUID,
 
 def product_sums(session: Session, restaurant_id: UUID,
                  d_from: date, d_to: date) -> list[dict]:
-    """Позиции диаграммы выгодности: ТОЛЬКО фудкост-строки (правило №3),
+    """Позиции диаграммы выгодности: только строки paid>0 и cost>0,
     поэтому revenue позиции здесь = её revenueWithCost. Идентичность —
     dish_id (склейка переименований: имя и юнит — из последней продажи
     периода);"""
@@ -193,7 +192,7 @@ def product_sums(session: Session, restaurant_id: UUID,
 
 
 def _staff_sums() -> dict:
-    """TODO(staff): нули до решения по staff-механике (карточка №9)."""
+    """Placeholder: стафф-потери пока не считаются (всегда нули)."""
     return {'cost': 0.0, 'paidSum': 0.0, 'qty': 0.0}
 
 
@@ -245,8 +244,6 @@ def build_food_cost(session: Session, restaurant_id: UUID,
     prev_units = unit_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
     prev_groups = group_cost_sums(session, restaurant_id, p_from, p_to) if has_prev else None
 
-    # model_validate на выходе: опечатка в ключе или дыра в структуре
-    # ловится юнит-тестом на сборке, а не на HTTP-запросе.
     from src.services.targets import load_foodcost_goals
 
     unit_revenues = {key: units[key]['revenue'] for key in UNIT_KEYS}
@@ -274,7 +271,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
         'compare': _period_dict(p_from, p_to),
         'totals': {**_facts(_fold(units), _fold(prev_units) if has_prev else None),
                    'goal': goals.totals_goal_pct},
-        'dirty': None,                                # фаза 2 (writeoffs)
+        'dirty': None,  # нет writeoffs — «грязный» FC не отдаём (был бы занижен)
         'units': [{'key': key,
                    **_facts(units[key],
                             prev_units[key] if has_prev else None),
@@ -286,7 +283,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
         'losses': {
             'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),
             'staff': _staff_sums(),
-            'writeoffs': None,                        # фаза 2
+            'writeoffs': None,  # OLAP TRANSACTIONS ещё не загружаются
             'writeoffsGoal': goals.writeoffs_goal_rub,
             'complimentsGoal': goals.compliments_goal_rub,
         },

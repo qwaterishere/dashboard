@@ -13,7 +13,7 @@ export interface DashboardQueryKey {
   compareEnd?: string;
 }
 
-/** Scope tenant-кэша: user.id (1 user = 1 restaurant на MVP). */
+/** Ключ tenant-кэша = id аутентифицированного пользователя. */
 export function analyticsTenantScope(userId: string | null | undefined): string {
   return userId ?? 'anonymous';
 }

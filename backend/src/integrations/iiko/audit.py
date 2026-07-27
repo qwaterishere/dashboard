@@ -10,9 +10,9 @@ from datetime import date
 from src.domain.constants import CAT_OTHER, STANDARD_UNITS, resolve_unit
 from src.integrations.iiko.client import IikoClient
 
-# Раздел 2 паспорта: допустимые типы заказов.
+# docs/iiko-setup-standard.md: допустимые типы заказов.
 STANDARD_ORDER_TYPES = {'Обычный заказ', 'Конференции', 'Бар', 'Завтраки'}
-# Раздел 5: допустимая доля выручки удалённых заказов/блюд.
+# docs/iiko-setup-standard.md: допустимая доля выручки удалённых заказов/блюд.
 DELETED_SHARE_LIMIT = 0.05
 
 _CLEAN_FILTERS = {
@@ -44,7 +44,8 @@ def _olap(client: IikoClient, group_by: list[str], aggregates: list[str],
 
 
 def check_nomenclature_tree(client, date_from, date_to) -> list[str]:
-    """Раздел 1: корневые папки Кухня/Бар/Вино существуют и несут основное меню.
+    """Корневые папки Кухня/Бар/Вино существуют и несут основное меню
+    (docs/iiko-setup-standard.md).
 
     Группы ВНЕ папок — не нарушение (выбор ресторана): они не попадают
     в разрезы по юнитам, но остаются в общей выручке. Нарушение — когда
@@ -72,7 +73,7 @@ def check_nomenclature_tree(client, date_from, date_to) -> list[str]:
 
 
 def check_order_types(client, date_from, date_to) -> list[str]:
-    """Раздел 2: типы заказов — только из стандартного набора, без пустых."""
+    """Типы заказов — только из STANDARD_ORDER_TYPES, без пустых."""
     rows = _olap(client, ['OrderType'], ['DishDiscountSumInt'],
                  date_from, date_to)
     violations = []
@@ -88,7 +89,7 @@ def check_order_types(client, date_from, date_to) -> list[str]:
 
 
 def check_deleted_share(client, date_from, date_to) -> list[str]:
-    """Раздел 5 (чек-лист): доля удалённого в выручке в пределах нормы."""
+    """Доля удалённого в выручке в пределах DELETED_SHARE_LIMIT."""
     rows = _olap(client, ['DeletedWithWriteoff', 'OrderDeleted'],
                  ['DishSumInt'], date_from, date_to, clean=False)
     deleted = sum(r['DishSumInt'] for r in rows
@@ -105,7 +106,7 @@ def check_deleted_share(client, date_from, date_to) -> list[str]:
 
 
 def check_directory_hygiene(client, date_from, date_to) -> list[str]:
-    """Раздел 5: категории без опечаток и «помоек»."""
+    """Категории без опечаток и «помоек»."""
     rows = _olap(client, ['DishCategory', 'DishGroup'], ['DishDiscountSumInt'],
                  date_from, date_to)
     violations = []

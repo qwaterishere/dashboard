@@ -100,7 +100,7 @@ export function chartFetchNeeded(
   if (!basePeriod) return false;
   /** Week-mode всегда требует overlay с weekStart/weekEnd, даже для «текущей» недели. */
   if (granularity === 'week') return true;
-  /** /latest — KPI только за текущий месяц; year-mode всегда нужен y:YYYY. */
+  /** Базовый ответ без year/month — KPI текущего месяца; для года нужен отдельный year-slice. */
   if (granularity === 'year') return true;
   return selection.year !== basePeriod.year || selection.month !== basePeriod.month;
 }
@@ -133,7 +133,7 @@ export function chartSliceMatchesSelection(
   return false;
 }
 
-/** Slice for the current picker selection is present in cache (or interim YTD is usable). */
+/** В кэше есть slice для текущего выбора пикера (для года достаточно помесячной серии). */
 export function isChartSliceReady(
   base: DashboardApi,
   selection: ChartPeriodSelection,
@@ -179,13 +179,13 @@ export function resolveMergedChartData(
   };
 
   if (granularity === 'year' && selection.year === base.period.year) {
-    /** /latest уже содержит YTD revenueByMonth — KPI пересчитаются в store, пока грузится y:YYYY. */
+    /** Помесячная серия из /latest (тот же год) — пока грузится полный year-slice. */
     return { ...interim, revenueByMonth: base.revenueByMonth ?? [] };
   }
 
   const pendingPeriod = inferPendingChartPeriod(selection, granularity, base.period);
 
-  /** Не показываем KPI /latest или month-slice, пока не пришёл нужный chart slice. */
+  /** Без подходящего chart-slice не подставляем KPI чужого периода. */
   return {
     ...interim,
     period: pendingPeriod,
@@ -240,7 +240,7 @@ export function isCompareOverlayReady(compareKey: string | null, cached: boolean
   return cached;
 }
 
-/** KPI YTD из помесячной серии (interim, пока не загружен y:YYYY). */
+/** KPI за год из помесячной серии (пока нет ответа year-slice). */
 export function aggregateKpisFromRevenueMonths(
   months: RevenueMonthFact[],
 ): DashboardApi['kpis'] {

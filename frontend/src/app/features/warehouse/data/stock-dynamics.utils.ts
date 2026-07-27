@@ -5,7 +5,7 @@ import { parseIsoDate } from '../../../shared/utils/iso-date.utils';
 
 export type StockDynamicsFreq = 'day' | 'week' | 'month';
 
-/** Дефолтное / макс. число шагов оси в режимах week/month (legacy helpers). */
+/** Дефолтное / максимальное число шагов оси в режимах week/month. */
 export const STOCK_DYNAMICS_AXIS_STEPS = 30;
 
 /** Глубина сырых слепков (~30 месяцев). */

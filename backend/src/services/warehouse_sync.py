@@ -1,9 +1,9 @@
-"""Синк домена «склад»: ежедневные слепки остатков (карточка №13).
+"""Синк домена «склад»: ежедневные слепки остатков.
 
 Правила:
 - слепок = конец закрытого дня (23:59:59), пишется в stock_balances;
 - только склады с каноническими именами Кухня/Бар/Вино
-  (resolve_store_unit, паспорт §9) — остальные не синкаются;
+  (resolve_store_unit; docs/iiko-setup-standard.md) — остальные не синкаются;
 - имена продуктов/категорий/единиц денормализуются на момент синка:
   история неизменна, идентичность — product_id;
 - повторный синк дня перезаписывает его строки (replace, как продажи);
@@ -193,7 +193,7 @@ def sync_restaurant_stock(
             }
             if not unit_by_store:
                 raise RuntimeError(
-                    "no canonical stores (Кухня/Бар/Вино) — паспорт §9")
+                    "no canonical stores (Кухня/Бар/Вино)")
 
             units = client.fetch_measure_units()
             groups = client.fetch_product_groups()

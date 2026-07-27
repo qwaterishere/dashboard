@@ -1,4 +1,4 @@
-/** Контракт GET /api/stock/snapshot (v2, БД; бывший page-BFF /api/warehouse). */
+/** Контракт GET /api/stock/snapshot — слепки остатков из БД. */
 
 export type WarehouseStoreKey = 'k' | 'b' | 'w';
 

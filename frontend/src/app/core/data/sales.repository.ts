@@ -10,7 +10,7 @@ export interface SalesSnapshotQuery {
   dateTo?: string;
 }
 
-/** REST /api/sales/* — снимок продаж (без page-BFF). */
+/** REST /api/sales/* — снимок продаж. */
 @Injectable({ providedIn: 'root' })
 export class SalesRepository {
   private readonly http = inject(HttpClient);

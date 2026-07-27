@@ -72,15 +72,14 @@ function buildOverviewClean(totals: FoodcostApi['totals']): FoodcostData['overvi
   };
 }
 
-/** Сумма потерь в себестоимости (комплименты + стафф; writeoffs — фаза 2). */
+/** Себестоимость потерь: комплименты + стафф (writeoffs в сумме не участвуют, пока null). */
 function lossCostTotal(losses: FoodcostApi['losses']): number {
   return losses.compliments.cost + losses.staff.cost;
 }
 
 /**
- * Грязный фудкост: чистый cost + потери.
- * Знаменатель тот же (revenueWithCost). LfL по prev* без истории потерь —
- * приближение до фазы 2 API.
+ * Грязный фудкост: чистый cost + потери; знаменатель — revenueWithCost.
+ * LfL по prev* без истории потерь, пока writeoffs = null.
  */
 function buildOverviewDirty(
   totals: FoodcostApi['totals'],
@@ -344,7 +343,7 @@ function buildProducts(products: ProductCost[]): FoodcostData['products'] {
     }));
 }
 
-/** Преобразует контракт API в view-model для organism-компонентов. */
+/** FoodcostApi → FoodcostData. */
 export function buildFoodcostViewModel(
   data: FoodcostApi,
   options: FoodcostViewModelOptions = {},

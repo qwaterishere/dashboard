@@ -12,11 +12,10 @@ from src.db.session import Base
 
 
 class SyncDomainStatus(Base):
-    """Статус синка одного домена ресторана (частичный успех, №13).
+    """Статус синка одного домена ресторана (sales / stock / …).
 
-    Продажи ПОКА живут в полях Restaurant (их читает Settings-UI коллеги,
-    не трогаем); склад и будущие домены (закупки, writeoffs) — здесь.
-    UI подключится к доменам позже, аддитивным полем в /me/iiko.
+    Продажи пока дублируются в полях Restaurant (их читает Settings UI);
+    склад и будущие домены — в этой таблице.
     """
 
     __tablename__ = "restaurant_sync_domains"

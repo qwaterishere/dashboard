@@ -7,7 +7,7 @@ from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 
-# Canonical resource probes for security / smoke tests (not page-BFF).
+# Canonical resource probes for security / smoke tests.
 RESOURCE_PROBES = frozenset({
     "base-metrics/bounds",
     "base-metrics/snapshot",

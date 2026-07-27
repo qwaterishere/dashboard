@@ -40,6 +40,6 @@ export interface WarehouseData {
   totals: WarehouseTotals;
   positions: WarehousePosition[];
   negativeStock: WarehouseNegativeStock;
-  /** Сырые точки графика; агрегация day/week/month — в organism (zoom/pan). */
+  /** Сырые точки графика; агрегация day/week/month и zoom/pan — на UI. */
   dynamicsPoints: WarehouseDynamicsPoint[];
 }

@@ -727,7 +727,7 @@ export interface components {
             prevRevenueWithCost: number | null;
             /**
              * Goal
-             * @description Цель фудкоста, %; null — цели не внесены (до модуля targets)
+             * @description Цель фудкоста, %; null — цель месяца не задана в Целях
              */
             goal: number | null;
         };
@@ -879,7 +879,7 @@ export interface components {
             totals: components["schemas"]["CostTotals"];
             /**
              * Dirty
-             * @description Фудкост с учётом потерь — null до фазы 2: без списаний число было бы занижено
+             * @description Фудкост с учётом потерь — null, пока нет writeoffs: без списаний число было бы занижено
              */
             dirty?: null;
             /**
@@ -950,7 +950,7 @@ export interface components {
             unit: "k" | "b" | "w" | "o";
             /**
              * Group
-             * @description Группа iiko — папка, в которой лежит блюдо (живой разрез, терминология — frontend-handoff §0)
+             * @description Группа iiko — папка, в которой лежит блюдо (живой разрез номенклатуры)
              */
             group: string;
             /**
@@ -1077,7 +1077,7 @@ export interface components {
             staff: components["schemas"]["Staff"];
             /**
              * Writeoffs
-             * @description Акты списания (порча, бой, бракераж) — null до фазы 2: источник OLAP TRANSACTIONS ещё не загружается
+             * @description Акты списания (порча, бой, бракераж) — null, пока OLAP TRANSACTIONS не загружаются
              */
             writeoffs?: null;
             /**
@@ -1321,7 +1321,7 @@ export interface components {
          * ProductCost
          * @description Позиция диаграммы «Выгодность позиций по фудкосту».
          *
-         *     Только фудкост-строки (правило №3: paid > 0 и cost > 0) — позиция
+         *     Только фудкост-строки (paid > 0 и cost > 0) — позиция
          *     без техкарты в рейтинге выгодности лгала бы (fc 0%). Производные —
          *     зона фронтенда: цена порции = revenue / qty, себестоимость порции =
          *     cost / qty, fc = cost / revenue; топ-N и порог шума — представление.
@@ -1355,7 +1355,7 @@ export interface components {
             revenue: number;
             /**
              * Listvalue
-             * @description Прейскурантная выручка тех же строк (Σ цен меню, БЕЗ скидок). Цена меню порции = listValue / qty — её показывать «Ценой» в тултипе (решение 17.07); скидки позиции = listValue − revenue. fc считать от revenue (фактическая экономика), НЕ от listValue
+             * @description Прейскурантная выручка тех же строк (Σ цен меню, БЕЗ скидок). Цена меню порции = listValue / qty — её показывать «Ценой» в тултипе; скидки позиции = listValue − revenue. fc считать от revenue (фактическая экономика), НЕ от listValue
              */
             listValue: number;
             /**
@@ -1473,8 +1473,7 @@ export interface components {
         SnapshotMode: "full" | "chart" | "kpi";
         /**
          * Staff
-         * @description Питание персонала через кассу. Нули до решения по staff-механике
-         *     (backend-todo №9, отложено 13.07.2026).
+         * @description Питание персонала через кассу. Пока всегда нули — фильтр is_staff не реализован.
          */
         Staff: {
             /**
@@ -1647,7 +1646,7 @@ export interface components {
         StoreValue: {
             /**
              * Key
-             * @description Юнит склада: k кухня, b бар, w вино. Источник — маппинг физических складов при онбординге (по id); стандарт требует склады зеркально продажам (паспорт §9). В деньгах со своим юнитом продаж не сходится: сырьё одного блюда может хранится на разных складах
+             * @description Юнит склада: k кухня, b бар, w вино. Источник — маппинг физических складов при онбординге (по id); канон имён Кухня/Бар/Вино — docs/iiko-setup-standard.md. В деньгах со своим юнитом продаж не сходится: сырьё одного блюда может храниться на разных складах
              * @enum {string}
              */
             key: "k" | "b" | "w";
@@ -2058,12 +2057,12 @@ export interface components {
         src__schemas__sales__Period: {
             /**
              * Label
-             * @description LEGACY: готовая подпись периода ("02.06 — 01.07.2026"); умирает в такте 5 — фронт будет форматировать сам из dateFrom/dateTo
+             * @description Готовая подпись периода («02.06 — 01.07.2026»); предпочтительно форматировать на клиенте из dateFrom/dateTo
              */
             label: string;
             /**
              * Note
-             * @description LEGACY: подстрока-пояснение, умирает вместе с label
+             * @description Дополнительная подпись периода; клиент может игнорировать
              */
             note: string;
             /**

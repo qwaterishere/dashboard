@@ -1,4 +1,4 @@
-"""Общие правила периода для analytics REST и legacy assemble."""
+"""Общие правила периода для analytics REST и page-ответов."""
 
 from __future__ import annotations
 

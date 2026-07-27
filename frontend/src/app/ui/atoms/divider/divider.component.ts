@@ -1,9 +1,6 @@
 import { Component } from '@angular/core';
 
-/**
- * Горизонтальный разделитель. Занимает 100% ширины родителя.
- * Вертикальные/горизонтальные отступы — ответственность layout (organism / template).
- */
+/** Горизонтальный разделитель на всю ширину родителя; отступы задаёт layout. */
 @Component({
   selector: 'app-divider',
   standalone: true,

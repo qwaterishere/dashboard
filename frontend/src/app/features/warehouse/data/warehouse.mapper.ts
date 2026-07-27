@@ -29,7 +29,7 @@ function buildTotals(totals: WarehouseApi['totals']): WarehouseTotals {
   return { value, stores, byStore };
 }
 
-/** API Warehouse → view-model для organisms. */
+/** WarehouseApi → WarehouseData. */
 export function buildWarehouseViewModel(data: WarehouseApi): WarehouseData {
   return {
     asOf: {
