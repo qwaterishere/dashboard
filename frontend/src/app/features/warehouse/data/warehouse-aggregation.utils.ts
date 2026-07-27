@@ -4,6 +4,21 @@ import type { CategoryKey, WarehousePosition } from '../../../shared/models';
 export type WarehouseStructureLevel = 'cat' | 'sub';
 export type TopPositionsMetric = 'money' | 'qty';
 
+/** Сопоставимые семейства единиц для рейтинга «в количестве». */
+export type QtyUnitFamily = 'kg' | 'liter' | 'piece';
+
+export const QTY_UNIT_FAMILY_ORDER: readonly QtyUnitFamily[] = [
+  'kg',
+  'liter',
+  'piece',
+];
+
+export const QTY_UNIT_FAMILY_LABEL: Record<QtyUnitFamily, string> = {
+  kg: 'Килограммы',
+  liter: 'Литры',
+  piece: 'Штуки',
+};
+
 export interface WarehouseStockRow {
   productId: string;
   name: string;
@@ -12,6 +27,12 @@ export interface WarehouseStockRow {
   qty: number;
   unit: string;
   sum: number;
+}
+
+export interface TopPositionsUnitGroup {
+  family: QtyUnitFamily;
+  title: string;
+  rows: WarehouseStockRow[];
 }
 
 export interface WarehouseDonutSlice {
@@ -104,4 +125,44 @@ export function topWarehousePositions(
 export function topPositionsMax(rows: WarehouseStockRow[], metric: TopPositionsMetric): number {
   if (!rows.length) return 0;
   return Math.max(...rows.map((row) => (metric === 'money' ? row.sum : row.qty)));
+}
+
+/**
+ * Нормализация единицы для группировки рейтинга.
+ * кг → Килограммы, л → Литры, всё остальное (шт, бут, уп, г, …) → Штуки.
+ * Отображаемая подпись `row.unit` не меняется.
+ */
+export function resolveQtyUnitFamily(unit: string): QtyUnitFamily {
+  const raw = unit.trim().toLowerCase().replace(/\.+$/g, '');
+  if (raw === 'кг' || raw === 'kg' || raw.startsWith('килограмм')) {
+    return 'kg';
+  }
+  if (raw === 'л' || raw === 'l' || raw.startsWith('литр')) {
+    return 'liter';
+  }
+  return 'piece';
+}
+
+/** Топ позиций по количеству — отдельно по сопоставимым единицам. */
+export function topWarehousePositionsByQtyUnit(
+  stock: WarehouseStockRow[],
+  limitPerGroup = 5,
+): TopPositionsUnitGroup[] {
+  const buckets: Record<QtyUnitFamily, WarehouseStockRow[]> = {
+    kg: [],
+    liter: [],
+    piece: [],
+  };
+
+  for (const row of stock) {
+    buckets[resolveQtyUnitFamily(row.unit)].push(row);
+  }
+
+  return QTY_UNIT_FAMILY_ORDER.map((family) => ({
+    family,
+    title: QTY_UNIT_FAMILY_LABEL[family],
+    rows: [...buckets[family]]
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, limitPerGroup),
+  })).filter((group) => group.rows.length > 0);
 }

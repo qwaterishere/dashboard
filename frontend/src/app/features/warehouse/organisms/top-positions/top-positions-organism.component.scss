@@ -15,6 +15,21 @@
   margin-bottom: 16px;
 }
 
+.top-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.top-group__title {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mut2);
+}
+
 .top-bars {
   display: flex;
   flex-direction: column;
