@@ -59,6 +59,24 @@
   cursor: inherit;
 }
 
+.dot-hit {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.x-label--day {
+  font-size: 10px;
+  font-weight: 500;
+  fill: #8590a8;
+}
+
+.x-label--month {
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: #e8ecf4;
+  letter-spacing: 0.03em;
+}
+
 .empty {
   margin: 24px 0 8px;
   color: var(--mut);

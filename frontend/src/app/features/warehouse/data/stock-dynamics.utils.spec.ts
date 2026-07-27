@@ -105,7 +105,7 @@ describe('stock-dynamics.utils', () => {
     const plotW = 806;
     const xAt = (d: number) => ((d - start) / span) * plotW;
     const labels = buildAxisDateLabels(start, end, span, xAt);
-    expect(labels.every((l) => !/^\d+$/.test(l.text))).toBe(true);
+    expect(labels.every((l) => l.kind === 'month')).toBe(true);
     expect(labels.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -167,9 +167,8 @@ describe('stock-dynamics.utils', () => {
       '2026-07-06',
     );
     expect(layout.selectedDot).not.toBeNull();
-    expect(layout.dots.every((d) => d.cx !== layout.selectedDot!.cx || d.cy !== layout.selectedDot!.cy)).toBe(
-      true,
-    );
+    expect(layout.selectedDot!.date).toBe('2026-07-06');
+    expect(layout.dots.every((d) => d.date !== '2026-07-06')).toBe(true);
   });
 
   it('hides selected marker when day is outside window', () => {

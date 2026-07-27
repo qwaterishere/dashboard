@@ -31,11 +31,15 @@ export interface StockChartGridLine {
 export interface StockChartDot {
   cx: number;
   cy: number;
+  /** ISO yyyy-mm-dd — клик выбирает этот день на странице «Склад». */
+  date: string;
 }
 
 export interface StockChartXLabel {
   x: number;
   text: string;
+  /** Месяц (1-е число) — визуально сильнее, чем число дня. */
+  kind: 'month' | 'day';
 }
 
 export interface StockChartLayout {
@@ -246,8 +250,8 @@ function buildPathSegments(
   };
 }
 
-function isMonthAxisLabel(text: string): boolean {
-  return !/^\d+$/.test(text);
+function isMonthAxisLabel(label: StockChartXLabel): boolean {
+  return label.kind === 'month';
 }
 
 /** Убрать пересечения: месяц важнее числа. */
@@ -259,9 +263,7 @@ function filterAxisLabelGaps(labels: StockChartXLabel[]): StockChartXLabel[] {
       out.push(label);
       continue;
     }
-    const currMonth = isMonthAxisLabel(label.text);
-    const prevMonth = isMonthAxisLabel(prev.text);
-    if (currMonth && !prevMonth) {
+    if (isMonthAxisLabel(label) && !isMonthAxisLabel(prev)) {
       out[out.length - 1] = label;
     }
   }
@@ -288,14 +290,22 @@ export function buildAxisDateLabels(
   for (let day = from; day <= to; day++) {
     const { year, month, dayOfMonth } = utcParts(day);
     if (dayOfMonth === 1) {
-      labels.push({ x: xAt(day), text: formatMonthShortFromDay(day) });
+      labels.push({
+        x: xAt(day),
+        text: formatMonthShortFromDay(day),
+        kind: 'month',
+      });
       continue;
     }
     if (step === 0) continue;
     if (dayOfMonth % step !== 0) continue;
     const dim = utcDaysInMonth(year, month);
     if (isDayLabelTooCloseToMonth(dayOfMonth, dim, step)) continue;
-    labels.push({ x: xAt(day), text: String(dayOfMonth) });
+    labels.push({
+      x: xAt(day),
+      text: String(dayOfMonth),
+      kind: 'day',
+    });
   }
   return filterAxisLabelGaps(labels);
 }
@@ -461,7 +471,11 @@ export function buildContinuousStockLayout(
     selectedSample.day >= startDay &&
     selectedSample.day <= endDay;
   const selectedDot: StockChartDot | null = selectedInView
-    ? { cx: xAt(selectedSample.day), cy: yAt(selectedSample.value) }
+    ? {
+        cx: xAt(selectedSample.day),
+        cy: yAt(selectedSample.value),
+        date: dayNumberToIso(selectedSample.day),
+      }
     : null;
 
   // Обычные точки — внутри окна; день датафрейма рисуется отдельным маркером.
@@ -470,6 +484,7 @@ export function buildContinuousStockLayout(
     .map((s) => ({
       cx: xAt(s.day),
       cy: yAt(s.value),
+      date: dayNumberToIso(s.day),
     }));
 
   return {

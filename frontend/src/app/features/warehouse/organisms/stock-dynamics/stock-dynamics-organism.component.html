@@ -2,7 +2,7 @@
   <div class="block-head">
     <div class="block-head__titles">
       <app-heading [level]="2" text="Динамика товарных запасов" />
-      <app-text tone="caption">{{ caption() }}</app-text>
+      <app-text tone="caption">{{ caption }}</app-text>
     </div>
     <div class="controls">
       <app-segment-control size="sm" [options]="storeOptions" [(value)]="store" />
@@ -31,7 +31,7 @@
         [attr.viewBox]="'0 0 ' + chart().width + ' ' + chart().height"
         preserveAspectRatio="none"
         role="img"
-        [attr.aria-label]="ariaLabel()"
+        [attr.aria-label]="ariaLabel"
         (pointerdown)="onPointerDown($event)"
         (pointermove)="onPointerMoveHover($event)"
         (pointerleave)="onPointerLeave()"
@@ -92,7 +92,7 @@
               pointer-events="none"
             />
           }
-          @for (dot of chart().dots; track $index) {
+          @for (dot of chart().dots; track dot.date) {
             <circle
               [attr.cx]="dot.cx"
               [attr.cy]="dot.cy"
@@ -131,11 +131,12 @@
 
         @for (label of chart().xLabels; track label.x + label.text) {
           <text
+            class="x-label"
+            [class.x-label--month]="label.kind === 'month'"
+            [class.x-label--day]="label.kind === 'day'"
             [attr.x]="label.x"
-            y="268"
+            [attr.y]="label.kind === 'month' ? 270 : 268"
             text-anchor="middle"
-            font-size="10"
-            fill="#8590A8"
             font-family="Manrope, sans-serif"
             pointer-events="none"
           >
@@ -143,7 +144,7 @@
           </text>
         }
 
-        <!-- Поверх всего: ловит pointer на всей площади графика -->
+        <!-- Pan/zoom: под hit-target'ами точек -->
         <rect
           class="interaction-layer"
           x="0"
@@ -152,6 +153,28 @@
           [attr.height]="chartHeight"
           fill="transparent"
         />
+
+        <!-- Клик по точке → выбор дня (поверх pan-слоя) -->
+        @for (dot of chart().dots; track 'hit-' + dot.date) {
+          <circle
+            class="dot-hit"
+            [attr.cx]="dot.cx"
+            [attr.cy]="dot.cy"
+            r="12"
+            fill="transparent"
+            (pointerdown)="onDotPointerDown($event, dot.date)"
+          />
+        }
+        @if (chart().selectedDot; as sel) {
+          <circle
+            class="dot-hit"
+            [attr.cx]="sel.cx"
+            [attr.cy]="sel.cy"
+            r="14"
+            fill="transparent"
+            (pointerdown)="onDotPointerDown($event, sel.date)"
+          />
+        }
       </svg>
     </div>
   }

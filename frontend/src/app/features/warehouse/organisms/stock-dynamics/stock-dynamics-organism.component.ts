@@ -3,6 +3,7 @@ import {
   computed,
   effect,
   HostListener,
+  inject,
   input,
   model,
   signal,
@@ -15,6 +16,7 @@ import { HeadingComponent } from '../../../../ui/atoms/heading/heading.component
 import { TextComponent } from '../../../../ui/atoms/text/text.component';
 import { SegmentControlComponent } from '../../../../ui/molecules/segment-control/segment-control.component';
 import type { WarehouseDynamicsPoint, WarehouseStoreKey } from '../../../../shared/models/warehouse-api.model';
+import { WarehousePeriodService } from '../../data/warehouse-period.service';
 import {
   buildContinuousStockLayout,
   clampRangeEndDay,
@@ -22,7 +24,6 @@ import {
   clientToSvgPoint,
   hitChartZone,
   isoToDayNumber,
-  resolveDynamicsFreq,
   STOCK_CHART_HEIGHT,
   STOCK_CHART_PAD_LEFT,
   STOCK_CHART_PAD_RIGHT,
@@ -41,6 +42,8 @@ type DragMode = 'pan' | 'zoom';
   styleUrl: './stock-dynamics-organism.component.scss',
 })
 export class StockDynamicsOrganismComponent {
+  private readonly warehousePeriod = inject(WarehousePeriodService);
+
   readonly points = input.required<readonly WarehouseDynamicsPoint[]>();
   /** Верхняя граница оси / clamp (обычно dataBounds.latest). */
   readonly asOf = input.required<string>();
@@ -70,7 +73,6 @@ export class StockDynamicsOrganismComponent {
     { value: 'w', label: CAT_NAME.w },
   ];
 
-  protected readonly freq = computed(() => resolveDynamicsFreq(this.spanDays()));
   protected readonly cursor = signal<'default' | 'grab' | 'grabbing' | 'ew-resize'>('default');
   protected readonly chartWidth = STOCK_CHART_WIDTH;
   protected readonly chartHeight = STOCK_CHART_HEIGHT;
@@ -118,20 +120,11 @@ export class StockDynamicsOrganismComponent {
     });
   }
 
-  protected readonly caption = computed(() => {
-    switch (this.freq()) {
-      case 'day':
-        return 'Тяните график — сдвиг · ось дат — масштаб (подписи по дням)';
-      case 'week':
-        return 'Тяните график — сдвиг · ось дат — масштаб (подписи реже)';
-      case 'month':
-        return 'Тяните график — сдвиг · ось дат — масштаб (названия месяцев)';
-    }
-  });
+  protected readonly caption =
+    'Стоимость остатков по дням. Нажмите точку — откроется слепок за этот день';
 
-  protected readonly ariaLabel = computed(
-    () => `Динамика товарных запасов, ${this.caption()}`,
-  );
+  protected readonly ariaLabel =
+    'Динамика товарных запасов: стоимость остатков во времени';
 
   protected readonly chart = computed(() =>
     buildContinuousStockLayout(
@@ -157,6 +150,19 @@ export class StockDynamicsOrganismComponent {
       ),
     );
     this.cursor.set('default');
+  }
+
+  /** Клик по точке — выбор дня слепка на странице «Склад». */
+  onDotPointerDown(event: PointerEvent, date: string): void {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const latest = this.asOf();
+    if (latest && date === latest) {
+      this.warehousePeriod.selectLatest();
+    } else {
+      this.warehousePeriod.setDay(date);
+    }
   }
 
   onPointerDown(event: PointerEvent): void {
