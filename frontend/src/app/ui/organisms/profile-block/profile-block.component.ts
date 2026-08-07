@@ -12,9 +12,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { AvatarComponent } from '../../atoms/avatar/avatar.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { TextComponent } from '../../atoms/text/text.component';
-import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
+import { ConfirmDialogComponent } from '../../molecules/confirm-dialog/confirm-dialog.component';
+import { ThemeToggleComponent } from '../../molecules/theme-toggle/theme-toggle.component';
 
 const NOTIF_PANEL_WIDTH_PX = 240;
 const NOTIF_PANEL_GAP_PX = 8;
@@ -27,16 +29,27 @@ export interface ProfileNotificationItem {
   queryParams?: Record<string, string> | null;
 }
 
+/**
+ * Organism: profile chrome — avatar identity + theme + notifications + logout.
+ * Presentational; theme/logout wired by shell container.
+ */
 @Component({
   selector: 'app-profile-block',
   standalone: true,
-  imports: [ButtonComponent, TextComponent, ConfirmDialogComponent, RouterLink],
+  imports: [
+    AvatarComponent,
+    ButtonComponent,
+    TextComponent,
+    ConfirmDialogComponent,
+    ThemeToggleComponent,
+    RouterLink,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="profile-wrap">
       <div class="profile">
         <div class="profile__identity">
-          <div class="ava" aria-hidden="true">{{ initials() }}</div>
+          <app-avatar [initials]="initials()" />
           <div class="who">
             <b>{{ name() }}</b>
             @if (role()) {
@@ -46,24 +59,11 @@ export interface ProfileNotificationItem {
         </div>
 
         <div class="profile__tools" role="group" aria-label="Действия">
-          <button
-            type="button"
-            class="icon-btn theme-btn"
-            [attr.aria-pressed]="isDark()"
-            [attr.aria-label]="isDark() ? 'Включить светлую тему' : 'Включить тёмную тему'"
-            (click)="themeToggled.emit()"
-          >
-            @if (isDark()) {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-              </svg>
-            } @else {
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M21 14.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 11.5z" />
-              </svg>
-            }
-          </button>
+          <app-theme-toggle
+            variant="icon"
+            [isDark]="isDark()"
+            (toggled)="themeToggled.emit()"
+          />
           <div class="notif">
             <button
               #notifBtn
@@ -297,19 +297,6 @@ export interface ProfileNotificationItem {
       font-weight: 600;
     }
 
-    .ava {
-      width: 36px;
-      height: 36px;
-      border-radius: 11px;
-      flex: none;
-      background: linear-gradient(135deg, var(--vio), var(--grn));
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 0.8rem;
-      color: #0a0e18;
-    }
-
     .who {
       min-width: 0;
       display: flex;
@@ -345,7 +332,6 @@ export class ProfileBlockComponent {
   readonly role = input('');
   readonly showLogout = input(true);
   readonly notifications = input<ProfileNotificationItem[]>([]);
-  /** Green unread indicator. */
   readonly hasUnread = input(false);
   readonly isDark = input(false);
   readonly logout = output<void>();

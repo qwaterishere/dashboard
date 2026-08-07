@@ -100,9 +100,7 @@ export function forecastLabelForGranularity(
   return 'Прогноз на конец месяца';
 }
 
-/** Отставание факта от pace (forecastToday) больше 2% → risk на progress bar. */
-const PACE_RISK_RATIO = 0.98;
-
+/** Pace risk с API (analytics.pace / MetricForecast.pace_risk) — порог не дублируем на FE. */
 function forecastBlock(
   metric: KpiMetric,
   formatValue: (n: number) => string,
@@ -128,12 +126,11 @@ function forecastBlock(
     pace != null && pace > 0
       ? Math.min(100, Math.round((pace / forecast) * 1000) / 10)
       : 0;
-  const risk = pace != null && pace > 0 && metric.value < pace * PACE_RISK_RATIO;
   return {
     value: forecast,
     planPct,
     trackPct,
-    risk,
+    risk: metric.paceRisk,
     headline: formatValue(forecast),
     label,
   };
@@ -177,8 +174,8 @@ function buildGoalPopover(
     title,
     rows,
     footnote: fromPlan
-      ? 'Ожидание и план месяца — из раздела «Цели» (профиль недели и ручные дни). Красный трек — факт ниже ожидания к текущему дню более чем на 2%.'
-      : 'Run-rate по средним рабочим дням недели. Красный трек — факт ниже ожидания к текущему дню более чем на 2%.',
+      ? 'Ожидание и план месяца — из раздела «Цели» (профиль недели и ручные дни). Красный трек — факт ниже ожидаемого темпа на сегодня.'
+      : 'Run-rate по средним рабочим дням недели. Красный трек — факт ниже ожидаемого темпа на сегодня.',
   };
 }
 

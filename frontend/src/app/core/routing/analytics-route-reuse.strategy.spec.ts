@@ -16,10 +16,10 @@ describe('AnalyticsRouteReuseStrategy', () => {
     expect(strategy.shouldDetach(routeWithPath('foodcost'))).toBe(true);
   });
 
-  it('does not cache settings or placeholders', () => {
+  it('does not cache settings, support or targets', () => {
     expect(strategy.shouldDetach(routeWithPath('settings'))).toBe(false);
     expect(strategy.shouldDetach(routeWithPath('support'))).toBe(false);
-    expect(strategy.shouldDetach(routeWithPath('purchases'))).toBe(false);
+    expect(strategy.shouldDetach(routeWithPath('targets'))).toBe(false);
   });
 
   it('reuses route when config is unchanged', () => {

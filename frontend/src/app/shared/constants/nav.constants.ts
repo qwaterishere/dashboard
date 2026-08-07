@@ -1,7 +1,6 @@
 export interface NavItemConfig {
   path: string;
   label: string;
-  badge?: string;
 }
 
 export const MAIN_NAV_ITEMS: NavItemConfig[] = [
@@ -9,7 +8,7 @@ export const MAIN_NAV_ITEMS: NavItemConfig[] = [
   { path: '/sales', label: 'Продажи' },
   { path: '/warehouse', label: 'Склад' },
   { path: '/targets', label: 'Цели' },
-  { path: '/foodcost', label: 'Фудкост', badge: '3' },
+  { path: '/foodcost', label: 'Фудкост' },
 ];
 
 export const SECONDARY_NAV_ITEMS: NavItemConfig[] = [

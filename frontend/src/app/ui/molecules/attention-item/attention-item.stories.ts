@@ -12,35 +12,14 @@ const meta: Meta<AttentionItemComponent> = {
       providers: [provideRouter([])],
     }),
   ],
-  args: {
-    severity: 'warn',
-    title: 'Продажи отстают',
-    detail: '1 день',
-    actionLabel: 'Обновить',
-    actionKind: 'sync',
-    link: null,
-    fragment: null,
-  },
 };
 
 export default meta;
 type Story = StoryObj<AttentionItemComponent>;
 
-export const SyncAction: Story = {};
+/** Operational cards from GET /api/attention — единственный каталог molecule. */
 
-export const CriticalLink: Story = {
-  args: {
-    severity: 'critical',
-    title: 'Ошибка синхронизации',
-    detail: 'Не удалось обновить данные из iiko',
-    actionLabel: 'В настройки',
-    actionKind: 'link',
-    link: '/settings',
-    fragment: 'iiko-sync',
-  },
-};
-
-export const WarehouseDeepLink: Story = {
+export const NegativeStock: Story = {
   args: {
     severity: 'critical',
     title: 'Минусовые остатки',
@@ -53,14 +32,69 @@ export const WarehouseDeepLink: Story = {
   },
 };
 
-export const Info: Story = {
+export const FoodcostOver: Story = {
   args: {
-    severity: 'info',
-    title: 'Автообновление выключено',
-    detail: 'Данные обновляются вручную',
-    actionLabel: 'В настройки',
+    severity: 'critical',
+    title: 'Фудкост выше цели',
+    detail: '33,2% при цели 28,0%',
+    actionLabel: 'К фудкосту',
     actionKind: 'link',
-    link: '/settings',
-    fragment: 'iiko-sync',
+    link: '/foodcost',
+    fragment: null,
+  },
+};
+
+export const ComplimentsOver: Story = {
+  args: {
+    severity: 'warn',
+    title: 'Представительские выше цели',
+    detail: '5 200 ₽ при цели 4 000 ₽',
+    actionLabel: 'К фудкосту',
+    actionKind: 'link',
+    link: '/foodcost',
+  },
+};
+
+export const RevenuePace: Story = {
+  args: {
+    severity: 'warn',
+    title: 'Темп выручки под риском',
+    detail: 'Факт отстаёт от ожиданий на сегодня',
+    actionLabel: 'К дашборду',
+    actionKind: 'link',
+    link: '/dashboard',
+  },
+};
+
+export const MonthPlan: Story = {
+  args: {
+    severity: 'warn',
+    title: 'Нет плана на месяц',
+    detail: 'Задайте план выручки',
+    actionLabel: 'К целям',
+    actionKind: 'link',
+    link: '/targets',
+  },
+};
+
+export const AttentionLoadError: Story = {
+  args: {
+    severity: 'warn',
+    title: 'Не удалось загрузить бриф',
+    detail: 'Повторите попытку',
+    actionLabel: 'Повторить',
+    actionKind: 'none',
+    link: null,
+  },
+};
+
+export const FreshnessLoadError: Story = {
+  args: {
+    severity: 'warn',
+    title: 'Статус данных неизвестен',
+    detail: 'Не удалось проверить актуальность',
+    actionLabel: 'Повторить',
+    actionKind: 'none',
+    link: null,
   },
 };

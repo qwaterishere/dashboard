@@ -8,10 +8,10 @@ const sample: DashboardApi = {
   compare: { year: 2026, month: 5, dayFrom: 1, dayTo: 11 },
   dataBounds: { earliest: '2026-01-01', latest: '2026-06-11' },
   kpis: {
-    revenue: { value: 1000, prevValue: 800, forecast: 5000, forecastToday: 1200 },
-    checks: { value: 10, prevValue: 8, forecast: 50, forecastToday: 12 },
-    guests: { value: 20, prevValue: 18, forecast: 100, forecastToday: 22 },
-    avgCheck: { value: 100, prevValue: 90, forecast: 110, forecastToday: 100 },
+    revenue: { value: 1000, prevValue: 800, forecast: 5000, forecastToday: 1200, paceRisk: true },
+    checks: { value: 10, prevValue: 8, forecast: 50, forecastToday: 12, paceRisk: true },
+    guests: { value: 20, prevValue: 18, forecast: 100, forecastToday: 22, paceRisk: false },
+    avgCheck: { value: 100, prevValue: 90, forecast: 110, forecastToday: 100, paceRisk: false },
   },
   revenueByDay: [
     { day: 1, weekday: 1, revenue: 500, checks: 5, guests: 10, plan: null, forecast: null },
@@ -243,18 +243,18 @@ describe('dashboard.mapper', () => {
     expect(vm.details['rev-goal'].rows[2]?.[0]).toBe('План на конец месяца');
   });
 
-  it('marks planPct from forecastToday and risks when behind pace by >2%', () => {
+  it('marks planPct from forecastToday and risks from server paceRisk', () => {
     const vm = buildDashboardViewModel(sample, { granularity: 'month' });
     // 1200/5000 = 24%
     expect(vm.kpis.revenue.forecast.planPct).toBe(24);
-    // 1000 < 1200 * 0.98 → risk
+    // paceRisk с API (на backend: 1000 < 1200 * 0.98)
     expect(vm.kpis.revenue.forecast.risk).toBe(true);
 
     const onPace: DashboardApi = {
       ...sample,
       kpis: {
         ...sample.kpis,
-        revenue: { value: 1200, prevValue: 800, forecast: 5000, forecastToday: 1200 },
+        revenue: { value: 1200, prevValue: 800, forecast: 5000, forecastToday: 1200, paceRisk: false },
       },
     };
     const ok = buildDashboardViewModel(onPace, { granularity: 'month' });

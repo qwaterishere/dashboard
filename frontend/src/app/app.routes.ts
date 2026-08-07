@@ -70,11 +70,6 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'purchases',
-        redirectTo: 'targets',
-        pathMatch: 'full',
-      },
-      {
         path: 'settings',
         loadComponent: () =>
           import('./features/settings/pages/settings-page/settings-page.component').then(

@@ -13,7 +13,7 @@ import { ThemeService } from '../../../../core/state/theme.service';
 import { AttentionDataStore } from '../../data/attention-data.store';
 import { SettingsService } from '../../../settings/services/settings.service';
 import { buildRestaurantAttentionVm } from '../../../../shared/utils/restaurant-attention.utils';
-import { ProfileBlockComponent } from '../../../../ui/molecules/profile-block/profile-block.component';
+import { ProfileBlockComponent } from '../../../../ui/organisms/profile-block/profile-block.component';
 import { RestaurantAttentionOrganismComponent } from '../../../../ui/organisms/restaurant-attention/restaurant-attention-organism.component';
 
 @Component({

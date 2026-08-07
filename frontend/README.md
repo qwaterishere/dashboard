@@ -63,7 +63,7 @@ cd frontend && npm run storybook   # http://localhost:6006
 
 ## Реализовано
 
-- **4 страницы** + purchases/support placeholders; **настройки** — профиль и смена пароля
+- **5 аналитических страниц** (dashboard, sales, warehouse, foodcost, targets) + support placeholder; **настройки** — профиль и смена пароля
 - **PeriodService** — granularity, chart/compare period (dashboard / foodcost / targets)
 - **SalesPeriodService** — изолированный date range на `/sales`
 - **Analytics data layer** — root stores + TTL polling + `AnalyticsRouteReuseStrategy`

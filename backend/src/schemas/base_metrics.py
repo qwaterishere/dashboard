@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field, model_validator
 
 from src.schemas.base import StrictModel
+from src.services.analytics.pace import PACE_RISK_RATIO
 
 
 class MetricName(str, Enum):
@@ -160,6 +161,14 @@ class MetricForecast(StrictModel):
     ready: bool
     forecast: float | None
     forecast_today: float | None
+    pace_risk: bool = Field(
+        False,
+        description='fact < forecast_today * pace_risk_ratio (канон attention/KPI)',
+    )
+    pace_risk_ratio: float = Field(
+        default=PACE_RISK_RATIO,
+        description='Порог из analytics.pace — единый с attention',
+    )
     points: list[ForecastPoint]
 
 

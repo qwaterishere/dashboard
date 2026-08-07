@@ -82,6 +82,10 @@ export interface MetricForecastApi {
   ready: boolean;
   forecast: number | null;
   forecast_today: number | null;
+  /** Server: fact below pace × pace_risk_ratio. */
+  pace_risk: boolean;
+  /** Canonical threshold from backend analytics.pace. */
+  pace_risk_ratio: number;
   points: ForecastPointApi[];
 }
 

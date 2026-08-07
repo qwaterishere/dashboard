@@ -440,6 +440,16 @@ def _is_customized(row: MonthlyTarget | None) -> bool:
     return row is not None and money(row.revenue_month_plan or 0) > 0
 
 
+def month_revenue_plan_configured(
+    session: Session,
+    restaurant_id: UUID,
+    year: int,
+    month: int,
+) -> bool:
+    """Публичный фасад: задан ли кастомный план выручки на месяц."""
+    return _is_customized(_load_row(session, restaurant_id, year, month))
+
+
 def _empty_targets(
     year: int,
     month: int,

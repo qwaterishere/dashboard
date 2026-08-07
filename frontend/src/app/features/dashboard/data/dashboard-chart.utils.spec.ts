@@ -22,10 +22,10 @@ const basePayload = {
   compare: basePeriod,
   dataBounds: { earliest: null, latest: null },
   kpis: {
-    revenue: { value: 100, prevValue: 90, forecast: 200, forecastToday: null },
-    checks: { value: 10, prevValue: 9, forecast: 20, forecastToday: null },
-    guests: { value: 20, prevValue: 18, forecast: 40, forecastToday: null },
-    avgCheck: { value: 10, prevValue: 9, forecast: 11, forecastToday: null },
+    revenue: { value: 100, prevValue: 90, forecast: 200, forecastToday: null, paceRisk: false },
+    checks: { value: 10, prevValue: 9, forecast: 20, forecastToday: null, paceRisk: false },
+    guests: { value: 20, prevValue: 18, forecast: 40, forecastToday: null, paceRisk: false },
+    avgCheck: { value: 10, prevValue: 9, forecast: 11, forecastToday: null, paceRisk: false },
   },
   revenueByDay: [{ day: 1, weekday: 1, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null }],
   revenueByMonth: [{ month: 6, revenue: 100, checks: 1, guests: 1, plan: null, forecast: null }],
@@ -134,10 +134,10 @@ describe('dashboard-chart.utils', () => {
 
   it('mergeDashboardChartData uses KPIs from chart slice', () => {
     const mayKpis = {
-      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null },
-      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null },
-      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null },
-      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null },
+      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null, paceRisk: false },
+      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null, paceRisk: false },
+      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null, paceRisk: false },
+      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null, paceRisk: false },
     };
     const merged = mergeDashboardChartData(basePayload, {
       period: { year: 2026, month: 5, dayFrom: 1, dayTo: 31 },
@@ -202,10 +202,10 @@ describe('dashboard-chart.utils', () => {
     expect(loading.period.month).toBe(5);
 
     const mayKpis = {
-      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null },
-      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null },
-      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null },
-      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null },
+      revenue: { value: 50, prevValue: 40, forecast: null, forecastToday: null, paceRisk: false },
+      checks: { value: 5, prevValue: 4, forecast: null, forecastToday: null, paceRisk: false },
+      guests: { value: 10, prevValue: 8, forecast: null, forecastToday: null, paceRisk: false },
+      avgCheck: { value: 10, prevValue: 9, forecast: null, forecastToday: null, paceRisk: false },
     };
     const maySlice = {
       period: { year: 2026, month: 5, dayFrom: 1, dayTo: 31 },
@@ -346,10 +346,10 @@ describe('dashboard-chart.utils', () => {
       ...basePayload,
       compare: { year: 2026, month: 5, dayFrom: 1, dayTo: 11 },
       kpis: {
-        revenue: { value: 100, prevValue: 50, forecast: 200, forecastToday: null },
-        checks: { value: 10, prevValue: 5, forecast: 20, forecastToday: null },
-        guests: { value: 20, prevValue: 10, forecast: 40, forecastToday: null },
-        avgCheck: { value: 10, prevValue: 5, forecast: 11, forecastToday: null },
+        revenue: { value: 100, prevValue: 50, forecast: 200, forecastToday: null, paceRisk: false },
+        checks: { value: 10, prevValue: 5, forecast: 20, forecastToday: null, paceRisk: false },
+        guests: { value: 20, prevValue: 10, forecast: 40, forecastToday: null, paceRisk: false },
+        avgCheck: { value: 10, prevValue: 5, forecast: 11, forecastToday: null, paceRisk: false },
       },
     });
 

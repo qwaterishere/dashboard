@@ -55,7 +55,7 @@ export interface ResolvedDashboardPeriod {
 }
 
 function emptyKpi(): KpiMetric {
-  return { value: 0, prevValue: null, forecast: null, forecastToday: null };
+  return { value: 0, prevValue: null, forecast: null, forecastToday: null, paceRisk: false };
 }
 
 function emptyKpis(): DashboardKpis {
@@ -68,7 +68,26 @@ function emptyKpis(): DashboardKpis {
 }
 
 function num(value: number | null | undefined): number {
-  return value == null ? 0 : value;
+  return value == null || Number.isNaN(value) ? 0 : value;
+}
+
+function paceRiskFromForecast(forecast: MetricForecastApi | undefined): boolean {
+  return Boolean(forecast?.ready && forecast.pace_risk);
+}
+
+/** Порог с backend (analytics.pace); null если forecasts пусты. */
+function resolvePaceRiskRatio(forecasts: readonly MetricForecastApi[]): number | null {
+  for (const item of forecasts) {
+    if (typeof item.pace_risk_ratio === 'number' && item.pace_risk_ratio > 0) {
+      return item.pace_risk_ratio;
+    }
+  }
+  return null;
+}
+
+function isPaceRisk(fact: number, pace: number | null, ratio: number | null): boolean {
+  if (ratio == null || pace == null || pace <= 0) return false;
+  return fact < pace * ratio;
 }
 
 function avgValue(revenue: number, checks: number): number {
@@ -274,6 +293,7 @@ function buildKpis(
   const revFc = byFc.get('revenue');
   const chkFc = byFc.get('checks');
   const gstFc = byFc.get('guests');
+  const ratio = resolvePaceRiskRatio(forecasts);
 
   const metric = (
     item: MetricBatchItemApi | undefined,
@@ -283,6 +303,7 @@ function buildKpis(
     prevValue: item?.base_value == null ? null : item.base_value,
     forecast: forecast?.ready ? forecast.forecast : null,
     forecastToday: forecast?.ready ? forecast.forecast_today : null,
+    paceRisk: paceRiskFromForecast(forecast),
   });
 
   const revenue = byMetric.get('revenue');
@@ -292,20 +313,24 @@ function buildKpis(
   const chkForecast = chkFc?.ready ? chkFc.forecast : null;
   const revPace = revFc?.ready ? revFc.forecast_today : null;
   const chkPace = chkFc?.ready ? chkFc.forecast_today : null;
+  const avgValueNow =
+    avg?.value == null ? avgValue(num(revenue?.value), num(checks?.value)) : avg.value;
+  const avgPace =
+    revPace != null && chkPace != null && chkPace > 0 ? revPace / chkPace : null;
 
   return {
     revenue: metric(revenue, revFc),
     checks: metric(checks, chkFc),
     guests: metric(byMetric.get('guests'), gstFc),
     avgCheck: {
-      value: avg?.value == null ? avgValue(num(revenue?.value), num(checks?.value)) : avg.value,
+      value: avgValueNow,
       prevValue: avg?.base_value == null ? null : avg.base_value,
       forecast:
         revForecast != null && chkForecast != null && chkForecast > 0
           ? revForecast / chkForecast
           : null,
-      forecastToday:
-        revPace != null && chkPace != null && chkPace > 0 ? revPace / chkPace : null,
+      forecastToday: avgPace,
+      paceRisk: isPaceRisk(avgValueNow, avgPace, ratio),
     },
   };
 }
@@ -450,24 +475,28 @@ function snapshotToDashboard(
           prevValue: byMetric.get('revenue')?.base_value ?? null,
           forecast: null,
           forecastToday: null,
+          paceRisk: false,
         },
         checks: {
           value: num(byMetric.get('checks')?.value),
           prevValue: byMetric.get('checks')?.base_value ?? null,
           forecast: null,
           forecastToday: null,
+          paceRisk: false,
         },
         guests: {
           value: num(byMetric.get('guests')?.value),
           prevValue: byMetric.get('guests')?.base_value ?? null,
           forecast: null,
           forecastToday: null,
+          paceRisk: false,
         },
         avgCheck: {
           value: num(byMetric.get('avg-check')?.value),
           prevValue: byMetric.get('avg-check')?.base_value ?? null,
           forecast: null,
           forecastToday: null,
+          paceRisk: false,
         },
       };
     }

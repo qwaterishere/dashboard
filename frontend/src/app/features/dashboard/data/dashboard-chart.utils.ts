@@ -40,6 +40,7 @@ const EMPTY_KPI_COMPARISON = {
   prevValue: null as number | null,
   forecast: null as number | null,
   forecastToday: null as number | null,
+  paceRisk: false,
 };
 
 /** Placeholder KPI while the selected chart slice is loading. */
@@ -251,6 +252,7 @@ export function aggregateKpisFromRevenueMonths(
     prevValue: null as number | null,
     forecast: null as number | null,
     forecastToday: null as number | null,
+    paceRisk: false,
   };
 
   return {
@@ -284,6 +286,7 @@ export function aggregateKpisFromRevenueDays(days: RevenueDayFact[]): DashboardA
     prevValue: null as number | null,
     forecast: null as number | null,
     forecastToday: null as number | null,
+    paceRisk: false,
   };
 
   return {

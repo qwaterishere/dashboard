@@ -114,7 +114,7 @@ describe('ShellRightPanelComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders weak spots with negative stock deep-link and sync CTA', () => {
+  it('renders operational risks with negative stock deep-link and sync CTA', () => {
     const root = fixture.nativeElement as HTMLElement;
     expect(root.querySelector('aside')?.getAttribute('aria-label')).toContain('Сейчас важно');
     expect(root.textContent).toContain('Сейчас важно');

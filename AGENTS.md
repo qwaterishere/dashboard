@@ -18,7 +18,7 @@
 | TypeScript | Нет |
 | Тесты | Нет |
 | CI/CD | Нет |
-| Страницы | 4 рабочих + 1 заглушка (`purchases.html`) |
+| Страницы | 4 рабочих + заглушка (legacy; раздел «Закупки» отменён → targets) |
 | Файлов JS | ~1 200 строк логики |
 
 **Миграция = greenfield-переписывание фронтенда**, а не обновление версии Angular.
@@ -125,7 +125,7 @@ Storybook — каталог design system. Pages в Storybook не обязат
 | `LabelComponent` | `.ttl`, `.dc-label`, `.fc-name` | Текстовая метка |
 | `HeadingComponent` | `.head h1`, `.p-head h3` | h1–h4 с типографикой |
 | `TextComponent` | `.k-sub`, `.r-cap`, `.bc-sub` | Muted/secondary text |
-| `DotComponent` | `.lg-dot`, `.store-dot` | Цветная точка |
+| `DotComponent` | `.lg-dot`, `.store-dot` | Цветная точка; `size: sm\|md`, `color` override (tokens) |
 | `ProgressFillComponent` | `<i style="width:...">` в bars | `@Input() width`, `@Input() variant` |
 | `ProgressTrackComponent` | `.g-track`, `.bar`, `.br-track` | Track + slot для fill |
 | `MarkLineComponent` | `.g-mark`, `.fc-goal` | Вертикальная/горизонтальная метка плана |
@@ -133,12 +133,13 @@ Storybook — каталог design system. Pages в Storybook не обязат
 | `DividerComponent` | `.nav-sep`, `.r-divider`, `.pc-divider` | Horizontal rule |
 | `LinkComponent` | `.r-link`, `.ft a` | Styled anchor |
 | `LflBadgeAtom` | `.lfl.up/.dn` | `@Input() direction`, `@Input() value` — обёртка над pipe |
+| `FieldInputComponent` | settings forms | Text input atom |
 
 **Pipes (не компоненты, но atoms-level utilities):** `MoneyPipe`, `PercentPipe`, `SignedPercentPipe`, `SignedPpPipe`, `FmtPipe`, `DecimalPipe`, `MillionsPipe`, `KPipe` — из `app/js/format.js`.
 
-**Constants:** `category.constants.ts` — из `app/js/palette.js`.
+**Constants:** `category.constants.ts` — из `app/js/palette.js`; `attention-tone.constants.ts` — CSS-token tones для attention/trust.
 
-**Utils:** `chart.utils.ts` — `describeArc`, `shade` из `app/js/charts.js`.
+**Utils:** `chart.utils.ts` — `describeArc`, `shade` из `app/js/charts.js`; `restaurant-attention.utils.ts` — VM mapper API→cards (presentation only).
 
 ### 3.2. Molecules (`frontend/src/app/ui/molecules/`)
 
@@ -165,8 +166,22 @@ Storybook — каталог design system. Pages в Storybook не обязат
 | `TableRowComponent` | generic td cells | базовая строка таблицы |
 | `DiscCellComponent` | Label + Text | `.disc-cell` |
 | `LoadErrorComponent` | Text | `.load-error` |
-| `ThemeToggleComponent` | Dot + Text | `.mode` |
-| `ProfileBlockComponent` | Icon + Avatar + Text | `.profile` |
+| `ThemeToggleComponent` | Dot + Text (pill) / SVG icon (icon) | `.mode`; `variant: pill\|icon` |
+| `AttentionItemComponent` | Dot + Text + Link/Button CTA | карточка риска «Сейчас важно» |
+| `TrustStripComponent` | Dot + ProgressTrack/Fill + Button | секция «Данные» (freshness trust) |
+| `ConfirmDialogComponent` | Heading + Text + Button | confirm overlay |
+| `DataFreshnessBadgeComponent` | Dot + Text | sidebar freshness chip |
+| `DataFreshnessBannerComponent` | Text + Button | period-bar banner |
+| `PageGreetingComponent` | Heading | page headline |
+| `PeriodBarComponent` | Segment + pills | period chrome |
+| `FormFieldComponent` | Label + FieldInput | settings forms |
+| `FormBannerComponent` | Text | form status |
+| `SettingsSectionComponent` | Heading + slot | settings blocks |
+| `StatusMetricRowComponent` | Label + Text | settings metrics |
+| `PanelBusyOverlayComponent` | Text | loading overlay |
+| `WeekKpiFooterComponent` | Text | week KPI footer |
+
+> `ProfileBlock` — **organism** (см. §3.3), не molecule.
 
 ### 3.3. Organisms (`frontend/src/app/ui/organisms/` + feature-specific)
 
@@ -174,12 +189,14 @@ Storybook — каталог design system. Pages в Storybook не обязат
 
 | Компонент | Состав | Legacy |
 |-----------|--------|--------|
-| `SidebarOrganism` | Logo + NavItem × N + ThemeToggle | `<aside class="side">` |
+| `SidebarOrganism` | Logo + NavItem × N + DataFreshnessBadge | `<aside class="side">` (theme перенесён в ProfileBlock) |
 | `DonutChartOrganism` | SVG paths + LegendRow × N + center slot | `#donut`, `#legend` (sales + warehouse) |
 | `BarChartGroupsOrganism` | PanelHeader + BarRow × N (grouped) | `#bars` |
 | `DetailPopoverOrganism` | PopoverRow × N + Link | `.kpop` (dashboard KPI popovers) |
 | `DayDetailPopoverOrganism` | PopoverRow × N + Link | `.kpop.day` (chart day) |
 | `SegmentedChartOrganism` | SVG chart area + axes | generic SVG wrapper |
+| `RestaurantAttentionOrganism` | AttentionItem × N + TrustStrip | правая панель «Сейчас важно» / «Данные» |
+| `ProfileBlockOrganism` (`ProfileBlockComponent`) | Avatar + Text + ThemeToggle(icon) + notifications + ConfirmDialog | `.profile` |
 
 #### Feature organisms (`features/{feature}/organisms/`)
 
@@ -209,14 +226,17 @@ Storybook — каталог design system. Pages в Storybook не обязат
 
 | Template | Layout | Слоты |
 |----------|--------|-------|
-| `AppShellTemplate` | Grid 208px \| 1fr \| 296px | `sidebar`, `main`, `right` |
+| `AppShellTemplate` | Grid 208px \| 1fr \| 296px; ≤1180 — attention sheet | `sidebar`, `main`, `shellRight`; chrome: attention-toggle / sheet |
+| `AppShellHost` | **Smart shell host** (исключение): period bars + `ShellRightPanel` | `ui/templates/`; тянет feature containers |
 | `DashboardLayoutTemplate` | AppShell + period bar + main panels + right panels | `header`, `period`, `content`, `rightTop`, `rightBottom` |
 | `SalesLayoutTemplate` | AppShell без right panel (full width main) | `header`, `period`, `content` |
 | `WarehouseLayoutTemplate` | AppShell full width | `header`, `meta`, `content` |
 | `FoodcostLayoutTemplate` | AppShell full width | `header`, `period`, `content` |
 | `PlaceholderLayoutTemplate` | AppShell + empty state | `title`, `message` |
 
-Templates **не** вызывают API. Получают `@Input()` или проецируют `<ng-content>`.
+**Shell data:** `features/shell/` — `ShellRightPanel` (smart) + `AttentionDataStore`; SoT = `GET /api/attention`. Attention organisms — presentation only.
+
+Templates **не** вызывают API (кроме документированного исключения `AppShellHost`). Получают `@Input()` или проецируют `<ng-content>`.
 
 ### 3.5. Pages (`frontend/src/app/features/{feature}/pages/`)
 
@@ -226,7 +246,8 @@ Templates **не** вызывают API. Получают `@Input()` или пр
 | `SalesPageComponent` | `/sales` | `SalesLayoutTemplate` | `httpResource<SalesData>('sales')` |
 | `WarehousePageComponent` | `/warehouse` | `WarehouseLayoutTemplate` | `httpResource<WarehouseData>('warehouse')` |
 | `FoodcostPageComponent` | `/foodcost` | `FoodcostLayoutTemplate` | `httpResource<FoodcostData>('foodcost')` |
-| `PurchasesPageComponent` | `/purchases` | `PlaceholderLayoutTemplate` | stub |
+| `TargetsPageComponent` | `/targets` | (feature layout) | targets API |
+| `SupportPageComponent` | `/support` | `PlaceholderLayoutTemplate` | stub |
 
 Pages — **единственное место**, где допустимы:
 - `httpResource()` / `ApiService`
@@ -293,7 +314,8 @@ dashboard/
 │   │   │       │   └── sales.routes.ts
 │   │   │       ├── warehouse/
 │   │   │       ├── foodcost/
-│   │   │       └── purchases/
+│   │   │       ├── targets/
+│   │   │       └── support/
 │   │   ├── assets/styles/
 │   │   │   ├── _tokens.scss
 │   │   │   ├── _layout.scss
@@ -363,7 +385,7 @@ export const routes: Routes = [
       { path: 'sales',     loadComponent: () => import('./features/sales/pages/sales-page/...') },
       { path: 'warehouse', loadComponent: () => import('./features/warehouse/pages/warehouse-page/...') },
       { path: 'foodcost',  loadComponent: () => import('./features/foodcost/pages/foodcost-page/...') },
-      { path: 'purchases', loadComponent: () => import('./features/purchases/pages/purchases-page/...') },
+      { path: 'targets',   loadComponent: () => import('./features/targets/pages/targets-page/...') },
     ],
   },
 ];
@@ -475,10 +497,10 @@ npx playwright install
 
 ### Фаза 7 — Stubs + unwired UI (2 дня)
 
-- `PurchasesPageComponent` — placeholder
 - `PeriodService` (signal) — wiring period toggles
 - `ThemeToggleComponent` — dark/light
 - Settings/Support — placeholder или скрыть
+- ~~Purchases~~ — **отменён**; вместо раздела — `TargetsPageComponent`
 
 ### Фаза 8 — Cutover (1–2 дня)
 
@@ -1191,7 +1213,7 @@ jobs:
 | Pixel drift | Playwright visual regression |
 | API недоступен | Generic error UI; без static JSON-подмены |
 | ABC regression | Unit-тесты до порта |
-| Scope creep | Purchases/Settings — placeholder only |
+| Scope creep | Support — placeholder only; Purchases отменён → targets |
 | **XSS через API data** | Strict templates + XSS unit tests + no innerHTML |
 | **Supply chain attack (npm/pip)** | Lockfiles + audit CI + review new deps |
 | **Secret leak в repo** | gitleaks pre-commit + CI |

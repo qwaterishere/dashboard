@@ -10,7 +10,8 @@ import pytest
 
 from src.schemas.attention import AttentionResponse, DomainStatus
 from src.schemas.stock import NegativeStock
-from src.services.attention import PACE_RISK_RATIO, build_attention
+from src.services.attention import build_attention
+from src.services.analytics.pace import PACE_RISK_RATIO
 from src.services.stock import SnapshotNotFound
 from tests.conftest import DEV_ORIGIN
 

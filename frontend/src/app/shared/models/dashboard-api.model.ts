@@ -14,6 +14,8 @@ export interface KpiMetric {
   forecast: number | null;
   /** Expected cumulative by as-of day; null if not ready or period already complete. */
   forecastToday: number | null;
+  /** Server-side: fact < forecastToday * pace_risk_ratio (analytics.pace). */
+  paceRisk: boolean;
 }
 
 export interface RevenueDayFact {

@@ -1219,6 +1219,18 @@ export interface components {
             forecast: number | null;
             /** Forecast Today */
             forecast_today: number | null;
+            /**
+             * Pace Risk
+             * @description fact < forecast_today * pace_risk_ratio (канон attention/KPI)
+             * @default false
+             */
+            pace_risk?: boolean;
+            /**
+             * Pace Risk Ratio
+             * @description Порог из analytics.pace — единый с attention
+             * @default 0.98
+             */
+            pace_risk_ratio?: number;
             /** Points */
             points: components["schemas"]["ForecastPoint"][];
         };

@@ -11,10 +11,11 @@ interface ProfileBlockStoryArgs {
   role: string;
   showLogout: boolean;
   hasUnread: boolean;
+  isDark: boolean;
 }
 
 const meta: Meta<ProfileBlockStoryArgs> = {
-  title: 'Molecules/ProfileBlock',
+  title: 'Organisms/ProfileBlock',
   component: ProfileBlockComponent,
   parameters: { layout: 'centered' },
   decorators: [
@@ -28,29 +29,20 @@ const meta: Meta<ProfileBlockStoryArgs> = {
     role: { control: 'text' },
     showLogout: { control: 'boolean' },
     hasUnread: { control: 'boolean' },
+    isDark: { control: 'boolean' },
   },
 };
 
 export default meta;
 type Story = StoryObj<ProfileBlockStoryArgs>;
 
-export const Default: Story = {
-  args: {
-    initials: 'АК',
-    name: 'Алексей К.',
-    role: 'Управляющий',
-    showLogout: true,
-    hasUnread: false,
-  },
-  render: (args) => ({
+function render(args: ProfileBlockStoryArgs, notifications: unknown[] = []) {
+  return {
     props: {
       ...args,
-      onLogout: () => {
-        console.log('logout');
-      },
-      onTheme: () => {
-        console.log('theme');
-      },
+      notifications,
+      onLogout: () => undefined,
+      onTheme: () => undefined,
     },
     template: `
       <div style="${ATOM_DEMO_PANEL}">
@@ -60,11 +52,57 @@ export const Default: Story = {
           [role]="role"
           [showLogout]="showLogout"
           [hasUnread]="hasUnread"
-          [isDark]="false"
+          [isDark]="isDark"
+          [notifications]="notifications"
           (themeToggled)="onTheme()"
           (logout)="onLogout()"
         />
       </div>
     `,
-  }),
+  };
+}
+
+export const Default: Story = {
+  args: {
+    initials: 'АК',
+    name: 'Алексей К.',
+    role: 'Управляющий',
+    showLogout: true,
+    hasUnread: false,
+    isDark: false,
+  },
+  render: (args) => render(args),
+};
+
+export const DarkTheme: Story = {
+  args: {
+    initials: 'АК',
+    name: 'Алексей К.',
+    role: 'Управляющий',
+    showLogout: true,
+    hasUnread: false,
+    isDark: true,
+  },
+  render: (args) => render(args),
+};
+
+export const WithUnread: Story = {
+  args: {
+    initials: 'АК',
+    name: 'Алексей К.',
+    role: 'Управляющий',
+    showLogout: true,
+    hasUnread: true,
+    isDark: false,
+  },
+  render: (args) =>
+    render(args, [
+      {
+        id: 'n1',
+        message: 'Склад: минусовые остатки',
+        link: '/warehouse',
+        fragment: null,
+        queryParams: { focus: 'negative' },
+      },
+    ]),
 };

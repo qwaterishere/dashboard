@@ -54,8 +54,8 @@ describe('ProfileBlockComponent', () => {
   it('lists notification items in the panel', async () => {
     fixture.componentRef.setInput('notifications', [
       {
-        id: 'sales-lag',
-        message: 'Продажи отстают на 1 день',
+        id: 'n1',
+        message: 'Тестовое уведомление',
         link: '/settings',
         fragment: 'iiko-sync',
       },
@@ -70,13 +70,15 @@ describe('ProfileBlockComponent', () => {
     fixture.detectChanges();
 
     const panel = document.body.querySelector('.notif__panel') as HTMLElement;
-    expect(panel.textContent).toContain('Продажи отстают на 1 день');
+    expect(panel.textContent).toContain('Тестовое уведомление');
   });
 
-  it('emits themeToggled from theme icon', () => {
+  it('emits themeToggled from ThemeToggle icon', () => {
     const toggles: void[] = [];
     fixture.componentInstance.themeToggled.subscribe(() => toggles.push(undefined));
-    const themeBtn = fixture.nativeElement.querySelector('.theme-btn') as HTMLButtonElement;
+    const themeBtn = fixture.nativeElement.querySelector(
+      'app-theme-toggle button',
+    ) as HTMLButtonElement;
     themeBtn.click();
     expect(toggles).toHaveLength(1);
   });

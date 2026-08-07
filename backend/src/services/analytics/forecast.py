@@ -14,6 +14,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.services.analytics.money import money_float
+from src.services.analytics.pace import PACE_RISK_RATIO, is_pace_risk
 from src.services.analytics.queries import period_daily
 
 FORECAST_MIN_DAYS = 7
@@ -87,6 +88,8 @@ def build_forecast_from_daily(
             'ready': False,
             'forecast': None,
             'forecast_today': None,
+            'pace_risk': False,
+            'pace_risk_ratio': PACE_RISK_RATIO,
             'points': [],
         }
 
@@ -135,6 +138,8 @@ def build_forecast_from_daily(
         'ready': True,
         'forecast': fact + projected,
         'forecast_today': pace,
+        'pace_risk': is_pace_risk(fact, pace),
+        'pace_risk_ratio': PACE_RISK_RATIO,
         'points': points,
     }
 

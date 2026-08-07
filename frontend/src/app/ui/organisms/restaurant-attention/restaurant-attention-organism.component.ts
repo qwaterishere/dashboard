@@ -2,13 +2,13 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { RouterLink } from '@angular/router';
 
 import type { RestaurantAttentionVm } from '../../../shared/utils/restaurant-attention.utils';
-import { ButtonComponent } from '../../atoms/button/button.component';
 import { AttentionItemComponent } from '../../molecules/attention-item/attention-item.component';
+import { TrustStripComponent } from '../../molecules/trust-strip/trust-strip.component';
 
 @Component({
   selector: 'app-restaurant-attention-organism',
   standalone: true,
-  imports: [RouterLink, ButtonComponent, AttentionItemComponent],
+  imports: [AttentionItemComponent, TrustStripComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="attn" aria-label="Сейчас важно">
@@ -51,73 +51,12 @@ import { AttentionItemComponent } from '../../molecules/attention-item/attention
 
       <section class="attn__block attn__block--secondary" aria-labelledby="attn-data-title">
         <h2 id="attn-data-title" class="attn__title">Данные</h2>
-
-        @if (vm().trust; as trust) {
-          @if (!trust.expanded) {
-            <p class="attn__trust-compact">
-              <span
-                class="attn__dot"
-                [class.attn__dot--ok]="trust.tone === 'ok'"
-                aria-hidden="true"
-              ></span>
-              {{ trust.compactLabel }}
-            </p>
-          } @else {
-            <div class="attn__trust">
-              <p class="attn__trust-head">
-                <span
-                  class="attn__dot"
-                  [class.attn__dot--ok]="trust.tone === 'ok'"
-                  [class.attn__dot--warn]="trust.tone === 'warn'"
-                  [class.attn__dot--critical]="trust.tone === 'critical'"
-                  [class.attn__dot--pulse]="trust.pulsing"
-                  aria-hidden="true"
-                ></span>
-                <span class="attn__trust-headline">{{ trust.headline }}</span>
-              </p>
-
-              @if (trust.progressPercent !== null) {
-                <div
-                  class="attn__progress"
-                  role="progressbar"
-                  [attr.aria-valuenow]="trust.progressPercent"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  [attr.aria-label]="trust.progressLabel ?? 'Синхронизация'"
-                >
-                  <div class="attn__progress-meta">
-                    <span>{{ trust.progressLabel }}</span>
-                    <span>{{ trust.progressPercent }}%</span>
-                  </div>
-                  <div class="attn__progress-track">
-                    <i [style.width.%]="trust.progressPercent"></i>
-                  </div>
-                </div>
-              }
-
-              @if (trust.cta.kind !== 'none') {
-                <div class="attn__cta">
-                  @if (trust.cta.kind === 'configure') {
-                    <a class="attn__cta-link" routerLink="/settings" fragment="iiko-sync">
-                      {{ trust.cta.label }}
-                    </a>
-                  } @else {
-                    <app-button
-                      variant="pill"
-                      [block]="true"
-                      [disabled]="trust.cta.disabled"
-                      (pressed)="onCta(trust.cta.kind)"
-                    >
-                      {{ trust.cta.label }}
-                    </app-button>
-                  }
-                </div>
-              }
-            </div>
-          }
-        } @else if (vm().loading) {
-          <p class="attn__trust-compact attn__trust-compact--muted">Проверка…</p>
-        }
+        <app-trust-strip
+          [trust]="vm().trust"
+          [loading]="vm().loading && !vm().trust"
+          (syncRequested)="syncRequested.emit()"
+          (retryRequested)="retryRequested.emit()"
+        />
       </section>
     </section>
   `,
@@ -128,11 +67,6 @@ export class RestaurantAttentionOrganismComponent {
 
   readonly syncRequested = output<void>();
   readonly retryRequested = output<void>();
-
-  protected onCta(kind: 'sync' | 'configure' | 'retry' | 'none'): void {
-    if (kind === 'sync') this.syncRequested.emit();
-    if (kind === 'retry') this.retryRequested.emit();
-  }
 
   protected onAttentionAction(kind: 'sync' | 'retry'): void {
     if (kind === 'sync') this.syncRequested.emit();

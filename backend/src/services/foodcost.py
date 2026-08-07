@@ -127,8 +127,8 @@ def _discount_sums(session: Session, restaurant_id: UUID,
     }
 
 
-def _compliment_sums(session: Session, restaurant_id: UUID,
-                     d_from: date, d_to: date) -> dict:
+def compliment_sums(session: Session, restaurant_id: UUID,
+                    d_from: date, d_to: date) -> dict:
     """Комплименты/представительские: paid = 0, price > 0."""
     cost, price_value, qty = session.query(
         func.coalesce(func.sum(func.coalesce(DishSale.cost, 0)), 0),
@@ -342,7 +342,7 @@ def build_food_cost(session: Session, restaurant_id: UUID,
         'products': product_sums(session, restaurant_id, d_from, d_to),
         'discounts': _discount_sums(session, restaurant_id, d_from, d_to),
         'losses': {
-            'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),
+            'compliments': compliment_sums(session, restaurant_id, d_from, d_to),
             'staff': _staff_sums(),
             'writeoffs': _writeoff_sums(session, restaurant_id, d_from, d_to,
                                         p_from, p_to),

@@ -4,12 +4,10 @@ import type { AttentionApi } from '../models/attention.model';
 import type { DataFreshness } from '../models/data-freshness.model';
 import {
   attentionDomainsReady,
-  buildFreshnessAttentionItems,
-  buildOperationalAttentionItems,
   buildOperationalAttentionItemsFromApi,
   buildRestaurantAttentionVm,
   formatLastSyncAt,
-  roleLabelFor,
+  navAttentionBadgeCounts,
   sortAttentionItems,
 } from './restaurant-attention.utils';
 
@@ -66,13 +64,6 @@ function attention(partial: Partial<AttentionApi> = {}): AttentionApi {
   };
 }
 
-describe('roleLabelFor', () => {
-  it('maps known roles', () => {
-    expect(roleLabelFor('manager')).toBe('Управляющий');
-    expect(roleLabelFor(null)).toBe('—');
-  });
-});
-
 describe('formatLastSyncAt', () => {
   it('formats relative minutes', () => {
     const now = Date.parse('2026-07-23T10:15:00.000Z');
@@ -115,6 +106,23 @@ describe('buildOperationalAttentionItemsFromApi', () => {
     expect(items.find((i) => i.id === 'foodcost-over')?.title).toBe('Фудкост выше цели');
   });
 
+  it('skips foodcost when overGoal is false even if pct looks high', () => {
+    const items = buildOperationalAttentionItemsFromApi(
+      attention({
+        foodcost: {
+          cleanPct: 40,
+          cleanGoal: 28,
+          cleanGoalConfigured: false,
+          overGoal: false,
+          complimentsFact: 0,
+          complimentsGoal: 0,
+          complimentsOver: false,
+        },
+      }),
+    );
+    expect(items.some((i) => i.id === 'foodcost-over')).toBe(false);
+  });
+
   it('pace copy uses expectations not plan', () => {
     const items = buildOperationalAttentionItemsFromApi(
       attention({
@@ -128,40 +136,6 @@ describe('buildOperationalAttentionItemsFromApi', () => {
 
   it('is empty when flags clear', () => {
     expect(buildOperationalAttentionItemsFromApi(attention())).toEqual([]);
-  });
-});
-
-describe('buildOperationalAttentionItems (legacy)', () => {
-  it('flags foodcost over goal when goal configured', () => {
-    const items = buildOperationalAttentionItems({
-      negativeStock: { count: 0, valueAbs: 0 },
-      foodcost: {
-        cleanPct: 32,
-        cleanGoal: 28,
-        cleanGoalConfigured: true,
-        complimentsFact: 100,
-        complimentsGoal: 4000,
-      },
-      revenuePaceRisk: false,
-      monthPlan: { configured: true },
-    });
-    expect(items.some((i) => i.id === 'foodcost-over')).toBe(true);
-  });
-
-  it('skips foodcost when goal not configured', () => {
-    const items = buildOperationalAttentionItems({
-      negativeStock: { count: 0, valueAbs: 0 },
-      foodcost: {
-        cleanPct: 40,
-        cleanGoal: 28,
-        cleanGoalConfigured: false,
-        complimentsFact: 0,
-        complimentsGoal: 0,
-      },
-      revenuePaceRisk: false,
-      monthPlan: { configured: true },
-    });
-    expect(items.some((i) => i.id === 'foodcost-over')).toBe(false);
   });
 });
 
@@ -195,19 +169,6 @@ describe('sortAttentionItems', () => {
       },
     ]);
     expect(items[0]!.id).toBe('negative-stock');
-  });
-});
-
-describe('buildFreshnessAttentionItems', () => {
-  it('is empty when fresh', () => {
-    expect(buildFreshnessAttentionItems(freshness())).toEqual([]);
-  });
-
-  it('flags unconfigured', () => {
-    const items = buildFreshnessAttentionItems(
-      freshness({ status: 'unconfigured', latestSalesDay: null }),
-    );
-    expect(items[0]!.id).toBe('unconfigured');
   });
 });
 
@@ -316,5 +277,41 @@ describe('buildRestaurantAttentionVm', () => {
     });
     expect(vm.loadError).toBe(true);
     expect(vm.trust?.cta.kind).toBe('retry');
+  });
+});
+
+describe('navAttentionBadgeCounts', () => {
+  it('returns empty map when attention is null', () => {
+    expect(navAttentionBadgeCounts(null)).toEqual({});
+  });
+
+  it('counts operational items by nav path', () => {
+    expect(
+      navAttentionBadgeCounts(
+        attention({
+          negativeStock: { count: 2, valueAbs: 1000 },
+          foodcost: {
+            cleanPct: 32,
+            cleanGoal: 30,
+            cleanGoalConfigured: true,
+            overGoal: true,
+            complimentsFact: 50_000,
+            complimentsGoal: 40_000,
+            complimentsOver: true,
+          },
+          revenuePace: { risk: true, fact: 90, pace: 100 },
+          monthPlan: { configured: false },
+        }),
+      ),
+    ).toEqual({
+      '/warehouse': 1,
+      '/foodcost': 2,
+      '/dashboard': 1,
+      '/targets': 1,
+    });
+  });
+
+  it('omits paths with no attention', () => {
+    expect(navAttentionBadgeCounts(attention())).toEqual({});
   });
 });

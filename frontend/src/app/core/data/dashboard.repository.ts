@@ -75,6 +75,7 @@ export class DashboardRepository {
       prevValue: null as number | null,
       forecast: null as number | null,
       forecastToday: null as number | null,
+      paceRisk: false,
     };
     return {
       period: chart.period,

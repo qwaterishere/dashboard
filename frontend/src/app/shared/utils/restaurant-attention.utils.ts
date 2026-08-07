@@ -7,10 +7,8 @@
 import type { AttentionApi, AttentionDomainStatus } from '../models/attention.model';
 import type { DataFreshness } from '../models/data-freshness.model';
 import {
-  SEVERE_FRESHNESS_LAG_DAYS,
   buildFreshnessBadge,
   formatSalesDay,
-  lagLabel,
   resolveFreshnessDotTone,
 } from '../../core/data/data-freshness.utils';
 import { formatMoney } from './money-format.utils';
@@ -71,26 +69,6 @@ export interface RestaurantAttentionVm {
   trust: TrustStripVm | null;
 }
 
-/** @deprecated Prefer AttentionApi.monthPlan — kept for legacy callers. */
-export interface MonthPlanHint {
-  configured: boolean | null;
-}
-
-/** @deprecated Prefer AttentionApi.negativeStock */
-export interface NegativeStockHint {
-  count: number;
-  valueAbs: number;
-}
-
-/** @deprecated Prefer AttentionApi.foodcost */
-export interface FoodcostAttentionHint {
-  cleanPct: number;
-  cleanGoal: number;
-  cleanGoalConfigured: boolean;
-  complimentsFact: number;
-  complimentsGoal: number;
-}
-
 const SEV_RANK: Record<AttentionSeverity, number> = {
   critical: 0,
   warn: 1,
@@ -106,12 +84,6 @@ const SYNC_ABS_FMT = new Intl.DateTimeFormat('ru-RU', {
 
 const REL_FMT = new Intl.RelativeTimeFormat('ru-RU', { numeric: 'auto' });
 
-const ROLE_LABELS: Record<string, string> = {
-  manager: 'Управляющий',
-  accountant: 'Бухгалтер',
-  warehouse: 'Склад',
-};
-
 const ATTENTION_OK_MESSAGE = 'Критичных отклонений нет';
 const ATTENTION_OK_HINT = 'Можно опираться на цифры';
 
@@ -120,11 +92,6 @@ const DOMAIN_SETTLED: ReadonlySet<AttentionDomainStatus> = new Set([
   'empty',
   'insufficient',
 ]);
-
-export function roleLabelFor(role: string | null | undefined): string {
-  if (!role) return '—';
-  return ROLE_LABELS[role] ?? role;
-}
 
 export function formatLastSyncAt(
   iso: string | null,
@@ -296,167 +263,27 @@ export function buildOperationalAttentionItemsFromApi(
   return items;
 }
 
-/** @deprecated Prefer buildOperationalAttentionItemsFromApi */
-export function buildOperationalAttentionItems(input: {
-  negativeStock: NegativeStockHint | null;
-  foodcost: FoodcostAttentionHint | null;
-  revenuePaceRisk: boolean | null;
-  monthPlan: MonthPlanHint;
-}): AttentionItemVm[] {
-  const stub: AttentionApi = {
-    asOf: '1970-01-01',
-    period: { year: 1970, month: 1 },
-    domains: {
-      stock: 'ready',
-      foodcost: 'ready',
-      revenue: 'ready',
-      targets: 'ready',
-    },
-    negativeStock: input.negativeStock,
-    foodcost: input.foodcost
-      ? {
-          cleanPct: input.foodcost.cleanPct,
-          cleanGoal: input.foodcost.cleanGoal,
-          cleanGoalConfigured: input.foodcost.cleanGoalConfigured,
-          overGoal:
-            input.foodcost.cleanGoalConfigured &&
-            input.foodcost.cleanGoal > 0 &&
-            input.foodcost.cleanPct > input.foodcost.cleanGoal,
-          complimentsFact: input.foodcost.complimentsFact,
-          complimentsGoal: input.foodcost.complimentsGoal,
-          complimentsOver:
-            input.foodcost.complimentsGoal > 0 &&
-            input.foodcost.complimentsFact > input.foodcost.complimentsGoal,
-        }
-      : null,
-    revenuePace:
-      input.revenuePaceRisk === null
-        ? null
-        : { risk: input.revenuePaceRisk, fact: 0, pace: null },
-    monthPlan:
-      input.monthPlan.configured === null
-        ? null
-        : { configured: input.monthPlan.configured },
-  };
-  return buildOperationalAttentionItemsFromApi(stub);
+/**
+ * Счётчики badge в сайдбаре: сколько operational attention ведёт на путь раздела.
+ * Ключ — `item.link` (`/warehouse`, `/foodcost`, …).
+ */
+export function countAttentionBadgesByNavPath(
+  items: readonly AttentionItemVm[],
+): Readonly<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    if (item.actionKind !== 'link' || !item.link) continue;
+    counts[item.link] = (counts[item.link] ?? 0) + 1;
+  }
+  return counts;
 }
 
-/** P2 freshness items — только для trust/legacy; не в ranked list VM. */
-export function buildFreshnessAttentionItems(
-  freshness: DataFreshness,
-): AttentionItemVm[] {
-  const items: AttentionItemVm[] = [];
-
-  if (freshness.status === 'unconfigured') {
-    items.push(
-      makeItem({
-        id: 'unconfigured',
-        severity: 'warn',
-        title: 'iiko не подключён',
-        detail: 'Нужен для продаж и склада',
-        actionLabel: 'В настройки',
-        actionKind: 'link',
-        link: '/settings',
-        fragment: 'iiko-sync',
-        priority: 2,
-      }),
-    );
-    return items;
-  }
-
-  if (freshness.status === 'empty') {
-    items.push(
-      makeItem({
-        id: 'empty',
-        severity: 'warn',
-        title: 'Нет продаж в базе',
-        detail: 'Запустите первую синхронизацию',
-        actionLabel: 'Обновить',
-        actionKind: 'sync',
-        link: null,
-        fragment: null,
-        priority: 2,
-      }),
-    );
-  }
-
-  if (freshness.status === 'error' || freshness.stock.syncStatus === 'error') {
-    const detail =
-      freshness.syncError ||
-      freshness.stock.syncError ||
-      'Не удалось обновить данные из iiko';
-    items.push(
-      makeItem({
-        id: 'sync-error',
-        severity: 'critical',
-        title: 'Ошибка синхронизации',
-        detail,
-        actionLabel: 'В настройки',
-        actionKind: 'link',
-        link: '/settings',
-        fragment: 'iiko-sync',
-        priority: 2,
-      }),
-    );
-  }
-
-  if (freshness.lagDays !== null && freshness.lagDays > 0) {
-    const severe = freshness.lagDays >= SEVERE_FRESHNESS_LAG_DAYS;
-    items.push(
-      makeItem({
-        id: 'sales-lag',
-        severity: severe ? 'critical' : 'warn',
-        title: 'Продажи отстают',
-        detail: lagLabel(freshness.lagDays),
-        actionLabel: 'Обновить',
-        actionKind: 'sync',
-        link: null,
-        fragment: null,
-        priority: 2,
-      }),
-    );
-  }
-
-  if (freshness.stock.lagDays !== null && freshness.stock.lagDays > 0) {
-    const severe = freshness.stock.lagDays >= SEVERE_FRESHNESS_LAG_DAYS;
-    items.push(
-      makeItem({
-        id: 'stock-lag',
-        severity: severe ? 'critical' : 'warn',
-        title: 'Склад отстаёт',
-        detail: lagLabel(freshness.stock.lagDays),
-        actionLabel: 'Обновить',
-        actionKind: 'sync',
-        link: null,
-        fragment: null,
-        priority: 2,
-      }),
-    );
-  }
-
-  const staleLike =
-    freshness.status === 'stale' ||
-    freshness.status === 'stale_manual' ||
-    (freshness.lagDays !== null && freshness.lagDays > 0) ||
-    (freshness.stock.lagDays !== null && freshness.stock.lagDays > 0);
-
-  if (!freshness.autoSyncEnabled && staleLike && freshness.status !== 'empty') {
-    items.push(
-      makeItem({
-        id: 'autosync-off',
-        severity: 'info',
-        title: 'Автообновление выключено',
-        detail: 'Данные обновляются вручную',
-        actionLabel: 'В настройки',
-        actionKind: 'link',
-        link: '/settings',
-        fragment: 'iiko-sync',
-        priority: 2,
-      }),
-    );
-  }
-
-  return items;
+/** Badge counts из сырого attention API (без load-error / trust). */
+export function navAttentionBadgeCounts(
+  attention: AttentionApi | null,
+): Readonly<Record<string, number>> {
+  if (!attention) return {};
+  return countAttentionBadgesByNavPath(buildOperationalAttentionItemsFromApi(attention));
 }
 
 function trustNeedsAttention(freshness: DataFreshness): boolean {
@@ -536,16 +363,6 @@ export function buildRestaurantAttentionVm(input: {
   freshnessLoadError: boolean;
   syncBusy?: boolean;
   nowMs?: number;
-  /** @deprecated Use attention API */
-  negativeStock?: NegativeStockHint | null;
-  /** @deprecated Use attention API */
-  foodcost?: FoodcostAttentionHint | null;
-  /** @deprecated Use attention API */
-  revenuePaceRisk?: boolean | null;
-  /** @deprecated Use attention API */
-  monthPlan?: MonthPlanHint;
-  /** @deprecated Derived from attention domains */
-  domainsPending?: boolean;
 }): RestaurantAttentionVm {
   const {
     attention,
@@ -651,42 +468,4 @@ export function buildRestaurantAttentionVm(input: {
     domainsReady,
     trust: freshness ? buildTrustStrip(freshness, nowMs, syncBusy) : null,
   };
-}
-
-/** @deprecated Use buildRestaurantAttentionVm */
-export function buildAppStatusVm(input: {
-  freshness: DataFreshness | null;
-  loading: boolean;
-  loadError: boolean;
-  role?: string | null;
-  monthPlan?: MonthPlanHint;
-  nowMs?: number;
-}): RestaurantAttentionVm {
-  return buildRestaurantAttentionVm({
-    attention: {
-      asOf: '1970-01-01',
-      period: { year: 1970, month: 1 },
-      domains: {
-        stock: 'ready',
-        foodcost: 'ready',
-        revenue: 'ready',
-        targets: 'ready',
-      },
-      negativeStock: { count: 0, valueAbs: 0 },
-      foodcost: null,
-      revenuePace: { risk: false, fact: 0, pace: null },
-      monthPlan: input.monthPlan?.configured != null
-        ? { configured: input.monthPlan.configured }
-        : { configured: true },
-    },
-    freshness: input.freshness,
-    freshnessLoading: input.loading,
-    freshnessLoadError: input.loadError,
-    nowMs: input.nowMs,
-  });
-}
-
-/** @deprecated Use buildFreshnessAttentionItems / buildOperationalAttentionItemsFromApi */
-export function buildAttentionItems(freshness: DataFreshness): AttentionItemVm[] {
-  return buildFreshnessAttentionItems(freshness);
 }

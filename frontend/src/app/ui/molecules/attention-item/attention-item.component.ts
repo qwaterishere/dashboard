@@ -1,21 +1,18 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
+import { ATTENTION_TONE_COLOR } from '../../../shared/constants/attention-tone.constants';
 import type {
   AttentionActionKind,
   AttentionSeverity,
 } from '../../../shared/utils/restaurant-attention.utils';
-
-const TONE: Record<AttentionSeverity, string> = {
-  info: 'var(--mut)',
-  warn: '#e6a700',
-  critical: 'var(--red)',
-};
+import { DotComponent } from '../../atoms/dot/dot.component';
+import { TextComponent } from '../../atoms/text/text.component';
 
 @Component({
   selector: 'app-attention-item',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DotComponent, TextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -24,41 +21,41 @@ const TONE: Record<AttentionSeverity, string> = {
       [class.att--warn]="severity() === 'warn'"
       [class.att--info]="severity() === 'info'"
     >
-      <span class="att__dot" [style.background]="dotColor()" aria-hidden="true"></span>
-      <div class="att__body">
+      <div class="att__head">
+        <span class="att__dot-wrap" aria-hidden="true">
+          <app-dot size="sm" [color]="dotColor()" />
+        </span>
         <p class="att__title">{{ title() }}</p>
-        @if (detail()) {
-          <p class="att__detail">{{ detail() }}</p>
-        }
-        @if (actionLabel()) {
-          @if (actionKind() === 'link' && link()) {
-            <a
-              class="att__action"
-              [routerLink]="link()"
-              [queryParams]="queryParams() ?? undefined"
-              [fragment]="fragment() ?? undefined"
-            >
-              {{ actionLabel() }}
-            </a>
-          } @else if (actionKind() === 'sync') {
-            <button type="button" class="att__action" (click)="action.emit('sync')">
-              {{ actionLabel() }}
-            </button>
-          } @else if (actionKind() === 'none') {
-            <button type="button" class="att__action" (click)="action.emit('retry')">
-              {{ actionLabel() }}
-            </button>
-          }
-        }
       </div>
+      @if (detail()) {
+        <app-text class="att__detail" tone="muted">{{ detail() }}</app-text>
+      }
+      @if (actionLabel()) {
+        @if (actionKind() === 'link' && link()) {
+          <a
+            class="att__action"
+            [routerLink]="link()"
+            [queryParams]="queryParams() ?? undefined"
+            [fragment]="fragment() ?? undefined"
+          >
+            {{ actionLabel() }}
+          </a>
+        } @else if (actionKind() === 'sync') {
+          <button type="button" class="att__action" (click)="action.emit('sync')">
+            {{ actionLabel() }}
+          </button>
+        } @else if (actionKind() === 'none') {
+          <button type="button" class="att__action" (click)="action.emit('retry')">
+            {{ actionLabel() }}
+          </button>
+        }
+      }
     </div>
   `,
   styles: `
     .att {
-      display: grid;
-      grid-template-columns: 8px 1fr;
-      gap: 10px;
-      align-items: start;
+      display: flex;
+      flex-direction: column;
       padding: 10px 10px;
       border-radius: 10px;
       background: transparent;
@@ -69,19 +66,31 @@ const TONE: Record<AttentionSeverity, string> = {
     }
 
     .att--warn {
-      background: color-mix(in srgb, #e6a700 10%, transparent);
+      background: color-mix(in srgb, var(--amber) 12%, transparent);
     }
 
     .att--info {
       background: color-mix(in srgb, var(--mut) 8%, transparent);
     }
 
-    .att__dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-top: 5px;
+    .att__head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .att__dot-wrap {
+      display: flex;
       flex: none;
+      align-items: center;
+      justify-content: center;
+      width: 8px;
+      line-height: 0;
+    }
+
+    .att__dot-wrap app-dot {
+      display: block;
+      line-height: 0;
     }
 
     .att__title {
@@ -93,16 +102,17 @@ const TONE: Record<AttentionSeverity, string> = {
     }
 
     .att__detail {
-      margin: 3px 0 0;
-      font-size: 0.7rem;
-      line-height: 1.4;
-      color: var(--mut);
+      display: block;
+      margin-top: 3px;
+      margin-left: 18px;
       font-weight: 600;
+      line-height: 1.4;
     }
 
     .att__action {
       display: inline-block;
       margin-top: 6px;
+      margin-left: 18px;
       padding: 0;
       border: 0;
       background: none;
@@ -137,7 +147,10 @@ export class AttentionItemComponent {
 
   readonly action = output<'sync' | 'retry'>();
 
-  protected dotColor(): string {
-    return TONE[this.severity()];
-  }
+  protected readonly dotColor = computed(() => {
+    const sev = this.severity();
+    if (sev === 'critical') return ATTENTION_TONE_COLOR.critical;
+    if (sev === 'warn') return ATTENTION_TONE_COLOR.warn;
+    return ATTENTION_TONE_COLOR.info;
+  });
 }

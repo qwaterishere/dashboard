@@ -23,7 +23,7 @@ import { DividerComponent } from '../../atoms/divider/divider.component';
           <app-nav-item
             [path]="item.path"
             [label]="item.label"
-            [badge]="item.badge"
+            [badge]="badgeFor(item.path)"
             [active]="isActive(item.path)"
           />
         }
@@ -54,6 +54,8 @@ export class SidebarOrganismComponent {
 
   readonly mainNav = input<NavItemConfig[]>(MAIN_NAV_ITEMS);
   readonly secondaryNav = input<NavItemConfig[]>(SECONDARY_NAV_ITEMS);
+  /** path → count operational attention items for that section. */
+  readonly attentionBadges = input<Readonly<Record<string, number>>>({});
 
   protected readonly freshness = this.freshnessService.freshness;
   protected readonly freshnessLoadError = this.freshnessService.loadError;
@@ -64,5 +66,10 @@ export class SidebarOrganismComponent {
   isActive(path: string): boolean {
     const expected = path.replace(/^\//, '');
     return this.navActive.segment() === expected;
+  }
+
+  protected badgeFor(path: string): string | undefined {
+    const count = this.attentionBadges()[path] ?? 0;
+    return count > 0 ? String(count) : undefined;
   }
 }

@@ -49,7 +49,11 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
       [class.app--with-right]="showRightPanel()"
       [class.app--attention-open]="attentionOpen()"
     >
-      <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
+      <app-sidebar-organism
+        class="app-sidebar"
+        [class.open]="sidebarOpen()"
+        [attentionBadges]="attentionBadges()"
+      />
       <main class="app-main app-scroll" (scroll)="mainScroll.emit()">
         @if (showPageHeadline()) {
           <app-page-greeting [headline]="pageHeadline()" [variant]="pageHeadlineVariant()" />
@@ -102,6 +106,8 @@ export class AppShellTemplateComponent {
   readonly sidebarOpen = input(false);
   readonly showRightPanel = input(false);
   readonly attentionOpen = input(false);
+  /** path → count attention items (sidebar badges). */
+  readonly attentionBadges = input<Readonly<Record<string, number>>>({});
 
   readonly sidebarToggle = output<void>();
   readonly sidebarClose = output<void>();

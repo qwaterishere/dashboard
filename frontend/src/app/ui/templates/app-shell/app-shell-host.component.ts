@@ -11,9 +11,11 @@ import { DashboardPeriodBarComponent } from '../../../features/dashboard/contain
 import { SalesPeriodBarComponent } from '../../../features/sales/containers/sales-period-bar/sales-period-bar.component';
 import { TargetsPeriodBarComponent } from '../../../features/targets/containers/targets-period-bar/targets-period-bar.component';
 import { WarehousePeriodBarComponent } from '../../../features/warehouse/containers/warehouse-period-bar/warehouse-period-bar.component';
+import { AttentionDataStore } from '../../../features/shell/data/attention-data.store';
 import { ShellRightPanelComponent } from '../../../features/shell/containers/shell-right-panel/shell-right-panel.component';
 import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { DataFreshnessBannerComponent } from '../../molecules/data-freshness-banner/data-freshness-banner.component';
+import { navAttentionBadgeCounts } from '../../../shared/utils/restaurant-attention.utils';
 import { AppShellTemplateComponent } from './app-shell-template.component';
 
 const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcost', 'targets']);
@@ -51,6 +53,7 @@ const RIGHT_PANEL_SEGMENTS = new Set([
       [sidebarOpen]="sidebarOpen()"
       [showRightPanel]="showRightPanel()"
       [attentionOpen]="attentionOpen()"
+      [attentionBadges]="attentionBadges()"
       (sidebarToggle)="toggleSidebar()"
       (sidebarClose)="closeSidebar()"
       (attentionToggle)="toggleAttention()"
@@ -83,11 +86,16 @@ export class AppShellHostComponent {
   private readonly popovers = inject(PopoverController);
   private readonly navActive = inject(NavActiveService);
   private readonly freshnessService = inject(DataFreshnessService);
+  private readonly attentionStore = inject(AttentionDataStore);
 
   protected readonly dataFreshness = this.freshnessService.freshness;
 
   protected readonly sidebarOpen = signal(false);
   protected readonly attentionOpen = signal(false);
+
+  protected readonly attentionBadges = computed(() =>
+    navAttentionBadgeCounts(this.attentionStore.attention()),
+  );
 
   protected readonly isSales = computed(() => this.navActive.segment() === 'sales');
 

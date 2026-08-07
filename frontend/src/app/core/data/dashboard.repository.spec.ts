@@ -115,6 +115,8 @@ function sampleSnapshot(): MetricSnapshotApi {
         ready: true,
         forecast: 3000,
         forecast_today: 1100,
+        pace_risk: false,
+        pace_risk_ratio: 0.98,
         points: [],
       },
       {
@@ -125,6 +127,8 @@ function sampleSnapshot(): MetricSnapshotApi {
         ready: true,
         forecast: 30,
         forecast_today: 11,
+        pace_risk: false,
+        pace_risk_ratio: 0.98,
         points: [],
       },
       {
@@ -135,6 +139,8 @@ function sampleSnapshot(): MetricSnapshotApi {
         ready: true,
         forecast: 60,
         forecast_today: 22,
+        pace_risk: false,
+        pace_risk_ratio: 0.98,
         points: [],
       },
     ],
