@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from src.api.routes.attention import create_attention_router
 from src.api.routes.auth import create_auth_router
 from src.api.routes.data_freshness import create_data_freshness_router
 from src.api.routes.foodcost import create_foodcost_router
@@ -192,6 +193,7 @@ def create_app() -> FastAPI:
     app.include_router(create_sales_router(limiter))
     app.include_router(create_stock_router(limiter))
     app.include_router(create_data_freshness_router(limiter))
+    app.include_router(create_attention_router(limiter))
     app.include_router(create_targets_router(limiter))
     app.include_router(create_foodcost_router(limiter))
     app.include_router(create_base_metrics_router(limiter))

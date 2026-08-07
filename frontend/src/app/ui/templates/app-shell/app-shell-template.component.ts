@@ -16,6 +16,18 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
     <button type="button" class="nav-toggle" (click)="sidebarToggle.emit()" aria-label="Меню">
       ☰
     </button>
+    @if (showRightPanel()) {
+      <button
+        type="button"
+        class="attention-toggle"
+        (click)="attentionToggle.emit()"
+        [attr.aria-expanded]="attentionOpen()"
+        aria-controls="shell-attention-sheet"
+        aria-label="Сейчас важно"
+      >
+        Сейчас важно
+      </button>
+    }
     @if (sidebarOpen()) {
       <button
         type="button"
@@ -24,7 +36,19 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
         aria-label="Закрыть меню"
       ></button>
     }
-    <div class="app" [class.app--with-right]="showRightPanel()">
+    @if (attentionOpen()) {
+      <button
+        type="button"
+        class="attention-backdrop"
+        (click)="attentionClose.emit()"
+        aria-label="Закрыть «Сейчас важно»"
+      ></button>
+    }
+    <div
+      class="app"
+      [class.app--with-right]="showRightPanel()"
+      [class.app--attention-open]="attentionOpen()"
+    >
       <app-sidebar-organism class="app-sidebar" [class.open]="sidebarOpen()" />
       <main class="app-main app-scroll" (scroll)="mainScroll.emit()">
         @if (showPageHeadline()) {
@@ -41,7 +65,27 @@ import { DetailPopoverOrganismComponent } from '../../organisms/detail-popover/d
         </div>
       </main>
       @if (showRightPanel()) {
-        <ng-content select="[shellRight]" />
+        <div
+          id="shell-attention-sheet"
+          class="attention-sheet"
+          [class.attention-sheet--open]="attentionOpen()"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Сейчас важно"
+        >
+          <div class="attention-sheet__bar">
+            <span class="attention-sheet__title">Сейчас важно</span>
+            <button
+              type="button"
+              class="attention-sheet__close"
+              (click)="attentionClose.emit()"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+          </div>
+          <ng-content select="[shellRight]" />
+        </div>
       }
     </div>
     <app-detail-popover-organism />
@@ -57,8 +101,11 @@ export class AppShellTemplateComponent {
   readonly showPeriodBar = input(true);
   readonly sidebarOpen = input(false);
   readonly showRightPanel = input(false);
+  readonly attentionOpen = input(false);
 
   readonly sidebarToggle = output<void>();
   readonly sidebarClose = output<void>();
+  readonly attentionToggle = output<void>();
+  readonly attentionClose = output<void>();
   readonly mainScroll = output<void>();
 }

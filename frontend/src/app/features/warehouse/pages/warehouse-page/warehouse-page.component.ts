@@ -1,4 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { WarehouseDataStore } from '../../data/warehouse-data.store';
 import { LoadErrorComponent } from '../../../../ui/molecules/load-error/load-error.component';
@@ -34,6 +36,7 @@ import { NegativeStockBannerOrganismComponent } from '../../organisms/negative-s
             <app-negative-stock-banner-organism
               [summary]="data.value().negativeStock"
               [positions]="data.value().positions"
+              [initiallyOpen]="expandNegative()"
             />
             @if (cardsLoading()) {
               <div class="card-slot__overlay" aria-live="polite" aria-busy="true">
@@ -87,7 +90,12 @@ import { NegativeStockBannerOrganismComponent } from '../../organisms/negative-s
 })
 export class WarehousePageComponent {
   private readonly warehouseStore = inject(WarehouseDataStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+
   readonly data = this.warehouseStore.data;
+  /** Deep-link `?focus=negative` — раскрыть баннер минусов. */
+  protected readonly expandNegative = signal(false);
 
   readonly cardsLoading = computed(() => this.data.cardsLoading());
 
@@ -95,4 +103,17 @@ export class WarehousePageComponent {
     if (!this.data.hasValue()) return [];
     return computeWarehouseStock(this.data.value().positions);
   });
+
+  constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      if (params.get('focus') !== 'negative') return;
+      this.expandNegative.set(true);
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { focus: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+  }
 }

@@ -1,10 +1,13 @@
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   HostListener,
   inject,
+  Injector,
   input,
   signal,
 } from '@angular/core';
@@ -63,9 +66,13 @@ import { FmtPipe, MoneyPipe } from '../../../../shared/pipes/format.pipes';
 })
 export class NegativeStockBannerOrganismComponent {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly injector = inject(Injector);
+  private didAutoOpen = false;
 
   readonly summary = input.required<WarehouseData['negativeStock']>();
   readonly positions = input.required<WarehousePosition[]>();
+  /** Deep-link `/warehouse?focus=negative` — раскрыть список и проскроллить. */
+  readonly initiallyOpen = input(false);
 
   protected readonly open = signal(false);
 
@@ -76,8 +83,26 @@ export class NegativeStockBannerOrganismComponent {
       .sort((a, b) => Math.abs(b.value) - Math.abs(a.value) || a.name.localeCompare(b.name, 'ru')),
   );
 
+  constructor() {
+    effect(() => {
+      if (!this.initiallyOpen() || this.didAutoOpen) return;
+      this.didAutoOpen = true;
+      this.openDetail();
+    });
+  }
+
   storeLabel(store: WarehousePosition['store']): string {
     return CAT_NAME[store] ?? store;
+  }
+
+  openDetail(): void {
+    this.open.set(true);
+    afterNextRender(
+      () => {
+        this.host.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      },
+      { injector: this.injector },
+    );
   }
 
   toggle(): void {

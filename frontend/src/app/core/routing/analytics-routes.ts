@@ -1,3 +1,5 @@
+import type { PageName } from '../../shared/models';
+
 /** Сегменты аналитических страниц с кэшем компонентов и TTL-данных. */
 export const ANALYTICS_ROUTE_SEGMENTS = [
   'dashboard',
@@ -16,19 +18,16 @@ export function isCachedRoutePath(path: string | undefined): path is AnalyticsRo
   return !!path && isAnalyticsRoute(path);
 }
 
-/** Страницы API, которые нужно освежить при активном маршруте.
- *
- * Правая панель (категории + остаток) общая для shell — всегда
- * держим dashboard и warehouse в актуальном TTL вместе с текущей страницей.
+/**
+ * Страницы API, которые нужно освежить при активном маршруте.
+ * Attention — лёгкий бриф правой панели; dashboard+warehouse только
+ * если нужны самой странице (stock mini на дашборде).
  */
 export function pagesToSyncForRoute(
   segment: AnalyticsRouteSegment,
-): readonly AnalyticsRouteSegment[] {
+): readonly PageName[] {
   if (segment === 'dashboard') {
-    return ['dashboard', 'warehouse'];
+    return ['dashboard', 'warehouse', 'attention'];
   }
-  if (segment === 'warehouse') {
-    return ['warehouse', 'dashboard'];
-  }
-  return [segment, 'dashboard', 'warehouse'];
+  return [segment, 'attention'];
 }

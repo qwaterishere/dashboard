@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ProfileBlockComponent } from './profile-block.component';
 
@@ -8,6 +10,7 @@ describe('ProfileBlockComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ProfileBlockComponent],
+      providers: [provideRouter([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProfileBlockComponent);
@@ -15,6 +18,11 @@ describe('ProfileBlockComponent', () => {
     fixture.componentRef.setInput('name', 'Алексей К.');
     fixture.componentRef.setInput('role', 'Управляющий');
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    document.body.querySelectorAll('.notif__panel').forEach((el) => el.remove());
+    document.body.querySelectorAll('.confirm__panel').forEach((el) => el.remove());
   });
 
   it('hides unread dot by default', () => {
@@ -27,18 +35,50 @@ describe('ProfileBlockComponent', () => {
     expect(fixture.nativeElement.querySelector('.ndot')).not.toBeNull();
   });
 
-  it('toggles empty notifications panel on bell click', () => {
-    const bell = fixture.nativeElement.querySelector('.icon-btn') as HTMLButtonElement;
+  it('toggles empty notifications panel on bell click', async () => {
+    const bell = fixture.nativeElement.querySelector('.notif-btn') as HTMLButtonElement;
     bell.click();
     fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
 
-    const panel = fixture.nativeElement.querySelector('.notif__panel') as HTMLElement;
+    const panel = document.body.querySelector('.notif__panel') as HTMLElement;
     expect(panel).not.toBeNull();
     expect(panel.textContent?.trim()).toBe('Нет уведомлений');
 
     bell.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.notif__panel')).toBeNull();
+    expect(document.body.querySelector('.notif__panel')).toBeNull();
+  });
+
+  it('lists notification items in the panel', async () => {
+    fixture.componentRef.setInput('notifications', [
+      {
+        id: 'sales-lag',
+        message: 'Продажи отстают на 1 день',
+        link: '/settings',
+        fragment: 'iiko-sync',
+      },
+    ]);
+    fixture.componentRef.setInput('hasUnread', true);
+    fixture.detectChanges();
+
+    const bell = fixture.nativeElement.querySelector('.notif-btn') as HTMLButtonElement;
+    bell.click();
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    const panel = document.body.querySelector('.notif__panel') as HTMLElement;
+    expect(panel.textContent).toContain('Продажи отстают на 1 день');
+  });
+
+  it('emits themeToggled from theme icon', () => {
+    const toggles: void[] = [];
+    fixture.componentInstance.themeToggled.subscribe(() => toggles.push(undefined));
+    const themeBtn = fixture.nativeElement.querySelector('.theme-btn') as HTMLButtonElement;
+    themeBtn.click();
+    expect(toggles).toHaveLength(1);
   });
 
   it('opens confirm dialog on logout and emits only after confirm', async () => {

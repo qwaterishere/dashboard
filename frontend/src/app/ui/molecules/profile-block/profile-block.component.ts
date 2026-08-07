@@ -10,47 +10,82 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { TextComponent } from '../../atoms/text/text.component';
 import { ConfirmDialogComponent } from '../confirm-dialog/confirm-dialog.component';
 
-const NOTIF_PANEL_WIDTH_PX = 168;
+const NOTIF_PANEL_WIDTH_PX = 240;
 const NOTIF_PANEL_GAP_PX = 8;
+
+export interface ProfileNotificationItem {
+  id: string;
+  message: string;
+  link: string | null;
+  fragment: string | null;
+  queryParams?: Record<string, string> | null;
+}
 
 @Component({
   selector: 'app-profile-block',
   standalone: true,
-  imports: [ButtonComponent, TextComponent, ConfirmDialogComponent],
+  imports: [ButtonComponent, TextComponent, ConfirmDialogComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="profile-wrap">
       <div class="profile">
-        <div class="notif">
-          <button
-            #notifBtn
-            type="button"
-            class="icon-btn"
-            [attr.aria-expanded]="notifOpen()"
-            aria-haspopup="dialog"
-            aria-label="Уведомления"
-            (click)="toggleNotif($event)"
-          >
-            @if (hasUnread()) {
-              <span class="ndot" aria-hidden="true"></span>
+        <div class="profile__identity">
+          <div class="ava" aria-hidden="true">{{ initials() }}</div>
+          <div class="who">
+            <b>{{ name() }}</b>
+            @if (role()) {
+              <app-text tone="muted">{{ role() }}</app-text>
             }
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
-              <path d="M10 20a2 2 0 004 0" />
-            </svg>
-          </button>
+          </div>
         </div>
-        <div class="ava">{{ initials() }}</div>
-        <div class="who">
-          <b>{{ name() }}</b>
-          <app-text tone="muted">{{ role() }}</app-text>
+
+        <div class="profile__tools" role="group" aria-label="Действия">
+          <button
+            type="button"
+            class="icon-btn theme-btn"
+            [attr.aria-pressed]="isDark()"
+            [attr.aria-label]="isDark() ? 'Включить светлую тему' : 'Включить тёмную тему'"
+            (click)="themeToggled.emit()"
+          >
+            @if (isDark()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 14.5A8.5 8.5 0 1110.5 3a7 7 0 0010.5 11.5z" />
+              </svg>
+            }
+          </button>
+          <div class="notif">
+            <button
+              #notifBtn
+              type="button"
+              class="icon-btn notif-btn"
+              [attr.aria-expanded]="notifOpen()"
+              aria-haspopup="dialog"
+              [attr.aria-label]="notifAriaLabel()"
+              (click)="toggleNotif($event)"
+            >
+              @if (hasUnread()) {
+                <span class="ndot" aria-hidden="true"></span>
+              }
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 9a6 6 0 10-12 0c0 6-2 7-2 7h16s-2-1-2-7" />
+                <path d="M10 20a2 2 0 004 0" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+
       @if (showLogout()) {
         <app-button class="logout" variant="pill" [block]="true" (pressed)="openLogoutConfirm()">
           Выйти
@@ -67,7 +102,29 @@ const NOTIF_PANEL_GAP_PX = 8;
         [style.top.px]="notifTop()"
         [style.left.px]="notifLeft()"
       >
-        <p class="notif__empty">Нет уведомлений</p>
+        @if (notifications().length === 0) {
+          <p class="notif__empty">Нет уведомлений</p>
+        } @else {
+          <ul class="notif__list">
+            @for (item of notifications(); track item.id) {
+              <li>
+                @if (item.link) {
+                  <a
+                    class="notif__item"
+                    [routerLink]="item.link"
+                    [queryParams]="item.queryParams ?? undefined"
+                    [fragment]="item.fragment ?? undefined"
+                    (click)="notifOpen.set(false)"
+                  >
+                    {{ item.message }}
+                  </a>
+                } @else {
+                  <p class="notif__item notif__item--static">{{ item.message }}</p>
+                }
+              </li>
+            }
+          </ul>
+        }
       </div>
     }
 
@@ -87,16 +144,34 @@ const NOTIF_PANEL_GAP_PX = 8;
     .profile-wrap {
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      gap: 10px;
+      gap: 12px;
+      width: 100%;
       margin-bottom: 24px;
     }
 
     .profile {
       display: flex;
       align-items: center;
-      gap: 11px;
-      justify-content: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .profile__identity {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .profile__tools {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: none;
+      margin-inline-start: 4px;
     }
 
     .logout {
@@ -108,9 +183,9 @@ const NOTIF_PANEL_GAP_PX = 8;
     }
 
     .icon-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 11px;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
       border: 1px solid var(--line);
       background: var(--card);
       color: var(--mut);
@@ -119,11 +194,12 @@ const NOTIF_PANEL_GAP_PX = 8;
       position: relative;
       padding: 0;
       cursor: pointer;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
 
       &:hover {
         color: var(--txt);
         border-color: rgba(110, 107, 255, 0.45);
+        background: var(--card2, var(--card));
       }
 
       &:focus-visible {
@@ -131,14 +207,16 @@ const NOTIF_PANEL_GAP_PX = 8;
         outline-offset: 2px;
       }
     }
+
     .icon-btn svg {
-      width: 16px;
-      height: 16px;
+      width: 15px;
+      height: 15px;
     }
+
     .ndot {
       position: absolute;
-      top: 8px;
-      right: 9px;
+      top: 7px;
+      right: 8px;
       width: 6px;
       height: 6px;
       border-radius: 50%;
@@ -151,14 +229,13 @@ const NOTIF_PANEL_GAP_PX = 8;
       z-index: 110;
       width: ${NOTIF_PANEL_WIDTH_PX}px;
       min-height: 88px;
-      padding: 14px 16px;
+      max-height: min(360px, 70vh);
+      overflow-y: auto;
+      padding: 12px 14px;
       border-radius: 14px;
       border: 1px solid rgba(110, 107, 255, 0.45);
       background: var(--popover-bg);
       box-shadow: var(--popover-shadow);
-      display: grid;
-      place-items: center;
-      text-align: center;
 
       &::before {
         content: '';
@@ -176,30 +253,84 @@ const NOTIF_PANEL_GAP_PX = 8;
 
     .notif__empty {
       margin: 0;
+      padding: 18px 8px;
       font-size: 0.78rem;
       font-weight: 700;
       color: var(--mut);
       line-height: 1.4;
+      text-align: center;
+    }
+
+    .notif__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .notif__item {
+      display: block;
+      margin: 0;
+      padding: 8px 6px;
+      border-radius: 8px;
+      font-size: 0.74rem;
+      font-weight: 650;
+      line-height: 1.35;
+      color: var(--txt);
+      text-decoration: none;
+      text-align: left;
+
+      &:hover {
+        background: var(--nav-hover-bg);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--vio);
+        outline-offset: 1px;
+      }
+    }
+
+    .notif__item--static {
+      color: var(--mut);
+      font-weight: 600;
     }
 
     .ava {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
       flex: none;
       background: linear-gradient(135deg, var(--vio), var(--grn));
       display: grid;
       place-items: center;
       font-weight: 800;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: #0a0e18;
     }
+
+    .who {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
     .who b {
       font-size: 0.84rem;
+      line-height: 1.25;
       display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
     .who app-text {
       display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   `,
 })
@@ -213,9 +344,12 @@ export class ProfileBlockComponent {
   readonly name = input.required<string>();
   readonly role = input('');
   readonly showLogout = input(true);
-  /** Green unread indicator — off until notifications exist. */
+  readonly notifications = input<ProfileNotificationItem[]>([]);
+  /** Green unread indicator. */
   readonly hasUnread = input(false);
+  readonly isDark = input(false);
   readonly logout = output<void>();
+  readonly themeToggled = output<void>();
 
   protected readonly notifOpen = signal(false);
   protected readonly notifTop = signal(0);
@@ -230,6 +364,12 @@ export class ProfileBlockComponent {
       this.notifOpen.set(false);
       this.logoutConfirmOpen.set(false);
     });
+  }
+
+  protected notifAriaLabel(): string {
+    const n = this.notifications().length;
+    if (n === 0) return 'Уведомления';
+    return `Уведомления, ${n}`;
   }
 
   openLogoutConfirm(): void {

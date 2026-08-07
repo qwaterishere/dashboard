@@ -64,4 +64,10 @@ describe('NegativeStockBannerOrganismComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.neg__panel')).toBeNull();
   });
+
+  it('opens detail when initiallyOpen is true', () => {
+    fixture.componentRef.setInput('initiallyOpen', true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.neg__panel')).not.toBeNull();
+  });
 });

@@ -26,7 +26,13 @@ export interface ForecastBlock {
   risk: boolean;
 }
 
-export type PageName = 'dashboard' | 'sales' | 'warehouse' | 'foodcost' | 'targets';
+export type PageName =
+  | 'dashboard'
+  | 'sales'
+  | 'warehouse'
+  | 'foodcost'
+  | 'targets'
+  | 'attention';
 
 export interface PopoverRow {
   label: string;

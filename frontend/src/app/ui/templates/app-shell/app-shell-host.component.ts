@@ -8,17 +8,17 @@ import { NavActiveService } from '../../../core/routing/nav-active.service';
 import { pageTitleForSegment } from '../../../shared/constants/nav.constants';
 import { buildGreeting } from '../../../shared/utils/greeting.utils';
 import { DashboardPeriodBarComponent } from '../../../features/dashboard/containers/dashboard-period-bar/dashboard-period-bar.component';
-import { DashboardRightPanelComponent } from '../../../features/dashboard/containers/dashboard-right-panel/dashboard-right-panel.component';
 import { SalesPeriodBarComponent } from '../../../features/sales/containers/sales-period-bar/sales-period-bar.component';
 import { TargetsPeriodBarComponent } from '../../../features/targets/containers/targets-period-bar/targets-period-bar.component';
 import { WarehousePeriodBarComponent } from '../../../features/warehouse/containers/warehouse-period-bar/warehouse-period-bar.component';
+import { ShellRightPanelComponent } from '../../../features/shell/containers/shell-right-panel/shell-right-panel.component';
 import type { PageHeadlineVariant } from '../../molecules/page-greeting/page-greeting.component';
 import { DataFreshnessBannerComponent } from '../../molecules/data-freshness-banner/data-freshness-banner.component';
 import { AppShellTemplateComponent } from './app-shell-template.component';
 
 const PERIOD_BAR_SEGMENTS = new Set(['dashboard', 'sales', 'warehouse', 'foodcost', 'targets']);
 
-/** Правая панель (профиль) — общий chrome всех страниц shell. */
+/** Правая панель — общий chrome: профиль + состояние приложения. */
 const RIGHT_PANEL_SEGMENTS = new Set([
   'dashboard',
   'sales',
@@ -39,7 +39,7 @@ const RIGHT_PANEL_SEGMENTS = new Set([
     SalesPeriodBarComponent,
     TargetsPeriodBarComponent,
     WarehousePeriodBarComponent,
-    DashboardRightPanelComponent,
+    ShellRightPanelComponent,
     DataFreshnessBannerComponent,
   ],
   template: `
@@ -50,8 +50,11 @@ const RIGHT_PANEL_SEGMENTS = new Set([
       [showPeriodBar]="showPeriodBar()"
       [sidebarOpen]="sidebarOpen()"
       [showRightPanel]="showRightPanel()"
+      [attentionOpen]="attentionOpen()"
       (sidebarToggle)="toggleSidebar()"
       (sidebarClose)="closeSidebar()"
+      (attentionToggle)="toggleAttention()"
+      (attentionClose)="closeAttention()"
       (mainScroll)="onMainScroll()"
     >
       @if (showPeriodBar()) {
@@ -70,7 +73,7 @@ const RIGHT_PANEL_SEGMENTS = new Set([
       }
       <router-outlet />
       @if (showRightPanel()) {
-        <app-dashboard-right-panel shellRight />
+        <app-shell-right-panel shellRight />
       }
     </app-shell-template>
   `,
@@ -84,6 +87,7 @@ export class AppShellHostComponent {
   protected readonly dataFreshness = this.freshnessService.freshness;
 
   protected readonly sidebarOpen = signal(false);
+  protected readonly attentionOpen = signal(false);
 
   protected readonly isSales = computed(() => this.navActive.segment() === 'sales');
 
@@ -120,10 +124,20 @@ export class AppShellHostComponent {
 
   toggleSidebar(): void {
     this.sidebarOpen.update((open) => !open);
+    if (this.sidebarOpen()) this.attentionOpen.set(false);
   }
 
   closeSidebar(): void {
     this.sidebarOpen.set(false);
+  }
+
+  toggleAttention(): void {
+    this.attentionOpen.update((open) => !open);
+    if (this.attentionOpen()) this.sidebarOpen.set(false);
+  }
+
+  closeAttention(): void {
+    this.attentionOpen.set(false);
   }
 
   onMainScroll(): void {

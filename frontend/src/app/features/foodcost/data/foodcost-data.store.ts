@@ -75,6 +75,21 @@ export class FoodcostDataStore {
     return buildFoodcostViewModel(raw, { granularity: this.granularity() });
   });
 
+  /** Сигналы для правой панели «Слабые места». */
+  readonly attentionHint = computed(() => {
+    const raw = this.rawData();
+    const vm = this.viewModel();
+    if (!raw || !vm) return null;
+    const compliments = vm.losses.rows.find((row) => row.name === 'Представительские');
+    return {
+      cleanPct: vm.overview.clean.pct,
+      cleanGoal: vm.overview.clean.goal,
+      cleanGoalConfigured: raw.totals.goal != null && raw.totals.goal > 0,
+      complimentsFact: compliments?.fact ?? 0,
+      complimentsGoal: compliments?.goal ?? 0,
+    };
+  });
+
   constructor() {
     this.sync.register('foodcost', this.data);
 

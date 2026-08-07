@@ -20,7 +20,26 @@
   cursor: pointer;
 }
 
-.sidebar-backdrop {
+.attention-toggle {
+  display: none;
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 120;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--txt);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sidebar-backdrop,
+.attention-backdrop {
   display: none;
   position: fixed;
   inset: 0;
@@ -29,6 +48,24 @@
   background: rgba(0, 0, 0, 0.45);
   cursor: pointer;
 }
+
+.attention-backdrop {
+  display: block;
+  z-index: 110;
+}
+
+.attention-sheet {
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.attention-sheet__bar {
+  display: none;
+}
+
 
 .app {
   display: grid;
@@ -79,12 +116,70 @@
   .app {
     grid-template-columns: var(--sidebar-width, 208px) minmax(0, 1fr);
   }
+
+  .attention-toggle {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .attention-sheet {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 115;
+    width: min(100vw, 360px);
+    max-width: 100vw;
+    background: var(--surface-right);
+    border-left: 1px solid var(--border-strong);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .attention-sheet--open {
+    display: flex;
+  }
+
+  .attention-sheet__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+
+  .attention-sheet__title {
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .attention-sheet__close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--txt);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+  }
 }
 
 @media (max-width: 900px) {
   .nav-toggle,
   .sidebar-backdrop {
     display: block;
+  }
+
+  .attention-toggle {
+    /* Keep clear of sidebar toggle on small screens */
+    left: auto;
+    right: 14px;
   }
 
   .app {

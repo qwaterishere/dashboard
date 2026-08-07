@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular';
+import { applicationConfig } from '@storybook/angular';
+import { provideRouter } from '@angular/router';
 
 import { ATOM_DEMO_PANEL } from '../../storybook/demo-frame';
 import { ProfileBlockComponent } from './profile-block.component';
@@ -15,6 +17,11 @@ const meta: Meta<ProfileBlockStoryArgs> = {
   title: 'Molecules/ProfileBlock',
   component: ProfileBlockComponent,
   parameters: { layout: 'centered' },
+  decorators: [
+    applicationConfig({
+      providers: [provideRouter([])],
+    }),
+  ],
   argTypes: {
     initials: { control: 'text' },
     name: { control: 'text' },
@@ -41,6 +48,9 @@ export const Default: Story = {
       onLogout: () => {
         console.log('logout');
       },
+      onTheme: () => {
+        console.log('theme');
+      },
     },
     template: `
       <div style="${ATOM_DEMO_PANEL}">
@@ -50,6 +60,8 @@ export const Default: Story = {
           [role]="role"
           [showLogout]="showLogout"
           [hasUnread]="hasUnread"
+          [isDark]="false"
+          (themeToggled)="onTheme()"
           (logout)="onLogout()"
         />
       </div>

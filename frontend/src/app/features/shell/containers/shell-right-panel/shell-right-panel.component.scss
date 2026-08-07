@@ -1,0 +1,31 @@
+:host {
+  display: contents;
+}
+
+.right {
+  grid-column: unset;
+  grid-row: unset;
+  width: var(--right-panel-width, 296px);
+  max-width: var(--right-panel-width, 296px);
+  min-width: var(--right-panel-width, 296px);
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 24px 22px;
+  border-left: 1px solid var(--border-strong);
+  background: var(--surface-right);
+  align-self: start;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1180px) {
+  .right {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: auto;
+    flex: 1;
+    border-left: 0;
+    padding-top: 16px;
+  }
+}
