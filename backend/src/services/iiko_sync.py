@@ -390,6 +390,19 @@ def run_sync_job(restaurant_id: uuid.UUID, *, full: bool = False) -> None:
             progress_hook=_stock_progress if stock_plan is not None else None,
         )
 
+        # Списания — вторичный домен со своим статусом в
+        # restaurant_sync_domains: его сбой логируется, но не валит job
+        # (продажи и склад уже загружены — пользователь не должен видеть
+        # error из-за актов).
+        try:
+            from src.services.writeoffs_sync import sync_restaurant_writeoffs
+            sync_restaurant_writeoffs(restaurant)
+        except Exception:
+            logger.exception(
+                "writeoffs sync failed restaurant=%s (job continues)",
+                restaurant_id,
+            )
+
         restaurant = session.get(Restaurant, restaurant_id)
         if restaurant is None:
             return

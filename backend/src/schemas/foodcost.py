@@ -137,13 +137,46 @@ class Staff(StrictModel):
     qty: float = Field(description="Порций")
 
 
+class WriteoffCategory(StrictModel):
+    """Категория актов списания — маркерный резолвер счетов iiko."""
+
+    key: str = Field(
+        description="Тип потери: spoilage/brak/tasting/compliment/staff/"
+        "blogger/marketing/deletion/operational/hotel/other. "
+        "Локализация и выбор отображаемых — зона фронтенда"
+    )
+    sum: float = Field(description="Сумма списаний категории за период")
+    rows: int = Field(description="Число строк-актов (день х счёт х продукт)")
+
+
+class Writeoffs(StrictModel):
+    """Акты списания за период. Отдаём ВСЕ категории — какие рисовать,
+    решает фронт (далее — настройка ресторана). Сторно исключены из сумм."""
+
+    total: float = Field(description="Сумма всех категорий")
+    categories: list[WriteoffCategory] = Field(
+        description="Только ненулевые, по убыванию суммы"
+    )
+    prevTotal: float | None = Field(
+        description="Сумма за compare-период; null — период не покрыт "
+        "данными домена (синк списаний моложе периода)"
+    )
+    stornoCount: int = Field(
+        description="Минусовых проводок на счетах потерь в периоде — "
+        "сноска для фронта, в total НЕ входят"
+    )
+    stornoSum: float = Field(
+        description="Их суммарный минус (отрицательное число)"
+    )
+
+
 class Losses(StrictModel):
     compliments: Compliments
     staff: Staff
-    writeoffs: None = Field(
+    writeoffs: Writeoffs | None = Field(
         default=None,
-        description="Акты списания (порча, бой, бракераж) — null, пока "
-        "OLAP TRANSACTIONS не загружаются",
+        description="Акты списания по категориям; null — запрошенный период "
+        "старше первых загруженных актов (честное «данных нет», а не ноль)",
     )
     writeoffsGoal: float | None = Field(
         default=None,
@@ -169,8 +202,9 @@ class Foodcost(StrictModel):
     )
     dirty: None = Field(
         default=None,
-        description="Фудкост с учётом потерь — null, пока нет writeoffs: "
-        "без списаний число было бы занижено",
+        description="Фудкост с учётом потерь — null: состав (какие категории "
+        "списаний включать в процент) задаст настройка ресторана — "
+        "управляющий выбирает сам; до неё число не отдаём",
     )
     units: list[UnitCost] = Field(
         description="Всегда четыре элемента: k, b, w, o (нулевые включены)"
