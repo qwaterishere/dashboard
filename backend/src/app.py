@@ -23,6 +23,7 @@ from src.api.routes.base_metrics import create_base_metrics_router
 from src.api.routes.sales import create_sales_router
 from src.api.routes.stock import create_stock_router
 from src.api.routes.targets import create_targets_router
+from src.api.routes.writeoffs import create_writeoffs_router
 from src.core.config import get_settings
 from src.core.logging import configure_logging
 from src.core.request_context import get_request_id
@@ -195,6 +196,7 @@ def create_app() -> FastAPI:
     app.include_router(create_targets_router(limiter))
     app.include_router(create_foodcost_router(limiter))
     app.include_router(create_base_metrics_router(limiter))
+    app.include_router(create_writeoffs_router(limiter))
 
     def _error_request_id(request: Request) -> str | None:
         return get_request_id() or getattr(request.state, "request_id", None)
