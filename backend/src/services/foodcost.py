@@ -196,6 +196,67 @@ def _staff_sums() -> dict:
     return {'cost': 0.0, 'paidSum': 0.0, 'qty': 0.0}
 
 
+def _writeoff_sums(session: Session, restaurant_id: UUID,
+                   d_from: date, d_to: date,
+                   compare_from: date, compare_to: date) -> dict | None:
+    """losses.writeoffs: ВСЕ категории за период + prevTotal + сторно-сноска.
+
+    Отдаём всё, отрисовку и выбор категорий делает фронт (далее —
+    настройка ресторана). None, если период старше первых загруженных
+    актов: нулевые списания месяца, который мы не синкали, выглядели бы
+    как «идеальный месяц» — честнее «данных нет»."""
+    from src.db.models.writeoffs import WriteoffEntry
+
+    first = session.query(func.min(WriteoffEntry.day)).filter(
+        WriteoffEntry.restaurant_id == restaurant_id,
+    ).scalar()
+    if first is None or d_from < first:
+        return None
+
+    rows = session.query(
+        WriteoffEntry.loss_type,
+        func.sum(WriteoffEntry.sum),
+        func.count(WriteoffEntry.id),
+    ).filter(
+        WriteoffEntry.restaurant_id == restaurant_id,
+        WriteoffEntry.day.between(d_from, d_to),
+        WriteoffEntry.storno.is_(False),
+    ).group_by(WriteoffEntry.loss_type).all()
+
+    categories = sorted(
+        ({'key': lt, 'sum': money_float(sm), 'rows': cnt}
+         for lt, sm, cnt in rows),
+        key=lambda c: -c['sum'],
+    )
+
+    storno_count, storno_sum = session.query(
+        func.count(WriteoffEntry.id),
+        func.coalesce(func.sum(WriteoffEntry.sum), 0),
+    ).filter(
+        WriteoffEntry.restaurant_id == restaurant_id,
+        WriteoffEntry.day.between(d_from, d_to),
+        WriteoffEntry.storno.is_(True),
+    ).one()
+
+    prev_total = None
+    if compare_from >= first:
+        prev_total = money_float(session.query(
+            func.coalesce(func.sum(WriteoffEntry.sum), 0),
+        ).filter(
+            WriteoffEntry.restaurant_id == restaurant_id,
+            WriteoffEntry.day.between(compare_from, compare_to),
+            WriteoffEntry.storno.is_(False),
+        ).scalar())
+
+    return {
+        'total': sum(c['sum'] for c in categories),
+        'categories': categories,
+        'prevTotal': prev_total,
+        'stornoCount': storno_count,
+        'stornoSum': money_float(storno_sum),
+    }
+
+
 def _has_paid_orders(session: Session, restaurant_id: UUID,
                      d_from: date, d_to: date) -> bool:
     """«Сравнивать не с чем» = в периоде нет ни одного платного чека."""
@@ -283,7 +344,8 @@ def build_food_cost(session: Session, restaurant_id: UUID,
         'losses': {
             'compliments': _compliment_sums(session, restaurant_id, d_from, d_to),
             'staff': _staff_sums(),
-            'writeoffs': None,  # OLAP TRANSACTIONS ещё не загружаются
+            'writeoffs': _writeoff_sums(session, restaurant_id, d_from, d_to,
+                                        p_from, p_to),
             'writeoffsGoal': goals.writeoffs_goal_rub,
             'complimentsGoal': goals.compliments_goal_rub,
         },

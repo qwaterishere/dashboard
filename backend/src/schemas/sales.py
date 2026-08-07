@@ -42,7 +42,10 @@ class SaleRecord(BaseModel):
     # Склейка переименований: имя — снапшот на момент продажи, id вечен.
     # Читающая сторона группирует по id и берёт имя последней продажи.
     dish_id: UUID = Field(alias="DishId")
-    group_id: UUID = Field(alias="DishGroup.Id")
+    # None — блюдо вне групп (как top_group=None): встречается не у всех
+    # ресторанов (Бишкек, 08.2026); в разрезах групп такие строки идут
+    # в «вне подразделений».
+    group_id: UUID | None = Field(default=None, alias="DishGroup.Id")
     # category_id сохраняем для стабильной склейки при переименованиях;
     # продуктовый разрез по категориям пока не используется.
     category_id: UUID | None = Field(default=None, alias="DishCategory.Id")
